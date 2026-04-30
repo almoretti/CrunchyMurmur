@@ -13,6 +13,7 @@
       </div>
       <nav>
         <button class="nav-item active" data-tab="history">History</button>
+        <button class="nav-item"        data-tab="models">Models</button>
         <button class="nav-item"        data-tab="settings">Settings</button>
       </nav>
       <div class="hint">
@@ -35,6 +36,22 @@
           <div class="title">No recordings yet</div>
           <div class="subtitle">Hold Ctrl+Win anywhere on Windows to dictate. Results appear here.</div>
         </div>
+      </section>
+
+      <!-- Models -->
+      <section id="tab-models" class="tab">
+        <header class="toolbar">
+          <h2 class="toolbar-title">Whisper models</h2>
+          <span class="spacer"></span>
+          <button id="openModelsFolder" class="text-button">Open folder</button>
+        </header>
+        <div class="models-help">
+          Models are stored in <code id="modelsDirPath">…</code>. Downloads come straight from
+          <a href="https://huggingface.co/ggerganov/whisper.cpp" target="_blank" rel="noopener">huggingface.co/ggerganov/whisper.cpp</a>
+          — no account needed. Pick the one that fits your accuracy / disk-space budget;
+          for most people <strong>Large v3 Turbo (Q5)</strong> is the sweet spot.
+        </div>
+        <div id="modelsList" class="models-list"></div>
       </section>
 
       <!-- Settings -->
@@ -69,15 +86,19 @@
               <button id="pickCli" class="text-button">Browse…</button>
             </div>
 
-            <label>Model file (.bin)</label>
+            <label>Use a downloaded model</label>
+            <select id="installedModelPicker">
+              <option value="">— Pick from your downloads —</option>
+            </select>
+            <p class="muted small">
+              Manage downloads in the <a href="#" data-jump-tab="models">Models</a> tab.
+            </p>
+
+            <label>Or specify a custom .bin path</label>
             <div class="row">
               <input id="modelPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\models\\ggml-large-v3-turbo-q5_0.bin" />
               <button id="pickModel" class="text-button">Browse…</button>
             </div>
-            <p class="muted small">
-              Recommended model: <code>ggml-large-v3-turbo-q5_0.bin</code> (~574 MB, multilingual).
-              Download from <a href="https://huggingface.co/ggerganov/whisper.cpp/tree/main" target="_blank" rel="noopener">Hugging Face</a>.
-            </p>
           </div>
 
           <!-- Groq engine fields -->

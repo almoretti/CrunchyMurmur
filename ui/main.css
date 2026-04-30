@@ -224,3 +224,76 @@ kbd {
   transition: height 60ms linear, background-color 60ms linear, opacity 60ms linear;
 }
 .mic-test-meter.active .bar { background: var(--accent); }
+
+/* Models tab */
+.toolbar-title { margin: 0; font-size: 14px; font-weight: 600; }
+.models-help {
+  padding: 12px 16px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.models-help code {
+  background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; font-size: 11px;
+  user-select: text; -webkit-user-select: text;
+}
+.models-help a { color: var(--accent); }
+.models-list {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.model-card {
+  background: var(--bg-elevated);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto auto;
+  gap: 6px 14px;
+  align-items: center;
+}
+.model-card.installed { border-color: rgba(48,209,88,0.4); }
+.model-card .name {
+  font-weight: 600; font-size: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.model-card .badge {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.model-card .badge.recommended { background: rgba(10,132,255,0.18); color: var(--accent); }
+.model-card .badge.installed   { background: rgba(48,209,88,0.18); color: #30d158; }
+.model-card .meta {
+  grid-column: 1 / 2;
+  font-size: 12px; color: var(--text-muted);
+  display: flex; flex-wrap: wrap; gap: 12px;
+}
+.model-card .actions {
+  grid-column: 2 / 3; grid-row: 1 / 3;
+  display: flex; gap: 6px; align-self: center;
+}
+.model-card .progress {
+  grid-column: 1 / 3; grid-row: 3 / 4;
+  display: none; align-items: center; gap: 10px;
+  padding-top: 6px;
+}
+.model-card.downloading .progress { display: flex; }
+.model-card .progress-track {
+  flex: 1; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.model-card .progress-fill {
+  height: 100%; background: var(--accent);
+  width: 0%;
+  transition: width 200ms linear;
+}
+.model-card .progress-label {
+  font-size: 11px; color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

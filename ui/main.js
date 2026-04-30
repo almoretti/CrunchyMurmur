@@ -1,11 +1,18 @@
 // Tab switching
+function switchTab(tab) {
+  document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + tab));
+}
 document.querySelectorAll('.nav-item').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.nav-item').forEach((b) => b.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-  });
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+// Allow inline links to jump tabs (e.g. Settings → "Models" hint).
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  if (t && t.matches && t.matches('[data-jump-tab]')) {
+    e.preventDefault();
+    switchTab(t.getAttribute('data-jump-tab'));
+  }
 });
 
 // History
@@ -87,9 +94,134 @@ clearAllBtn.addEventListener('click', async () => {
 
 window.wisper.onHistoryChanged((next) => { entries = next; render(); });
 
+// ----- Models tab -----
+const modelsListEl = document.getElementById('modelsList');
+const modelsDirPathEl = document.getElementById('modelsDirPath');
+const openModelsFolderBtn = document.getElementById('openModelsFolder');
+
+function formatBytes(b) {
+  if (b >= 1e9) return (b / 1e9).toFixed(2) + ' GB';
+  if (b >= 1e6) return (b / 1e6).toFixed(0) + ' MB';
+  if (b >= 1e3) return (b / 1e3).toFixed(0) + ' KB';
+  return b + ' B';
+}
+
+let catalog = [];
+const downloadingIds = new Set();
+
+function renderModels() {
+  modelsListEl.innerHTML = '';
+  for (const m of catalog) {
+    const card = document.createElement('div');
+    card.className = 'model-card' + (m.installed ? ' installed' : '') + (downloadingIds.has(m.id) ? ' downloading' : '');
+    card.dataset.id = m.id;
+
+    const badges = [];
+    if (m.recommended && !m.installed) badges.push('<span class="badge recommended">Recommended</span>');
+    if (m.installed) badges.push('<span class="badge installed">Installed</span>');
+
+    card.innerHTML = `
+      <div class="name">${escapeHtml(m.name)} ${badges.join(' ')}</div>
+      <div class="meta">
+        <span>${formatBytes(m.size)}</span>
+        <span>${escapeHtml(m.language)}</span>
+        <span>Speed: ${escapeHtml(m.speed)}</span>
+        <span>Accuracy: ${escapeHtml(m.accuracy)}</span>
+      </div>
+      <div class="actions"></div>
+      <div class="progress">
+        <div class="progress-track"><div class="progress-fill"></div></div>
+        <span class="progress-label">Starting…</span>
+      </div>
+    `;
+
+    const actions = card.querySelector('.actions');
+    if (downloadingIds.has(m.id)) {
+      const cancel = document.createElement('button');
+      cancel.className = 'text-button danger';
+      cancel.textContent = 'Cancel';
+      cancel.addEventListener('click', () => window.wisper.modelsCancel(m.id));
+      actions.appendChild(cancel);
+    } else if (m.installed) {
+      const use = document.createElement('button');
+      use.className = 'text-button';
+      use.textContent = 'Use this';
+      use.addEventListener('click', () => useModel(m.id, m.path));
+      actions.appendChild(use);
+
+      const del = document.createElement('button');
+      del.className = 'text-button danger';
+      del.textContent = 'Delete';
+      del.addEventListener('click', async () => {
+        if (!confirm(`Delete ${m.name}? This frees ${formatBytes(m.size)} on disk.`)) return;
+        await window.wisper.modelsRemove(m.id);
+      });
+      actions.appendChild(del);
+    } else {
+      const dl = document.createElement('button');
+      dl.className = 'primary-button';
+      dl.textContent = 'Download';
+      dl.addEventListener('click', () => downloadModel(m.id));
+      actions.appendChild(dl);
+    }
+
+    modelsListEl.appendChild(card);
+  }
+}
+
+async function refreshCatalog() {
+  catalog = await window.wisper.modelsCatalog();
+  renderModels();
+}
+
+async function downloadModel(id) {
+  downloadingIds.add(id);
+  renderModels();
+  const result = await window.wisper.modelsDownload(id);
+  downloadingIds.delete(id);
+  if (!result.ok) {
+    // Don't alert on user-initiated cancel.
+    if (!/canceled/i.test(result.error || '')) {
+      alert('Download failed: ' + result.error);
+    }
+  }
+  await refreshCatalog();
+  await populateInstalledPicker();
+}
+
+function useModel(id, modelPath) {
+  // Jump to Settings, set engine = local, fill path.
+  switchTab('settings');
+  applyEngineKind('local');
+  modelPathEl.value = modelPath;
+  installedModelPickerEl.value = modelPath;
+  // Persist immediately so the user doesn't have to remember to hit Save.
+  window.wisper.saveSettings({ engineKind: 'local', modelPath });
+  saveStatus.textContent = `Using ${id}.`;
+  setTimeout(() => { saveStatus.textContent = ''; }, 2000);
+}
+
+window.wisper.onModelProgress(({ id, bytesDone, bytesTotal }) => {
+  const card = modelsListEl.querySelector(`.model-card[data-id="${CSS.escape(id)}"]`);
+  if (!card) return;
+  const fill = card.querySelector('.progress-fill');
+  const label = card.querySelector('.progress-label');
+  const pct = bytesTotal > 0 ? (bytesDone / bytesTotal) * 100 : 0;
+  fill.style.width = pct.toFixed(1) + '%';
+  label.textContent = `${formatBytes(bytesDone)} / ${formatBytes(bytesTotal)} · ${pct.toFixed(0)}%`;
+});
+
+window.wisper.onModelsChanged(async () => {
+  await refreshCatalog();
+  await populateInstalledPicker();
+});
+
+openModelsFolderBtn.addEventListener('click', () => window.wisper.modelsOpenDir());
+
 // Settings
 const whisperCliPathEl = document.getElementById('whisperCliPath');
 const modelPathEl = document.getElementById('modelPath');
+const installedModelPickerEl = document.getElementById('installedModelPicker');
 const groqApiKeyEl = document.getElementById('groqApiKey');
 const groqModelEl = document.getElementById('groqModel');
 const languageEl = document.getElementById('language');
@@ -101,6 +233,29 @@ const saveBtn = document.getElementById('save');
 const saveStatus = document.getElementById('saveStatus');
 const engineLocalEl = document.getElementById('engineLocal');
 const engineGroqEl = document.getElementById('engineGroq');
+
+async function populateInstalledPicker() {
+  const installed = await window.wisper.modelsInstalled();
+  const current = modelPathEl.value;
+  installedModelPickerEl.innerHTML = '<option value="">— Pick from your downloads —</option>';
+  for (const m of installed) {
+    const opt = document.createElement('option');
+    opt.value = m.path;
+    opt.textContent = `${m.name} (${formatBytes(m.bytes)})`;
+    installedModelPickerEl.appendChild(opt);
+  }
+  // Reflect the current path in the dropdown if it points at one of the
+  // downloaded models, otherwise leave the picker on the placeholder.
+  if (current && installed.some((m) => m.path === current)) {
+    installedModelPickerEl.value = current;
+  } else {
+    installedModelPickerEl.value = '';
+  }
+}
+
+installedModelPickerEl?.addEventListener('change', () => {
+  if (installedModelPickerEl.value) modelPathEl.value = installedModelPickerEl.value;
+});
 
 // Microphone picker
 async function populateMicDevices(selectedId) {
@@ -283,10 +438,15 @@ saveBtn.addEventListener('click', async () => {
   entries = await window.wisper.getHistory();
   render();
 
+  // Models tab data + the path label in the header.
+  modelsDirPathEl.textContent = await window.wisper.modelsDir();
+  await refreshCatalog();
+  await populateInstalledPicker();
+
   const needsSetup = (cfg.engineKind === 'groq')
     ? !cfg.groqApiKey
     : (!cfg.whisperCliPath || !cfg.modelPath);
   if (needsSetup) {
-    document.querySelector('.nav-item[data-tab="settings"]').click();
+    switchTab('settings');
   }
 })();

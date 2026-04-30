@@ -1,8 +1,9 @@
 const path = require('path');
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell } = require('electron');
 
 const settings = require('./settings');
 const history = require('./history');
+const models = require('./models');
 const { transcribeWav, writeTempWav } = require('./transcriber');
 const { transcribeWithGroq } = require('./groq');
 const { pasteText } = require('./paste');
@@ -176,6 +177,36 @@ ipcMain.handle('history:get', () => history.load());
 ipcMain.handle('history:remove', (_e, id) => { history.remove(id); broadcastHistory(); return history.load(); });
 ipcMain.handle('history:clear', () => { history.clear(); broadcastHistory(); return []; });
 ipcMain.handle('clipboard:write', (_e, text) => { clipboard.writeText(text || ''); return true; });
+
+// ---------- IPC: models ----------
+
+ipcMain.handle('models:catalog', () => models.getCatalog());
+ipcMain.handle('models:installed', () => models.listInstalled());
+ipcMain.handle('models:dir', () => models.modelsDir());
+ipcMain.handle('models:open-dir', () => shell.openPath(models.modelsDir()));
+ipcMain.handle('models:download', async (_e, id) => {
+  try {
+    const result = await models.downloadModel(id, ({ id: pid, bytesDone, bytesTotal }) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('models:progress', { id: pid, bytesDone, bytesTotal });
+      }
+    });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('models:installed-changed', models.listInstalled());
+    }
+    return { ok: true, ...result };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+});
+ipcMain.handle('models:cancel', (_e, id) => models.cancelDownload(id));
+ipcMain.handle('models:remove', (_e, id) => {
+  models.removeModel(id);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('models:installed-changed', models.listInstalled());
+  }
+  return { ok: true };
+});
 
 // ---------- App lifecycle ----------
 

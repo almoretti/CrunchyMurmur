@@ -11,6 +11,21 @@ contextBridge.exposeInMainWorld('wisper', {
 
   copyText:       (text) => ipcRenderer.invoke('clipboard:write', text),
 
+  // Models
+  modelsCatalog:   () => ipcRenderer.invoke('models:catalog'),
+  modelsInstalled: () => ipcRenderer.invoke('models:installed'),
+  modelsDir:       () => ipcRenderer.invoke('models:dir'),
+  modelsOpenDir:   () => ipcRenderer.invoke('models:open-dir'),
+  modelsDownload:  (id) => ipcRenderer.invoke('models:download', id),
+  modelsCancel:    (id) => ipcRenderer.invoke('models:cancel', id),
+  modelsRemove:    (id) => ipcRenderer.invoke('models:remove', id),
+  onModelProgress: (cb) => {
+    ipcRenderer.on('models:progress', (_e, p) => cb(p));
+  },
+  onModelsChanged: (cb) => {
+    ipcRenderer.on('models:installed-changed', (_e, list) => cb(list));
+  },
+
   onHistoryChanged: (cb) => {
     ipcRenderer.on('history:changed', (_e, entries) => cb(entries));
   },
