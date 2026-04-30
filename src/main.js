@@ -64,6 +64,7 @@ function showMainWindow() {
     minWidth: 720,
     minHeight: 480,
     title: 'WisperHelp',
+    icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload-main.js'),
       contextIsolation: true,

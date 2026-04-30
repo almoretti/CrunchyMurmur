@@ -47,21 +47,7 @@ If any step fails, the failure mode tells you which subsystem to debug.
 
 ## 🔴 Critical — required for this to feel like a finished app
 
-### 1. Tray icon asset
-`assets/tray.png` does not exist. The fallback in `src/main.js` uses
-`nativeImage.createEmpty()` which renders an invisible (or default) tray
-icon. Drop a 32×32 transparent PNG (white-on-transparent works well in both
-Windows light/dark themes) at `assets/tray.png`. For best results also add
-a 16×16 variant — Electron Tray on Windows scales OK but a hand-tuned 16×16
-looks crisper. The Mac app's `AppIcon.iconset/` has a `icon_16x16.png` that
-could be repurposed.
-
-Also: `assets/icon.ico` is referenced by `electron-builder` in `package.json`
-for installer + window icon. Without it, `npm run build:win` will use the
-Electron default icon. Convert the Mac `AppIcon.icns` to `.ico` (e.g. with
-ImageMagick: `magick AppIcon.iconset/icon_256x256.png assets/icon.ico`).
-
-### 2. Single-instance lock
+### 1. Single-instance lock
 Currently nothing prevents launching two copies of the app — you'd end up
 with two tray icons, two hotkey listeners (one of which probably crashes),
 and racing recording state. Add at the top of `src/main.js`:
@@ -72,11 +58,7 @@ if (!gotLock) { app.quit(); return; }
 app.on('second-instance', () => { showMainWindow(); });
 ```
 
-### 3. App-icon for windows + installer
-See item 1 — same .ico file. Without it the installer is the generic Electron
-icon, which feels unfinished.
-
-### 4. Permission prompt for the global key listener
+### 2. Permission prompt for the global key listener
 On first run, `node-global-key-listener` spawns a small helper binary. On
 some Windows configs (corporate-managed, Defender at high paranoia, or
 Windows 11 Smart App Control) the helper can be blocked. There is currently
@@ -85,7 +67,7 @@ won't see the pill appear and won't know why. Wrap the listener init in a
 try/catch and surface failures via tray tooltip + a one-time `dialog`
 balloon.
 
-### 5. Verify nut-js paste actually fires on Windows
+### 3. Verify nut-js paste actually fires on Windows
 nut-js reliability on Windows depends on the foreground-app's input model
 (UWP apps in particular sometimes ignore synthesized keystrokes). If paste
 silently fails, add a fallback: leave the text on the clipboard and surface
@@ -235,8 +217,8 @@ WisperHelp-Windows/
 ├── README.md                 # User-facing setup guide
 ├── STATUS.md                 # ← you are here
 ├── assets/
-│   ├── tray.png              # ❌ MISSING — tray icon
-│   └── icon.ico              # ❌ MISSING — installer + window icon
+│   ├── tray.png              # 32×32 PNG — used for the system tray icon
+│   └── icon.ico              # multi-size .ico (16/24/32/48/64/128/256) — installer + window icon
 ├── src/
 │   ├── main.js               # Electron main: tray, windows, IPC, recording lifecycle
 │   ├── hotkey.js             # Hold-Ctrl+Win detection (node-global-key-listener)
