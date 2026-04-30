@@ -87,7 +87,7 @@ function render() {
 
 searchEl.addEventListener('input', (e) => { filter = e.target.value; render(); });
 clearAllBtn.addEventListener('click', async () => {
-  if (!confirm('Clear the entire history?')) return;
+  if (!confirm('Clear all recordings?')) return;
   entries = await window.wisper.clearHistory();
   render();
 });
