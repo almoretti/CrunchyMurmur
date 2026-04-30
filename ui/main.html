@@ -99,6 +99,20 @@
           </div>
 
           <!-- Shared fields -->
+          <label>Microphone</label>
+          <div class="row">
+            <select id="micDeviceId" style="flex:1">
+              <option value="">Default microphone (system)</option>
+            </select>
+            <button id="testMic" class="text-button" type="button">Test</button>
+          </div>
+          <div id="micTestMeter" class="mic-test-meter" aria-hidden="true">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          </div>
+          <p id="micHint" class="muted small">
+            Pick the input device for dictation. If transcripts come back empty or as "thank you", the wrong mic is the most common cause.
+          </p>
+
           <label>Language</label>
           <select id="language">
             <option value="auto">Auto-detect</option>

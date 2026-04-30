@@ -9,6 +9,7 @@ const DEFAULTS = {
   language: 'auto',
   groqApiKey: '',
   groqModel: 'whisper-large-v3-turbo',
+  micDeviceId: '', // '' = OS default mic
 };
 
 function configPath() {

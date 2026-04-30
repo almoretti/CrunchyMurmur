@@ -209,3 +209,18 @@ kbd {
 
 .card a { color: var(--accent); }
 .card .small { line-height: 1.5; margin: 0; }
+
+.mic-test-meter {
+  display: flex; align-items: center; gap: 4px;
+  height: 18px;
+  margin-top: 4px;
+}
+.mic-test-meter .bar {
+  display: inline-block;
+  width: 4px; height: 4px;
+  background: var(--text-muted);
+  border-radius: 2px;
+  opacity: 0.4;
+  transition: height 60ms linear, background-color 60ms linear, opacity 60ms linear;
+}
+.mic-test-meter.active .bar { background: var(--accent); }

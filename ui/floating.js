@@ -17,13 +17,28 @@ let nativeSampleRate = 48000;
 let rafHandle = null;
 
 async function startCapture() {
+  let micDeviceId = '';
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-    });
+    const cfg = await window.wisper.getSettings();
+    micDeviceId = (cfg && cfg.micDeviceId) || '';
+  } catch {}
+
+  const audioConstraints = {
+    channelCount: 1,
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  };
+  // `exact` so a saved-but-now-unavailable mic surfaces as an error rather than
+  // silently falling back to a different device (which is exactly the bug we're
+  // trying to fix).
+  if (micDeviceId) audioConstraints.deviceId = { exact: micDeviceId };
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
   } catch (e) {
     console.error('[floating] getUserMedia failed:', e);
-    setLabel('Mic blocked');
+    setLabel(micDeviceId ? 'Mic unavailable' : 'Mic blocked');
     return;
   }
 

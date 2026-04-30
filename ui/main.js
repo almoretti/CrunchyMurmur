@@ -93,10 +93,145 @@ const modelPathEl = document.getElementById('modelPath');
 const groqApiKeyEl = document.getElementById('groqApiKey');
 const groqModelEl = document.getElementById('groqModel');
 const languageEl = document.getElementById('language');
+const micDeviceEl = document.getElementById('micDeviceId');
+const testMicBtn = document.getElementById('testMic');
+const micTestMeterEl = document.getElementById('micTestMeter');
+const micHintEl = document.getElementById('micHint');
 const saveBtn = document.getElementById('save');
 const saveStatus = document.getElementById('saveStatus');
 const engineLocalEl = document.getElementById('engineLocal');
 const engineGroqEl = document.getElementById('engineGroq');
+
+// Microphone picker
+async function populateMicDevices(selectedId) {
+  // Labels are only populated after mic permission has been granted at least
+  // once. If we got back unlabeled devices, prompt for permission then re-list.
+  let devices = await navigator.mediaDevices.enumerateDevices();
+  let inputs = devices.filter((d) => d.kind === 'audioinput');
+  const anyLabeled = inputs.some((d) => d.label);
+
+  if (!anyLabeled && inputs.length) {
+    try {
+      const tmp = await navigator.mediaDevices.getUserMedia({ audio: true });
+      tmp.getTracks().forEach((t) => t.stop());
+      devices = await navigator.mediaDevices.enumerateDevices();
+      inputs = devices.filter((d) => d.kind === 'audioinput');
+    } catch {
+      // Permission denied; we'll just show a generic list.
+    }
+  }
+
+  // Rebuild options, preserving the always-present "Default" option at top.
+  micDeviceEl.innerHTML = '<option value="">Default microphone (system)</option>';
+  for (const d of inputs) {
+    const opt = document.createElement('option');
+    opt.value = d.deviceId;
+    opt.textContent = d.label || `Microphone (${d.deviceId.slice(0, 6)}…)`;
+    micDeviceEl.appendChild(opt);
+  }
+
+  // Restore selection if it's still in the list; otherwise reset to default
+  // and warn the user that the saved device isn't available.
+  if (selectedId && inputs.some((d) => d.deviceId === selectedId)) {
+    micDeviceEl.value = selectedId;
+  } else {
+    micDeviceEl.value = '';
+    if (selectedId) {
+      micHintEl.textContent = 'Saved microphone is not available. Falling back to default.';
+      micHintEl.style.color = 'var(--danger)';
+    }
+  }
+}
+
+// Refresh device list when devices are plugged/unplugged.
+if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+  navigator.mediaDevices.addEventListener('devicechange', () => {
+    populateMicDevices(micDeviceEl.value);
+  });
+}
+
+// Live mic-level test
+const micTestBars = micTestMeterEl ? Array.from(micTestMeterEl.querySelectorAll('.bar')) : [];
+let micTestStream = null;
+let micTestCtx = null;
+let micTestAnalyser = null;
+let micTestRaf = null;
+let micTestTimeout = null;
+
+function stopMicTest() {
+  if (micTestRaf) cancelAnimationFrame(micTestRaf);
+  micTestRaf = null;
+  if (micTestTimeout) clearTimeout(micTestTimeout);
+  micTestTimeout = null;
+  if (micTestAnalyser) { try { micTestAnalyser.disconnect(); } catch {} micTestAnalyser = null; }
+  if (micTestCtx)      { try { micTestCtx.close(); }            catch {} micTestCtx = null; }
+  if (micTestStream)   {
+    micTestStream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+    micTestStream = null;
+  }
+  micTestMeterEl.classList.remove('active');
+  micTestBars.forEach((b) => { b.style.height = '4px'; b.style.opacity = '0.4'; });
+  testMicBtn.textContent = 'Test';
+}
+
+async function startMicTest() {
+  testMicBtn.textContent = 'Stop';
+  micTestMeterEl.classList.add('active');
+  const id = micDeviceEl.value || '';
+  const constraints = {
+    channelCount: 1,
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  };
+  if (id) constraints.deviceId = { exact: id };
+
+  try {
+    micTestStream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+  } catch (e) {
+    micHintEl.textContent = 'Could not open the selected mic: ' + (e.message || e);
+    micHintEl.style.color = 'var(--danger)';
+    stopMicTest();
+    return;
+  }
+
+  micTestCtx = new AudioContext();
+  const src = micTestCtx.createMediaStreamSource(micTestStream);
+  micTestAnalyser = micTestCtx.createAnalyser();
+  micTestAnalyser.fftSize = 512;
+  src.connect(micTestAnalyser);
+
+  const buf = new Uint8Array(micTestAnalyser.frequencyBinCount);
+  const tick = () => {
+    micTestAnalyser.getByteTimeDomainData(buf);
+    let peak = 0;
+    for (let i = 0; i < buf.length; i++) {
+      const v = Math.abs(buf[i] - 128) / 128;
+      if (v > peak) peak = v;
+    }
+    micTestBars.forEach((bar, i) => {
+      const threshold = (i + 1) / micTestBars.length;
+      const intensity = Math.max(0, Math.min(1, peak / threshold));
+      bar.style.height = (4 + intensity * 14) + 'px';
+      bar.style.opacity = String(0.4 + intensity * 0.6);
+    });
+    micTestRaf = requestAnimationFrame(tick);
+  };
+  micTestRaf = requestAnimationFrame(tick);
+
+  // Auto-stop after 8 s so we never leave the mic open.
+  micTestTimeout = setTimeout(stopMicTest, 8000);
+}
+
+testMicBtn.addEventListener('click', () => {
+  if (micTestStream) stopMicTest();
+  else startMicTest();
+});
+
+// Stop the mic test if the user navigates away from Settings.
+document.querySelectorAll('.nav-item').forEach((b) => {
+  b.addEventListener('click', () => { if (micTestStream) stopMicTest(); });
+});
 
 function applyEngineKind(kind) {
   const k = kind === 'groq' ? 'groq' : 'local';
@@ -129,6 +264,7 @@ saveBtn.addEventListener('click', async () => {
     groqApiKey: groqApiKeyEl.value.trim(),
     groqModel: groqModelEl.value,
     language: languageEl.value,
+    micDeviceId: micDeviceEl.value,
   });
   saveStatus.textContent = 'Saved.';
   setTimeout(() => { saveStatus.textContent = ''; }, 1500);
@@ -142,6 +278,7 @@ saveBtn.addEventListener('click', async () => {
   groqModelEl.value = cfg.groqModel || 'whisper-large-v3-turbo';
   languageEl.value = cfg.language || 'auto';
   applyEngineKind(cfg.engineKind || 'local');
+  await populateMicDevices(cfg.micDeviceId || '');
 
   entries = await window.wisper.getHistory();
   render();
