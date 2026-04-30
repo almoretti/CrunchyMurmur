@@ -7,6 +7,10 @@ in a searchable history.
 This is a **v1 dictation slice** of the macOS WisperHelp app — it does not
 yet ship the Meetings, Notes, or Calendar features.
 
+> **Continuing development?** Read [`STATUS.md`](./STATUS.md) first. It
+> covers what's scaffolded but unverified, what's still missing, and the
+> order in which to tackle remaining work.
+
 ## Prerequisites
 
 You will need **Node.js 20+** and **npm** (https://nodejs.org), plus one of
