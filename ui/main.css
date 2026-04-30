@@ -125,11 +125,41 @@ kbd {
   font-size: 11px; color: var(--text-muted);
   margin-bottom: 8px;
 }
+.entry .meta .ts {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+.entry .meta .dot-sep { opacity: 0.55; }
 .entry .meta .lang {
   background: rgba(10,132,255,0.18); color: var(--accent);
   font-weight: 600; font-size: 9px;
-  padding: 2px 6px; border-radius: 999px;
+  letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 999px;
+  margin-left: 2px;
 }
+.text-button.copied { color: #30d158; background: rgba(48,209,88,0.12); }
+
+/* Right-click context menu */
+.ctx-menu {
+  position: fixed; z-index: 1000;
+  background: var(--bg-elevated);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 130px;
+}
+.ctx-menu button {
+  appearance: none; background: transparent; border: 0;
+  color: var(--text);
+  font: inherit; font-size: 13px;
+  padding: 6px 10px; text-align: left;
+  border-radius: 5px; cursor: pointer;
+}
+.ctx-menu button:hover { background: rgba(255,255,255,0.06); }
+.ctx-menu button.danger { color: var(--danger); }
+.ctx-menu button.danger:hover { background: rgba(255,69,58,0.12); }
 .entry .text { line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
 .entry .actions {
   display: flex; gap: 6px; margin-top: 10px;

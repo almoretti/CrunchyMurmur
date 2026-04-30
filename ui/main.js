@@ -43,11 +43,30 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+async function copyEntry(id, btn) {
+  const entry = entries.find((e) => e.id === id);
+  if (!entry) return;
+  await window.wisper.copyText(entry.text);
+  if (btn) {
+    const original = btn.textContent;
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1200);
+  }
+}
+
+async function deleteEntry(id) {
+  entries = await window.wisper.removeHistory(id);
+  render();
+}
+
 function render() {
   const q = filter.trim().toLowerCase();
   const visible = q ? entries.filter((e) => e.text.toLowerCase().includes(q)) : entries;
 
   countEl.textContent = visible.length + (visible.length === 1 ? ' entry' : ' entries');
+  // Mac hides Clear All when the list is empty.
+  clearAllBtn.style.display = entries.length === 0 ? 'none' : '';
 
   if (visible.length === 0) {
     historyEl.innerHTML = '';
@@ -59,9 +78,9 @@ function render() {
   historyEl.innerHTML = visible.map((e) => `
     <div class="entry" data-id="${e.id}">
       <div class="meta">
-        <span>${formatDate(e.createdAt)}</span>
-        <span>·</span>
-        <span>${relativeTime(e.createdAt)}</span>
+        <span class="ts">${formatDate(e.createdAt)}</span>
+        <span class="dot-sep">·</span>
+        <span class="ts">${relativeTime(e.createdAt)}</span>
         ${e.language && e.language !== 'auto' ? `<span class="lang">${escapeHtml(e.language.toUpperCase())}</span>` : ''}
       </div>
       <div class="text">${escapeHtml(e.text)}</div>
@@ -74,15 +93,67 @@ function render() {
 
   historyEl.querySelectorAll('.entry').forEach((el) => {
     const id = el.dataset.id;
-    el.querySelector('[data-action="copy"]').addEventListener('click', () => {
-      const entry = entries.find((e) => e.id === id);
-      if (entry) window.wisper.copyText(entry.text);
-    });
-    el.querySelector('[data-action="delete"]').addEventListener('click', async () => {
-      entries = await window.wisper.removeHistory(id);
-      render();
+    const copyBtn = el.querySelector('[data-action="copy"]');
+    const deleteBtn = el.querySelector('[data-action="delete"]');
+    copyBtn.addEventListener('click', () => copyEntry(id, copyBtn));
+    deleteBtn.addEventListener('click', () => deleteEntry(id));
+
+    // Right-click context menu — Copy / Delete, mirroring Mac.
+    el.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      showContextMenu(ev.clientX, ev.clientY, [
+        { label: 'Copy', action: () => copyEntry(id, copyBtn) },
+        { label: 'Delete', danger: true, action: () => deleteEntry(id) },
+      ]);
     });
   });
+}
+
+// Lightweight context menu (no Electron menu plumbing — pure DOM).
+function showContextMenu(x, y, items) {
+  const existing = document.getElementById('ctx-menu');
+  if (existing) existing.remove();
+
+  const menu = document.createElement('div');
+  menu.id = 'ctx-menu';
+  menu.className = 'ctx-menu';
+  for (const item of items) {
+    const btn = document.createElement('button');
+    btn.textContent = item.label;
+    if (item.danger) btn.className = 'danger';
+    btn.addEventListener('click', () => {
+      menu.remove();
+      item.action();
+    });
+    menu.appendChild(btn);
+  }
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  document.body.appendChild(menu);
+
+  // Clamp to viewport.
+  const rect = menu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 6) + 'px';
+  if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 6) + 'px';
+
+  const dismiss = (ev) => {
+    if (!menu.contains(ev.target)) {
+      menu.remove();
+      document.removeEventListener('mousedown', dismiss);
+      document.removeEventListener('keydown', escDismiss);
+    }
+  };
+  const escDismiss = (ev) => {
+    if (ev.key === 'Escape') {
+      menu.remove();
+      document.removeEventListener('mousedown', dismiss);
+      document.removeEventListener('keydown', escDismiss);
+    }
+  };
+  setTimeout(() => {
+    document.addEventListener('mousedown', dismiss);
+    document.addEventListener('keydown', escDismiss);
+  }, 0);
 }
 
 searchEl.addEventListener('input', (e) => { filter = e.target.value; render(); });
