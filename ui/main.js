@@ -190,15 +190,15 @@ async function downloadModel(id) {
 }
 
 function useModel(id, modelPath) {
-  // Jump to Settings, set engine = local, fill path.
-  switchTab('settings');
+  // Jump to Engine, set engine = local, fill path.
+  switchTab('engine');
   applyEngineKind('local');
   modelPathEl.value = modelPath;
   installedModelPickerEl.value = modelPath;
   // Persist immediately so the user doesn't have to remember to hit Save.
   window.wisper.saveSettings({ engineKind: 'local', modelPath });
-  saveStatus.textContent = `Using ${id}.`;
-  setTimeout(() => { saveStatus.textContent = ''; }, 2000);
+  engineSaveStatusEl.textContent = `Using ${id}.`;
+  setTimeout(() => { engineSaveStatusEl.textContent = ''; }, 2000);
 }
 
 window.wisper.onModelProgress(({ id, bytesDone, bytesTotal }) => {
@@ -229,8 +229,10 @@ const micDeviceEl = document.getElementById('micDeviceId');
 const testMicBtn = document.getElementById('testMic');
 const micTestMeterEl = document.getElementById('micTestMeter');
 const micHintEl = document.getElementById('micHint');
-const saveBtn = document.getElementById('save');
-const saveStatus = document.getElementById('saveStatus');
+const saveEngineBtn = document.getElementById('saveEngine');
+const saveGeneralBtn = document.getElementById('saveGeneral');
+const engineSaveStatusEl = document.getElementById('engineSaveStatus');
+const generalSaveStatusEl = document.getElementById('generalSaveStatus');
 const engineLocalEl = document.getElementById('engineLocal');
 const engineGroqEl = document.getElementById('engineGroq');
 
@@ -410,7 +412,7 @@ document.getElementById('pickModel').addEventListener('click', async () => {
   if (p) modelPathEl.value = p;
 });
 
-saveBtn.addEventListener('click', async () => {
+saveEngineBtn.addEventListener('click', async () => {
   const engineKind = document.querySelector('input[name="engineKind"]:checked')?.value || 'local';
   await window.wisper.saveSettings({
     engineKind,
@@ -418,11 +420,18 @@ saveBtn.addEventListener('click', async () => {
     modelPath: modelPathEl.value.trim(),
     groqApiKey: groqApiKeyEl.value.trim(),
     groqModel: groqModelEl.value,
+  });
+  engineSaveStatusEl.textContent = 'Saved.';
+  setTimeout(() => { engineSaveStatusEl.textContent = ''; }, 1500);
+});
+
+saveGeneralBtn.addEventListener('click', async () => {
+  await window.wisper.saveSettings({
     language: languageEl.value,
     micDeviceId: micDeviceEl.value,
   });
-  saveStatus.textContent = 'Saved.';
-  setTimeout(() => { saveStatus.textContent = ''; }, 1500);
+  generalSaveStatusEl.textContent = 'Saved.';
+  setTimeout(() => { generalSaveStatusEl.textContent = ''; }, 1500);
 });
 
 (async () => {
@@ -447,6 +456,6 @@ saveBtn.addEventListener('click', async () => {
     ? !cfg.groqApiKey
     : (!cfg.whisperCliPath || !cfg.modelPath);
   if (needsSetup) {
-    switchTab('settings');
+    switchTab('engine');
   }
 })();

@@ -12,9 +12,16 @@
         WisperHelp
       </div>
       <nav>
+        <div class="nav-section-title">Library</div>
         <button class="nav-item active" data-tab="history">Recordings</button>
-        <button class="nav-item"        data-tab="models">Models</button>
-        <button class="nav-item"        data-tab="settings">Settings</button>
+        <button class="nav-item"        data-tab="meetings">Meetings</button>
+        <button class="nav-item"        data-tab="notes">Notes</button>
+
+        <div class="nav-section-title">Configuration</div>
+        <button class="nav-item" data-tab="templates">Templates</button>
+        <button class="nav-item" data-tab="models">Models</button>
+        <button class="nav-item" data-tab="engine">Engine</button>
+        <button class="nav-item" data-tab="general">General</button>
       </nav>
       <div class="hint">
         Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.
@@ -38,6 +45,33 @@
         </div>
       </section>
 
+      <!-- Meetings (placeholder) -->
+      <section id="tab-meetings" class="tab">
+        <div class="placeholder">
+          <div class="placeholder-icon">▢</div>
+          <h2>Meetings</h2>
+          <p>Multi-speaker meeting capture is on the roadmap. The Mac app records system audio + microphone in parallel; the Windows port needs WASAPI loopback before this can ship.</p>
+        </div>
+      </section>
+
+      <!-- Notes (placeholder) -->
+      <section id="tab-notes" class="tab">
+        <div class="placeholder">
+          <div class="placeholder-icon">✎</div>
+          <h2>Notes</h2>
+          <p>Markdown notebook with folders + autosave is on the roadmap, mirroring the Mac app's <code>~/Documents/WisperHelp Notes/</code> store.</p>
+        </div>
+      </section>
+
+      <!-- Templates (placeholder) -->
+      <section id="tab-templates" class="tab">
+        <div class="placeholder">
+          <div class="placeholder-icon">⚙</div>
+          <h2>Templates</h2>
+          <p>AI Notes templates (one-on-one, sales discovery, customer interview, standup, …) ship with the Mac app. They land here once the Notes app and AI providers are wired up.</p>
+        </div>
+      </section>
+
       <!-- Models -->
       <section id="tab-models" class="tab">
         <header class="toolbar">
@@ -54,103 +88,150 @@
         <div id="modelsList" class="models-list"></div>
       </section>
 
-      <!-- Settings -->
-      <section id="tab-settings" class="tab">
-        <h2>Engine</h2>
-        <p class="muted">
-          Choose where transcription runs. <strong>Local</strong> uses
-          <code>whisper-cli.exe</code> on this machine — fully offline, no API key.
-          <strong>Groq</strong> sends each clip to Groq's Whisper API — no model
-          download, faster on most laptops, requires an account at
-          <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>.
-        </p>
-
-        <div class="card">
-          <label>Engine</label>
-          <div class="row engine-radio">
-            <label class="radio">
-              <input type="radio" name="engineKind" value="local" />
-              <span>Local (whisper.cpp)</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="engineKind" value="groq" />
-              <span>Groq (cloud)</span>
-            </label>
-          </div>
-
-          <!-- Local engine fields -->
-          <div id="engineLocal" class="engine-section">
-            <label>whisper-cli.exe path</label>
-            <div class="row">
-              <input id="whisperCliPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\whisper-cli.exe" />
-              <button id="pickCli" class="text-button">Browse…</button>
-            </div>
-
-            <label>Use a downloaded model</label>
-            <select id="installedModelPicker">
-              <option value="">— Pick from your downloads —</option>
-            </select>
-            <p class="muted small">
-              Manage downloads in the <a href="#" data-jump-tab="models">Models</a> tab.
-            </p>
-
-            <label>Or specify a custom .bin path</label>
-            <div class="row">
-              <input id="modelPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\models\\ggml-large-v3-turbo-q5_0.bin" />
-              <button id="pickModel" class="text-button">Browse…</button>
-            </div>
-          </div>
-
-          <!-- Groq engine fields -->
-          <div id="engineGroq" class="engine-section">
-            <label>Groq API key</label>
-            <input id="groqApiKey" type="password" placeholder="gsk_..." autocomplete="off" />
-            <p class="muted small">
-              Stored encrypted via Windows DPAPI (only this Windows user account can decrypt it).
-              Get a free key at
-              <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
-            </p>
-
-            <label>Groq model</label>
-            <select id="groqModel">
-              <option value="whisper-large-v3-turbo">whisper-large-v3-turbo (fastest, multilingual)</option>
-              <option value="whisper-large-v3">whisper-large-v3 (most accurate)</option>
-              <option value="distil-whisper-large-v3-en">distil-whisper-large-v3-en (English-only)</option>
-            </select>
-          </div>
-
-          <!-- Shared fields -->
-          <label>Microphone</label>
-          <div class="row">
-            <select id="micDeviceId" style="flex:1">
-              <option value="">Default microphone (system)</option>
-            </select>
-            <button id="testMic" class="text-button" type="button">Test</button>
-          </div>
-          <div id="micTestMeter" class="mic-test-meter" aria-hidden="true">
-            <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
-          </div>
-          <p id="micHint" class="muted small">
-            Pick the input device for dictation. If transcripts come back empty or as "thank you", the wrong mic is the most common cause.
+      <!-- Engine -->
+      <section id="tab-engine" class="tab">
+        <div class="settings-pane">
+          <h2>Transcription</h2>
+          <p class="muted">
+            Choose where transcription runs. <strong>Local</strong> uses
+            <code>whisper-cli.exe</code> on this machine — fully offline, no API key.
+            <strong>Groq</strong> sends each clip to Groq's Whisper API — no model
+            download, faster on most laptops, requires an account at
+            <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>.
           </p>
 
-          <label>Language</label>
-          <select id="language">
-            <option value="auto">Auto-detect</option>
-            <option value="en">English</option>
-            <option value="it">Italian</option>
-            <option value="es">Spanish</option>
-            <option value="fr">French</option>
-            <option value="de">German</option>
-            <option value="pt">Portuguese</option>
-            <option value="nl">Dutch</option>
-            <option value="ja">Japanese</option>
-            <option value="zh">Chinese</option>
-          </select>
+          <div class="card">
+            <label>Engine</label>
+            <div class="row engine-radio">
+              <label class="radio">
+                <input type="radio" name="engineKind" value="local" />
+                <span>Local (whisper.cpp)</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="engineKind" value="groq" />
+                <span>Groq (cloud)</span>
+              </label>
+            </div>
 
-          <div class="row end">
-            <span id="saveStatus" class="muted small"></span>
-            <button id="save" class="primary-button">Save</button>
+            <!-- Local engine fields -->
+            <div id="engineLocal" class="engine-section">
+              <label>whisper-cli.exe path</label>
+              <div class="row">
+                <input id="whisperCliPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\whisper-cli.exe" />
+                <button id="pickCli" class="text-button">Browse…</button>
+              </div>
+
+              <label>Use a downloaded model</label>
+              <select id="installedModelPicker">
+                <option value="">— Pick from your downloads —</option>
+              </select>
+              <p class="muted small">
+                Manage downloads in the <a href="#" data-jump-tab="models">Models</a> tab.
+              </p>
+
+              <label>Or specify a custom .bin path</label>
+              <div class="row">
+                <input id="modelPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\models\\ggml-large-v3-turbo-q5_0.bin" />
+                <button id="pickModel" class="text-button">Browse…</button>
+              </div>
+            </div>
+
+            <!-- Groq engine fields -->
+            <div id="engineGroq" class="engine-section">
+              <label>Groq API key</label>
+              <input id="groqApiKey" type="password" placeholder="gsk_..." autocomplete="off" />
+              <p class="muted small">
+                Stored encrypted via Windows DPAPI (only this Windows user account can decrypt it).
+                Get a free key at
+                <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
+              </p>
+
+              <label>Groq model</label>
+              <select id="groqModel">
+                <option value="whisper-large-v3-turbo">whisper-large-v3-turbo (fastest, multilingual)</option>
+                <option value="whisper-large-v3">whisper-large-v3 (most accurate)</option>
+                <option value="distil-whisper-large-v3-en">distil-whisper-large-v3-en (English-only)</option>
+              </select>
+            </div>
+
+            <div class="row end">
+              <span id="engineSaveStatus" class="muted small"></span>
+              <button id="saveEngine" class="primary-button">Save</button>
+            </div>
+          </div>
+
+          <h2 style="margin-top:24px">AI Notes</h2>
+          <p class="muted">
+            Provider for AI-generated meeting summaries. Lands once the Notes &amp; Meetings tabs
+            are wired up — for now this is a placeholder so the structure mirrors the Mac app.
+          </p>
+          <div class="card placeholder-card">
+            <p class="muted small">Anthropic / OpenAI / Claude Code / Codex providers coming soon.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- General -->
+      <section id="tab-general" class="tab">
+        <div class="settings-pane">
+          <h2>General</h2>
+
+          <div class="card">
+            <label>Microphone</label>
+            <div class="row">
+              <select id="micDeviceId" style="flex:1">
+                <option value="">Default microphone (system)</option>
+              </select>
+              <button id="testMic" class="text-button" type="button">Test</button>
+            </div>
+            <div id="micTestMeter" class="mic-test-meter" aria-hidden="true">
+              <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+            </div>
+            <p id="micHint" class="muted small">
+              Pick the input device for dictation. If transcripts come back empty or as "thank you", the wrong mic is the most common cause.
+            </p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <label>Language</label>
+            <select id="language">
+              <option value="auto">Auto-detect</option>
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="pt">Portuguese</option>
+              <option value="nl">Dutch</option>
+              <option value="pl">Polish</option>
+              <option value="ru">Russian</option>
+              <option value="uk">Ukrainian</option>
+              <option value="tr">Turkish</option>
+              <option value="ar">Arabic</option>
+              <option value="hi">Hindi</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="zh">Chinese</option>
+              <option value="sv">Swedish</option>
+              <option value="da">Danish</option>
+              <option value="no">Norwegian</option>
+            </select>
+            <p class="muted small">
+              Forces detection to a single language. Speeds up Whisper on short clips and avoids language mis-detection.
+            </p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <label>Hotkey</label>
+            <div class="hotkey-display"><kbd>Ctrl</kbd> + <kbd>Win</kbd></div>
+            <p class="muted small">
+              Hold to dictate; release to transcribe. The hotkey is currently fixed — customisation lands later.
+            </p>
+          </div>
+
+          <div class="row end" style="max-width:720px">
+            <span id="generalSaveStatus" class="muted small"></span>
+            <button id="saveGeneral" class="primary-button">Save</button>
           </div>
         </div>
       </section>

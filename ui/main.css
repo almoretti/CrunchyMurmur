@@ -39,7 +39,17 @@ body {
   background: var(--accent);
   box-shadow: 0 0 8px rgba(10,132,255,0.6);
 }
-.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; overflow: auto; }
+.nav-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 12px 10px 4px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+.nav-section-title:first-child { padding-top: 4px; }
 .nav-item {
   appearance: none; background: transparent; border: 0;
   color: var(--text-muted);
@@ -156,14 +166,40 @@ kbd {
 }
 .primary-button:hover { filter: brightness(1.1); }
 
-/* Settings */
-#tab-settings { padding: 24px; overflow: auto; }
-#tab-settings h2 { font-size: 16px; margin: 0 0 6px 0; }
-#tab-settings p { color: var(--text-muted); margin: 0 0 16px; line-height: 1.55; }
-#tab-settings code {
+/* Settings panes (Engine + General share these styles) */
+.settings-pane { padding: 24px; overflow: auto; max-width: 760px; }
+.settings-pane h2 { font-size: 16px; margin: 0 0 6px 0; font-weight: 600; }
+.settings-pane p { color: var(--text-muted); margin: 0 0 14px; line-height: 1.55; }
+.settings-pane code {
   background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; font-size: 12px;
 }
-#tab-settings a { color: var(--accent); }
+.settings-pane a { color: var(--accent); }
+#tab-engine, #tab-general { overflow: auto; }
+
+.placeholder {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 32px; text-align: center; gap: 10px;
+  color: var(--text-muted);
+}
+.placeholder-icon {
+  font-size: 48px; line-height: 1; opacity: 0.35; margin-bottom: 6px;
+}
+.placeholder h2 { font-size: 18px; color: var(--text); margin: 0; }
+.placeholder p {
+  max-width: 480px; line-height: 1.55; margin: 0;
+}
+.placeholder code {
+  background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; font-size: 12px;
+}
+.placeholder-card { padding: 20px; }
+
+.hotkey-display {
+  font-size: 14px; padding: 6px 0;
+}
+.hotkey-display kbd {
+  font-size: 12px; padding: 3px 8px; margin: 0 2px;
+}
 
 .card {
   background: var(--bg-elevated);
