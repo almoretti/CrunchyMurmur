@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WisperHelp</title>
+    <link rel="stylesheet" href="main.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="dot"></span>
+        WisperHelp
+      </div>
+      <nav>
+        <button class="nav-item active" data-tab="history">History</button>
+        <button class="nav-item"        data-tab="settings">Settings</button>
+      </nav>
+      <div class="hint">
+        Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- History -->
+      <section id="tab-history" class="tab active">
+        <header class="toolbar">
+          <input id="search" type="text" placeholder="Search transcripts" />
+          <span class="spacer"></span>
+          <span id="count" class="count"></span>
+          <button id="clearAll" class="text-button danger">Clear All</button>
+        </header>
+        <div id="history" class="history"></div>
+        <div id="empty" class="empty">
+          <div class="symbol">∿</div>
+          <div class="title">No recordings yet</div>
+          <div class="subtitle">Hold Ctrl+Win anywhere on Windows to dictate. Results appear here.</div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section id="tab-settings" class="tab">
+        <h2>Engine</h2>
+        <p class="muted">
+          Choose where transcription runs. <strong>Local</strong> uses
+          <code>whisper-cli.exe</code> on this machine — fully offline, no API key.
+          <strong>Groq</strong> sends each clip to Groq's Whisper API — no model
+          download, faster on most laptops, requires an account at
+          <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>.
+        </p>
+
+        <div class="card">
+          <label>Engine</label>
+          <div class="row engine-radio">
+            <label class="radio">
+              <input type="radio" name="engineKind" value="local" />
+              <span>Local (whisper.cpp)</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="engineKind" value="groq" />
+              <span>Groq (cloud)</span>
+            </label>
+          </div>
+
+          <!-- Local engine fields -->
+          <div id="engineLocal" class="engine-section">
+            <label>whisper-cli.exe path</label>
+            <div class="row">
+              <input id="whisperCliPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\whisper-cli.exe" />
+              <button id="pickCli" class="text-button">Browse…</button>
+            </div>
+
+            <label>Model file (.bin)</label>
+            <div class="row">
+              <input id="modelPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\models\\ggml-large-v3-turbo-q5_0.bin" />
+              <button id="pickModel" class="text-button">Browse…</button>
+            </div>
+            <p class="muted small">
+              Recommended model: <code>ggml-large-v3-turbo-q5_0.bin</code> (~574 MB, multilingual).
+              Download from <a href="https://huggingface.co/ggerganov/whisper.cpp/tree/main" target="_blank" rel="noopener">Hugging Face</a>.
+            </p>
+          </div>
+
+          <!-- Groq engine fields -->
+          <div id="engineGroq" class="engine-section">
+            <label>Groq API key</label>
+            <input id="groqApiKey" type="password" placeholder="gsk_..." autocomplete="off" />
+            <p class="muted small">
+              Stored encrypted via Windows DPAPI (only this Windows user account can decrypt it).
+              Get a free key at
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
+            </p>
+
+            <label>Groq model</label>
+            <select id="groqModel">
+              <option value="whisper-large-v3-turbo">whisper-large-v3-turbo (fastest, multilingual)</option>
+              <option value="whisper-large-v3">whisper-large-v3 (most accurate)</option>
+              <option value="distil-whisper-large-v3-en">distil-whisper-large-v3-en (English-only)</option>
+            </select>
+          </div>
+
+          <!-- Shared fields -->
+          <label>Language</label>
+          <select id="language">
+            <option value="auto">Auto-detect</option>
+            <option value="en">English</option>
+            <option value="it">Italian</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pt">Portuguese</option>
+            <option value="nl">Dutch</option>
+            <option value="ja">Japanese</option>
+            <option value="zh">Chinese</option>
+          </select>
+
+          <div class="row end">
+            <span id="saveStatus" class="muted small"></span>
+            <button id="save" class="primary-button">Save</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="main.js"></script>
+  </body>
+</html>

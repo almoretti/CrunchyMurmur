@@ -1,0 +1,69 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #fff;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.pill {
+  height: 36px;
+  margin: 4px 6px;
+  border-radius: 18px;
+  background: rgba(20, 20, 22, 0.92);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.08) inset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  -webkit-app-region: drag;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff453a;
+  box-shadow: 0 0 8px rgba(255,69,58,0.6);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.label { letter-spacing: 0.2px; }
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  height: 14px;
+}
+.bar {
+  width: 2px;
+  height: 4px;
+  border-radius: 1px;
+  background: rgba(255,255,255,0.6);
+  transition: height 80ms linear;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+body.state-transcribing .dot {
+  background: #ffd60a;
+  animation: spin 1.2s linear infinite;
+  box-shadow: none;
+}
+body.state-transcribing .meter { display: none; }
+
+body.state-flushing .dot { animation: none; opacity: 0.6; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

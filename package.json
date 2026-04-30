@@ -1,0 +1,32 @@
+{
+  "name": "wisperhelp-windows",
+  "version": "0.1.0",
+  "description": "Local-Whisper dictation tool for Windows. Hold Ctrl+Win, speak, release.",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.2",
+    "node-global-key-listener": "^0.3.0"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "cc.moretti.wisperhelp.windows",
+    "productName": "WisperHelp",
+    "files": [
+      "src/**/*",
+      "ui/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    }
+  }
+}
