@@ -95,91 +95,46 @@ so the user isn't left wondering where the text went.
 
 ---
 
-## 🟢 Features the Mac app has that this Windows app does NOT
+## 🟢 Mac-app parity status (post-port)
 
-These are deliberate v1 omissions. Each is a real chunk of work; pick the ones
-that matter most and treat the rest as "later."
+### ✅ Shipped
+- **Models page** — in-app downloader with progress, install/use/delete actions
+  (`src/models.js`, Models tab).
+- **Notes app** — 3-pane folders/list/editor with autosave + Markdown toolbar
+  (`src/notes-store.js`, Notes tab).
+- **Templates** — bundled-defaults catalog + per-id JSON overrides
+  (`src/templates.js`, Templates tab).
+- **AI Notes generation** — Anthropic + OpenAI HTTP, Claude Code + Codex CLI
+  shell-out, with subscription-CLI auto-detection (`src/notes-generator.js`,
+  `src/providers/*`). Both Recordings and Meetings can generate from a template.
+- **Calendar feeds** — ICS-based Today list inside Meetings tab (`src/calendar-store.js`).
+  Uses `node-ical` so RRULE expansion works; supports Google / iCloud / Outlook
+  published feeds. EventKit (Mac) was not portable.
+- **Meetings** — start/stop, mic capture, transcription (reuses Local/Groq engine),
+  AI summarization, persistent per-meeting folder under `%APPDATA%\WisperHelp\Meetings\`
+  (`src/meetings-store.js`).
 
-### Meetings (whole feature) — ~1 week
-Mac files: `Sources/WisperHelp/Meetings/*.swift`, `UI/MeetingsView.swift`,
-`UI/MeetingDetailView.swift`. The expensive piece on Windows is **system-audio
-capture**: there's no `AVAudioEngine` equivalent. You need WASAPI loopback,
-which means either:
-- A native Node addon (`naudiodon2` doesn't do loopback; `windows-audio-capture`
-  is unmaintained). Probably means writing a small C++/Rust addon or a
-  separate sidecar process.
-- A bundled FFmpeg that captures `dshow` / `wasapi` → write to disk → Whisper.
-  Easiest path; ~+30 MB binary; battery-tested.
+### ❗ Remaining gap — system audio capture
+The Mac app captures both microphone and **system audio** in parallel via
+`ScreenCaptureKit`. Windows has no equivalent and we deferred it:
 
-The rest of the Meetings stack (UI, store, transcriber, retention policy)
-ports straightforwardly once you have audio.
+- **WASAPI loopback** — the right approach, requires either a small native
+  Node addon (probably C++/Rust) or a bundled FFmpeg sidecar that captures
+  `dshow`/`wasapi` and pipes WAV to disk. Estimated ~1 week of work.
+- Until that lands, Meetings record only the user's mic. This is fine for
+  in-person meetings or when you're the one talking; it misses the other side
+  of remote calls.
 
-### AI Notes generation — ~2 days
-Mac files: `Sources/WisperHelp/Notes/*.swift`, `UI/AINotesPane.swift`,
-`UI/TemplatesView.swift`. Four providers on Mac: Anthropic, OpenAI,
-Claude Code, Codex. Anthropic + OpenAI are pure HTTP — straight port. Claude
-Code and Codex shell out to their CLIs — also fine on Windows if those CLIs
-are installed.
-
-What you'd add:
-- `src/notesGenerator.js` (provider switch).
-- `src/providers/{anthropic,openai,claudeCode,codex}.js`.
-- `src/templates.js` (default template catalog + custom-template store).
-- Settings UI: API keys (use `safeStorage` like Groq), provider selector,
-  template manager.
-- Depends on Meetings (it's the source of transcript + user notes).
-
-### Notes app (folders + markdown editor) — ~3 days
-Mac files: `Sources/WisperHelp/NotesApp/*.swift`, `UI/NotesView.swift`,
-`UI/MarkdownEditor.swift`, `UI/MarkdownEditorToolbar.swift`. Three-pane
-split: folders / notes list / editor. Storage: real `.md` files under
-`~/Documents/WisperHelp Notes/` (Mac) → `%USERPROFILE%\Documents\WisperHelp Notes\`
-(Windows). The Mac uses an `NSTextView`; the Windows port can use a
-`<textarea>` to start, then a real Markdown editor (CodeMirror 6) once it's
-proven useful. Toolbar (bold/italic/heading/list/code) is a few hours.
-
-### Calendar integration — ~3–5 days
-Mac files: `Sources/WisperHelp/Calendar/*.swift`. Mac uses EventKit. Windows
-options:
-- **Outlook/Microsoft Graph** — proper, but requires Azure app registration,
-  OAuth flow, and only works for Microsoft 365 / outlook.com calendars.
-- **Read `.ics` from a configured URL** — works for Google Calendar, iCloud,
-  Outlook all via published feed. Simpler. No auth dance. Refresh on
-  interval. This is the path I'd take for a v1.
-
-### Models page (in-app downloader) — ~half day
-Mac file: `UI/ModelsView.swift`, `Whisper/ModelManager.swift`. Mac downloads
-ggml models from HuggingFace with progress + verifies SHA. Windows currently
-makes the user do this manually. Easy to add: a "Models" tab in the main
-window, a small download manager that streams to `%APPDATA%\WisperHelp\Models\`
-with a progress bar, and the model dropdown reads from that folder.
-
-### Engine page polish — ~half day
-Mac `EngineView.swift` is split into "Transcription engine" (Local/Groq) and
-"AI Notes provider" (Anthropic/OpenAI/...). Windows currently lumps the
-transcription engine into a single Settings card and has no AI Notes section
-because there are no AI Notes yet. Once Notes lands, mirror the Mac structure.
-
-### General settings polish — ~half day
-Mac `GeneralView.swift` has: language picker (Windows has this), hotkey
-display (Windows hard-codes Ctrl+Win), permissions reset (Mac TCC-specific —
-not needed on Windows), audio retention slider (only relevant when Meetings
-exists), storage usage (cheap to add; sums file sizes under `%APPDATA%`).
-
-### Visual polish (matching the Mac app's recent overhaul)
-The Mac app recently got a visual refresh: shared `FormCard` with 12 px
-radius, soft borders via `cardBackground()`, unified `SearchField` and
-`EmptyState` components, `PaneHeader` for consistent toolbars. The Windows
-app uses a different visual language (dark theme, monospace-y) — fine for
-now, but if you want cross-platform consistency, port the Mac design
-tokens.
-
-### Floating bar parity
-The Mac app's `FloatingBarView.swift` shows different states (idle / dictating
-/ transcribing / meeting recording / status flash). The Windows pill shows
-only `recording` / `flushing` / `transcribing`. Add an idle state that shows
-a tiny "Hold Ctrl+Win" hint when the user opens the main window (Mac does
-this as a discoverability nudge).
+### 🟡 Polish gaps still open
+- **General settings**: storage-usage line (sums under `%APPDATA%`), audio
+  retention slider for meetings (matches Mac AudioRetentionPolicy).
+- **Engine page**: provider-card visual treatment (Mac uses big tappable cards
+  with subtitles; Windows uses a flat radio).
+- **Visual tokens**: Mac shipped a recent refresh (`FormCard` 12 px radius,
+  shared `SearchField` / `EmptyState`). Windows uses a different aesthetic.
+- **Floating pill states**: Windows shows `recording` / `flushing` /
+  `transcribing`; Mac also shows `idle` (with a "Hold Fn" hint) and
+  `meeting recording` (red pulse with elapsed timer). Idle hint is the easy add.
 
 ---
 
