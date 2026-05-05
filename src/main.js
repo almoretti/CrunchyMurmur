@@ -4,6 +4,7 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nati
 const settings = require('./settings');
 const history = require('./history');
 const models = require('./models');
+const notes = require('./notes-store');
 const { transcribeWav, writeTempWav } = require('./transcriber');
 const { transcribeWithGroq } = require('./groq');
 const { pasteText } = require('./paste');
@@ -27,18 +28,17 @@ function createFloatingWindow() {
   const y = Math.round(waY + waH - H - 20);
   console.log('[main] floating window position:', { x, y, workArea: display.workArea, scale: display.scaleFactor });
 
-  // Windows + transparent BrowserWindow has a long history of compositor bugs
-  // — the most reliable cross-Windows approach is a solid backgroundColor.
-  // We pick the same color as the pill's body so the seam disappears, and
-  // the pill fills the whole window (CSS handles rounded corners visually
-  // even though the window frame itself is rectangular).
+  // Reliable on every Windows: solid dark backgroundColor matching the pill
+  // outer fill. The rounded pill is drawn in CSS *inside* the window with a
+  // slightly lighter fill and inset border so it reads as a distinct shape
+  // rather than just a flat rectangle.
   floatingWindow = new BrowserWindow({
     width: W,
     height: H,
     x, y,
     frame: false,
     transparent: false,
-    backgroundColor: '#141416',
+    backgroundColor: '#1d1e22',
     resizable: false,
     movable: true,
     skipTaskbar: true,
@@ -223,6 +223,27 @@ ipcMain.handle('models:remove', (_e, id) => {
   }
   return { ok: true };
 });
+
+// ---------- IPC: notes ----------
+
+function broadcastNotes() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('notes:changed', notes.snapshot());
+  }
+}
+
+ipcMain.handle('notes:snapshot',     () => notes.snapshot());
+ipcMain.handle('notes:read',         (_e, payload) => notes.readNote(payload.folder, payload.filename));
+ipcMain.handle('notes:create-folder',(_e, name) => { const s = notes.createFolder(name); broadcastNotes(); return s; });
+ipcMain.handle('notes:rename-folder',(_e, p) => { const s = notes.renameFolder(p.oldName, p.newName); broadcastNotes(); return s; });
+ipcMain.handle('notes:delete-folder',(_e, name) => { const s = notes.deleteFolder(name); broadcastNotes(); return s; });
+ipcMain.handle('notes:reveal-folder',(_e, name) => notes.revealFolder(name));
+ipcMain.handle('notes:create',       (_e, p) => { const r = notes.createNote(p); broadcastNotes(); return r; });
+ipcMain.handle('notes:update',       (_e, p) => notes.updateNote(p));
+ipcMain.handle('notes:delete',       (_e, p) => { const s = notes.deleteNote(p); broadcastNotes(); return s; });
+ipcMain.handle('notes:rename',       (_e, p) => { const n = notes.renameNote(p); broadcastNotes(); return n; });
+ipcMain.handle('notes:move',         (_e, p) => { const n = notes.moveNote(p); broadcastNotes(); return n; });
+ipcMain.handle('notes:open-root',    () => shell.openPath(notes.rootDir()));
 
 // ---------- App lifecycle ----------
 

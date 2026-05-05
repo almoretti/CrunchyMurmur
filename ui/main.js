@@ -289,6 +289,341 @@ window.wisper.onModelsChanged(async () => {
 
 openModelsFolderBtn.addEventListener('click', () => window.wisper.modelsOpenDir());
 
+// ----- Notes tab -----
+const foldersListEl = document.getElementById('foldersList');
+const notesListEl = document.getElementById('notesList');
+const notesEmptyEl = document.getElementById('notesEmpty');
+const noteEditorEl = document.getElementById('noteEditor');
+const notesSelectMessageEl = document.getElementById('notesSelectMessage');
+const noteTitleEl = document.getElementById('noteTitle');
+const noteBodyEl = document.getElementById('noteBody');
+const noteSaveStatusEl = document.getElementById('noteSaveStatus');
+const newFolderBtn = document.getElementById('newFolder');
+const newNoteBtn = document.getElementById('newNote');
+const notesSearchEl = document.getElementById('notesSearch');
+const noteDeleteBtn = document.getElementById('noteDeleteBtn');
+const noteMoveBtn = document.getElementById('noteMoveBtn');
+const openNotesRootBtn = document.getElementById('openNotesRoot');
+
+let notesSnapshot = { folders: [], notesByFolder: {}, counts: {} };
+let selectedFolder = null;
+let selectedNote = null; // { folder, filename, ... }
+let notesFilter = '';
+let saveTimer = null;
+let saveDirty = false;
+
+function snippetOf(content) {
+  // Same as Mac NoteRow: skip headings, take first non-empty body line.
+  for (const line of (content || '').split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t.startsWith('#')) continue;
+    return t.slice(0, 200);
+  }
+  return '';
+}
+
+function renderFolders() {
+  foldersListEl.innerHTML = '';
+  for (const name of notesSnapshot.folders) {
+    const li = document.createElement('li');
+    if (name === selectedFolder) li.classList.add('active');
+    li.innerHTML = `
+      <span class="glyph">▣</span>
+      <span class="name"></span>
+      <span class="count">${notesSnapshot.counts[name] || 0}</span>
+    `;
+    li.querySelector('.name').textContent = name;
+    li.addEventListener('click', () => {
+      selectedFolder = name;
+      // Pick the most recent note in the folder for convenience.
+      const list = notesSnapshot.notesByFolder[name] || [];
+      const next = list[0] || null;
+      openNote(next);
+      renderNotesTab();
+    });
+    li.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      showContextMenu(ev.clientX, ev.clientY, [
+        { label: 'Open in Explorer', action: () => window.wisper.notesRevealFolder(name) },
+        { label: 'Rename folder', action: () => promptRenameFolder(name) },
+        { label: 'Delete folder', danger: true, action: () => promptDeleteFolder(name) },
+      ]);
+    });
+    foldersListEl.appendChild(li);
+  }
+}
+
+function renderNotes() {
+  const list = (notesSnapshot.notesByFolder[selectedFolder] || []);
+  const q = notesFilter.trim().toLowerCase();
+  const visible = q
+    ? list.filter((n) => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
+    : list;
+
+  notesListEl.innerHTML = '';
+  for (const n of visible) {
+    const li = document.createElement('li');
+    if (selectedNote && n.filename === selectedNote.filename && n.folder === selectedNote.folder) {
+      li.classList.add('active');
+    }
+    const meta = `<span>${formatDate(n.modifiedAt)}</span><span>·</span><span>${relativeTime(n.modifiedAt)}</span>`;
+    li.innerHTML = `
+      <div class="title"></div>
+      <div class="meta">${meta}</div>
+      <div class="snippet"></div>
+    `;
+    li.querySelector('.title').textContent = n.title;
+    li.querySelector('.snippet').textContent = snippetOf(n.content);
+    li.addEventListener('click', () => openNote(n));
+    li.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      showContextMenu(ev.clientX, ev.clientY, [
+        { label: 'Move to folder…', action: () => promptMoveNote(n) },
+        { label: 'Delete note', danger: true, action: () => deleteNote(n) },
+      ]);
+    });
+    notesListEl.appendChild(li);
+  }
+  notesEmptyEl.classList.toggle('show', visible.length === 0);
+}
+
+function renderEditor() {
+  if (!selectedNote) {
+    noteEditorEl.classList.add('hidden');
+    notesSelectMessageEl.classList.remove('hidden');
+    return;
+  }
+  noteEditorEl.classList.remove('hidden');
+  notesSelectMessageEl.classList.add('hidden');
+  // Only update DOM if changed, so the user's caret position isn't reset
+  // every time we re-render after typing.
+  if (document.activeElement !== noteTitleEl) noteTitleEl.value = selectedNote.title;
+  if (document.activeElement !== noteBodyEl)  noteBodyEl.value = selectedNote.content;
+}
+
+function renderNotesTab() {
+  renderFolders();
+  renderNotes();
+  renderEditor();
+}
+
+async function reloadNotes(reselectFirst = false) {
+  notesSnapshot = await window.wisper.notesSnapshot();
+  if (!selectedFolder || !notesSnapshot.folders.includes(selectedFolder)) {
+    selectedFolder = notesSnapshot.folders[0] || null;
+  }
+  if (reselectFirst) {
+    const list = notesSnapshot.notesByFolder[selectedFolder] || [];
+    openNote(list[0] || null);
+  }
+  renderNotesTab();
+}
+
+function openNote(note) {
+  // Flush any pending autosave for the note we're leaving before swapping.
+  flushPendingSave(true);
+  selectedNote = note ? { ...note } : null;
+  renderNotesTab();
+}
+
+function scheduleSave() {
+  saveDirty = true;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushPendingSave, 400);
+  noteSaveStatusEl.textContent = 'Saving…';
+}
+
+async function flushPendingSave(immediate = false) {
+  if (!saveDirty || !selectedNote) {
+    if (immediate && saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    return;
+  }
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  saveDirty = false;
+  const folder = selectedNote.folder;
+  const filename = selectedNote.filename;
+  const content = noteBodyEl.value;
+  const title = noteTitleEl.value.trim();
+  const updated = await window.wisper.notesUpdate({ folder, filename, content });
+  // If the title changed, rename the file (which changes the filename slug).
+  if (title && updated && title !== updated.title) {
+    const renamed = await window.wisper.notesRename({ folder, filename, newTitle: title });
+    if (renamed) {
+      selectedNote = { ...renamed };
+      // Renamed via in-memory update; broadcastNotes() in main fires a
+      // notes:changed which will refresh everything including the list.
+    }
+  } else if (updated) {
+    selectedNote = { ...updated };
+  }
+  noteSaveStatusEl.textContent = 'Saved';
+  setTimeout(() => { if (noteSaveStatusEl.textContent === 'Saved') noteSaveStatusEl.textContent = ''; }, 1200);
+}
+
+noteBodyEl.addEventListener('input', scheduleSave);
+noteTitleEl.addEventListener('input', scheduleSave);
+noteTitleEl.addEventListener('blur', () => flushPendingSave(true));
+
+// New folder / new note / search / open in Explorer
+async function promptNewFolder() {
+  const name = prompt('Folder name:');
+  if (!name) return;
+  await window.wisper.notesCreateFolder(name);
+  selectedFolder = name.trim();
+  await reloadNotes();
+}
+newFolderBtn.addEventListener('click', promptNewFolder);
+
+async function promptRenameFolder(oldName) {
+  const newName = prompt('Rename folder to:', oldName);
+  if (!newName || newName === oldName) return;
+  await window.wisper.notesRenameFolder(oldName, newName);
+  if (selectedFolder === oldName) selectedFolder = newName.trim();
+  await reloadNotes();
+}
+
+async function promptDeleteFolder(name) {
+  const noteCount = notesSnapshot.counts[name] || 0;
+  const msg = noteCount > 0
+    ? `Delete folder "${name}" and ${noteCount} note${noteCount === 1 ? '' : 's'} inside? This cannot be undone.`
+    : `Delete folder "${name}"?`;
+  if (!confirm(msg)) return;
+  await window.wisper.notesDeleteFolder(name);
+  if (selectedFolder === name) {
+    selectedFolder = null;
+    selectedNote = null;
+  }
+  await reloadNotes();
+}
+
+async function promptMoveNote(note) {
+  const others = notesSnapshot.folders.filter((f) => f !== note.folder);
+  if (others.length === 0) { alert('No other folders. Create one first.'); return; }
+  const target = prompt(`Move "${note.title}" to which folder?\n\n${others.join(', ')}`, others[0]);
+  if (!target) return;
+  if (!notesSnapshot.folders.includes(target)) { alert('No folder named "' + target + '".'); return; }
+  const moved = await window.wisper.notesMove({ folder: note.folder, filename: note.filename, toFolder: target });
+  if (moved) {
+    selectedFolder = target;
+    selectedNote = { ...moved };
+  }
+  await reloadNotes();
+}
+
+async function deleteNote(note) {
+  if (!confirm(`Delete "${note.title}"?`)) return;
+  await window.wisper.notesDelete({ folder: note.folder, filename: note.filename });
+  if (selectedNote && selectedNote.filename === note.filename && selectedNote.folder === note.folder) {
+    selectedNote = null;
+  }
+  await reloadNotes();
+}
+
+newNoteBtn.addEventListener('click', async () => {
+  if (!selectedFolder) {
+    alert('Pick or create a folder first.');
+    return;
+  }
+  const r = await window.wisper.notesCreate({ title: '', content: '', folder: selectedFolder });
+  notesSnapshot = r.snapshot;
+  if (r.note) selectedNote = { ...r.note };
+  renderNotesTab();
+  // Move focus to the title for immediate naming.
+  setTimeout(() => { noteTitleEl.focus(); noteTitleEl.select(); }, 0);
+});
+
+notesSearchEl.addEventListener('input', (e) => { notesFilter = e.target.value; renderNotes(); });
+
+noteDeleteBtn.addEventListener('click', () => { if (selectedNote) deleteNote(selectedNote); });
+noteMoveBtn.addEventListener('click', () => { if (selectedNote) promptMoveNote(selectedNote); });
+openNotesRootBtn.addEventListener('click', () => window.wisper.notesOpenRoot());
+
+window.wisper.onNotesChanged((snap) => {
+  notesSnapshot = snap;
+  // If our selected note was deleted/renamed externally, drop the selection.
+  if (selectedNote) {
+    const list = notesSnapshot.notesByFolder[selectedNote.folder] || [];
+    const found = list.find((n) => n.filename === selectedNote.filename);
+    if (!found) selectedNote = null;
+  }
+  renderNotesTab();
+});
+
+// Markdown toolbar — wrap or prefix selected text in the textarea.
+function applyMd(kind) {
+  const ta = noteBodyEl;
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const before = ta.value.slice(0, start);
+  const sel = ta.value.slice(start, end);
+  const after = ta.value.slice(end);
+
+  const wrap = (left, right) => {
+    ta.value = before + left + sel + right + after;
+    ta.selectionStart = start + left.length;
+    ta.selectionEnd = end + left.length;
+  };
+  const linePrefix = (prefix) => {
+    // Apply to the start of every line in the selection (or the current line).
+    const lineStart = before.lastIndexOf('\n') + 1;
+    const lineEnd = end + (after.indexOf('\n') === -1 ? after.length : after.indexOf('\n'));
+    const head = ta.value.slice(0, lineStart);
+    const tail = ta.value.slice(lineEnd);
+    const lines = ta.value.slice(lineStart, lineEnd).split('\n').map((l) => prefix + l).join('\n');
+    ta.value = head + lines + tail;
+    ta.selectionStart = lineStart;
+    ta.selectionEnd = lineStart + lines.length;
+  };
+
+  switch (kind) {
+    case 'h1':       linePrefix('# '); break;
+    case 'h2':       linePrefix('## '); break;
+    case 'h3':       linePrefix('### '); break;
+    case 'bold':     wrap('**', '**'); break;
+    case 'italic':   wrap('*', '*'); break;
+    case 'strike':   wrap('~~', '~~'); break;
+    case 'code':     wrap('`', '`'); break;
+    case 'bullet':   linePrefix('- '); break;
+    case 'numbered': linePrefix('1. '); break;
+    case 'todo':     linePrefix('- [ ] '); break;
+    case 'quote':    linePrefix('> '); break;
+    case 'link': {
+      const url = prompt('URL:', sel.startsWith('http') ? sel : 'https://');
+      if (!url) return;
+      const display = sel || 'link';
+      ta.value = before + `[${display}](${url})` + after;
+      ta.selectionStart = before.length + 1;
+      ta.selectionEnd = before.length + 1 + display.length;
+      break;
+    }
+    case 'hr':       ta.value = before + '\n---\n' + after; break;
+  }
+  ta.focus();
+  scheduleSave();
+}
+document.querySelectorAll('.md-btn').forEach((btn) => {
+  btn.addEventListener('click', () => applyMd(btn.dataset.md));
+});
+
+// Editor keyboard shortcuts within the textarea.
+noteBodyEl.addEventListener('keydown', (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'b') { e.preventDefault(); applyMd('bold'); }
+  else if (k === 'i') { e.preventDefault(); applyMd('italic'); }
+  else if (k === 'e') { e.preventDefault(); applyMd('code'); }
+  else if (k === 'k') { e.preventDefault(); applyMd('link'); }
+  else if (k === '1' && e.shiftKey === false) { e.preventDefault(); applyMd('h1'); }
+  else if (k === '2' && e.shiftKey === false) { e.preventDefault(); applyMd('h2'); }
+  else if (k === '3' && e.shiftKey === false) { e.preventDefault(); applyMd('h3'); }
+});
+
+// Ensure pending saves flush when the tab is changed away.
+document.querySelectorAll('.nav-item').forEach((b) => {
+  b.addEventListener('click', () => { if (saveDirty) flushPendingSave(true); });
+});
+
 // Settings
 const whisperCliPathEl = document.getElementById('whisperCliPath');
 const modelPathEl = document.getElementById('modelPath');
@@ -522,6 +857,10 @@ saveGeneralBtn.addEventListener('click', async () => {
   modelsDirPathEl.textContent = await window.wisper.modelsDir();
   await refreshCatalog();
   await populateInstalledPicker();
+
+  // Notes tab data — folders, notes, then drop into the most recent note
+  // of the first folder for immediate continuity.
+  await reloadNotes(true);
 
   const needsSetup = (cfg.engineKind === 'groq')
     ? !cfg.groqApiKey

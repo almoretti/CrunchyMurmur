@@ -54,13 +54,60 @@
         </div>
       </section>
 
-      <!-- Notes (placeholder) -->
-      <section id="tab-notes" class="tab">
-        <div class="placeholder">
-          <div class="placeholder-icon">✎</div>
-          <h2>Notes</h2>
-          <p>Markdown notebook with folders + autosave is on the roadmap, mirroring the Mac app's <code>~/Documents/WisperHelp Notes/</code> store.</p>
-        </div>
+      <!-- Notes -->
+      <section id="tab-notes" class="tab notes-tab">
+        <aside class="notes-folders">
+          <header class="notes-pane-header">
+            <span>Folders</span>
+            <button id="newFolder" class="text-button" title="New folder">+</button>
+          </header>
+          <ul id="foldersList" class="folders-list"></ul>
+          <footer class="notes-pane-footer">
+            <button id="openNotesRoot" class="text-button">Open in Explorer</button>
+          </footer>
+        </aside>
+        <aside class="notes-list-pane">
+          <header class="notes-pane-header">
+            <input id="notesSearch" type="text" placeholder="Search notes" />
+            <button id="newNote" class="text-button" title="New note">+</button>
+          </header>
+          <ul id="notesList" class="notes-list"></ul>
+          <div id="notesEmpty" class="notes-empty">No notes in this folder.</div>
+        </aside>
+        <main class="notes-editor-pane">
+          <div id="noteEditor" class="note-editor hidden">
+            <header class="note-editor-header">
+              <input id="noteTitle" type="text" class="note-title" placeholder="Untitled" />
+              <span id="noteSaveStatus" class="muted small"></span>
+              <button id="noteMoveBtn" class="text-button" title="Move to folder">Move</button>
+              <button id="noteDeleteBtn" class="text-button danger" title="Delete note">Delete</button>
+            </header>
+            <div class="md-toolbar">
+              <button class="md-btn" data-md="h1" title="Heading 1">H1</button>
+              <button class="md-btn" data-md="h2" title="Heading 2">H2</button>
+              <button class="md-btn" data-md="h3" title="Heading 3">H3</button>
+              <span class="md-divider"></span>
+              <button class="md-btn" data-md="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button class="md-btn" data-md="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button class="md-btn" data-md="strike" title="Strikethrough"><s>S</s></button>
+              <button class="md-btn" data-md="code" title="Code (Ctrl+E)">&lt;/&gt;</button>
+              <span class="md-divider"></span>
+              <button class="md-btn" data-md="bullet" title="Bulleted list">•</button>
+              <button class="md-btn" data-md="numbered" title="Numbered list">1.</button>
+              <button class="md-btn" data-md="todo" title="To-do">☐</button>
+              <button class="md-btn" data-md="quote" title="Quote">❝</button>
+              <span class="md-divider"></span>
+              <button class="md-btn" data-md="link" title="Link (Ctrl+K)">🔗</button>
+              <button class="md-btn" data-md="hr" title="Divider">―</button>
+            </div>
+            <textarea id="noteBody" class="note-body" spellcheck="false" placeholder="Start writing..."></textarea>
+          </div>
+          <div id="notesSelectMessage" class="placeholder">
+            <div class="placeholder-icon">✎</div>
+            <h2>Pick a note</h2>
+            <p>Select a folder and a note from the list, or use <strong>+</strong> to create one.</p>
+          </div>
+        </main>
       </section>
 
       <!-- Templates (placeholder) -->

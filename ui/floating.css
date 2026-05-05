@@ -1,8 +1,10 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* Match the BrowserWindow backgroundColor so there's no seam at the edges. */
-  background: #141416;
+  /* Same color as the BrowserWindow backgroundColor and the pill — so the
+     rectangular window frame disappears and only the inset border reads as
+     a pill shape. Best we can do without transparent compositing on Win. */
+  background: #1d1e22;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: #fff;
   -webkit-user-select: none;
@@ -11,12 +13,12 @@ html, body {
 }
 
 .pill {
-  /* Fill the window — no margin, no rounded corners on this rectangle since
-     Windows can't reliably render a rounded transparent BrowserWindow. */
   height: 100%;
   margin: 0;
-  background: #141416;
-  box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08) inset;
+  background: #1d1e22;
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.10) inset,
+    0 1px 0 rgba(255,255,255,0.04) inset;
   display: flex;
   align-items: center;
   gap: 10px;

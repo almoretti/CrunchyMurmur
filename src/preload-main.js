@@ -29,4 +29,21 @@ contextBridge.exposeInMainWorld('wisper', {
   onHistoryChanged: (cb) => {
     ipcRenderer.on('history:changed', (_e, entries) => cb(entries));
   },
+
+  // Notes
+  notesSnapshot:     () => ipcRenderer.invoke('notes:snapshot'),
+  notesRead:         (folder, filename) => ipcRenderer.invoke('notes:read', { folder, filename }),
+  notesCreateFolder: (name) => ipcRenderer.invoke('notes:create-folder', name),
+  notesRenameFolder: (oldName, newName) => ipcRenderer.invoke('notes:rename-folder', { oldName, newName }),
+  notesDeleteFolder: (name) => ipcRenderer.invoke('notes:delete-folder', name),
+  notesRevealFolder: (name) => ipcRenderer.invoke('notes:reveal-folder', name),
+  notesCreate:       (payload) => ipcRenderer.invoke('notes:create', payload),
+  notesUpdate:       (payload) => ipcRenderer.invoke('notes:update', payload),
+  notesDelete:       (payload) => ipcRenderer.invoke('notes:delete', payload),
+  notesRename:       (payload) => ipcRenderer.invoke('notes:rename', payload),
+  notesMove:         (payload) => ipcRenderer.invoke('notes:move', payload),
+  notesOpenRoot:     () => ipcRenderer.invoke('notes:open-root'),
+  onNotesChanged:    (cb) => {
+    ipcRenderer.on('notes:changed', (_e, snapshot) => cb(snapshot));
+  },
 });
