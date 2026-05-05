@@ -1,6 +1,14 @@
 const path = require('path');
 const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell } = require('electron');
 
+// Force CPU rasterization for the *whole* app so the transparent floating
+// pill renders reliably on Windows. GPU compositing has chronic Win+DWM
+// bugs that make transparent BrowserWindows appear blank or as flat gray
+// surfaces on certain hardware (we hit both on this machine). The cost is
+// slightly slower animations on the main window — acceptable for our small
+// UI surfaces and worth it for a proper-looking pill.
+app.disableHardwareAcceleration();
+
 const settings = require('./settings');
 const history = require('./history');
 const models = require('./models');
@@ -28,17 +36,17 @@ function createFloatingWindow() {
   const y = Math.round(waY + waH - H - 20);
   console.log('[main] floating window position:', { x, y, workArea: display.workArea, scale: display.scaleFactor });
 
-  // Reliable on every Windows: solid dark backgroundColor matching the pill
-  // outer fill. The rounded pill is drawn in CSS *inside* the window with a
-  // slightly lighter fill and inset border so it reads as a distinct shape
-  // rather than just a flat rectangle.
+  // Real transparent BrowserWindow now that the app forced software
+  // rasterization (see app.disableHardwareAcceleration() at the top of
+  // this file). The pill shape is drawn in CSS — the desktop shows through
+  // the margins around it.
   floatingWindow = new BrowserWindow({
     width: W,
     height: H,
     x, y,
     frame: false,
-    transparent: false,
-    backgroundColor: '#1d1e22',
+    transparent: true,
+    backgroundColor: '#00000000',
     resizable: false,
     movable: true,
     skipTaskbar: true,

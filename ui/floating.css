@@ -1,10 +1,9 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* Same color as the BrowserWindow backgroundColor and the pill — so the
-     rectangular window frame disappears and only the inset border reads as
-     a pill shape. Best we can do without transparent compositing on Win. */
-  background: #1d1e22;
+  /* Fully transparent so the desktop shows through the margins around the
+     pill — combined with the BrowserWindow's transparent: true. */
+  background: transparent;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: #fff;
   -webkit-user-select: none;
@@ -13,12 +12,16 @@ html, body {
 }
 
 .pill {
-  height: 100%;
-  margin: 0;
-  background: #1d1e22;
+  /* True capsule shape — height 36, border-radius 18 = full semicircles
+     on the ends. The 4/6 px margin lets the desktop show around the pill,
+     so the rounded corners read clearly instead of bumping into a frame. */
+  height: 36px;
+  margin: 4px 6px;
+  border-radius: 18px;
+  background: rgba(22, 23, 26, 0.94);
   box-shadow:
-    0 0 0 0.5px rgba(255,255,255,0.10) inset,
-    0 1px 0 rgba(255,255,255,0.04) inset;
+    0 0 0 0.5px rgba(255,255,255,0.12) inset,
+    0 6px 18px rgba(0,0,0,0.45);
   display: flex;
   align-items: center;
   gap: 10px;
