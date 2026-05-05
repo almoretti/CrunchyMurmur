@@ -252,6 +252,14 @@
                 <input type="radio" name="aiNotesProvider" value="openai" />
                 <span>OpenAI</span>
               </label>
+              <label class="radio">
+                <input type="radio" name="aiNotesProvider" value="claudeCode" />
+                <span>Claude Code <span id="claudeCodeStatus" class="muted small"></span></span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="aiNotesProvider" value="codex" />
+                <span>Codex <span id="codexStatus" class="muted small"></span></span>
+              </label>
             </div>
 
             <div id="aiAnthropic" class="engine-section">
@@ -276,6 +284,18 @@
 
               <label>Model</label>
               <select id="openaiModel"></select>
+            </div>
+
+            <div id="aiClaudeCode" class="engine-section">
+              <p class="muted small" id="claudeCodeDetail">
+                Uses your installed <code>claude</code> CLI. Status checked at app launch.
+              </p>
+            </div>
+
+            <div id="aiCodex" class="engine-section">
+              <p class="muted small" id="codexDetail">
+                Uses your installed <code>codex</code> CLI. Status checked at app launch.
+              </p>
             </div>
 
             <div class="row end">

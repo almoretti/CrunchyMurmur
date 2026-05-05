@@ -3,14 +3,20 @@ const templates = require('./templates');
 const notes = require('./notes-store');
 const anthropic = require('./providers/anthropic');
 const openai = require('./providers/openai');
+const claudeCode = require('./providers/claude-code');
+const codex = require('./providers/codex');
 
-const PROVIDERS = { anthropic, openai };
+const PROVIDERS = { anthropic, openai, claudeCode, codex };
 
 function listProviders() {
   // The order here is also the order shown in the UI radio.
   return [
-    { id: 'anthropic', displayName: 'Anthropic API',   models: anthropic.MODELS, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http' },
-    { id: 'openai',    displayName: 'OpenAI API',      models: openai.MODELS,    defaultModel: openai.DEFAULT_MODEL,    kind: 'http' },
+    { id: 'anthropic',  displayName: 'Anthropic API', models: anthropic.MODELS, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http' },
+    { id: 'openai',     displayName: 'OpenAI API',    models: openai.MODELS,    defaultModel: openai.DEFAULT_MODEL,    kind: 'http' },
+    { id: 'claudeCode', displayName: 'Claude Code (your subscription)', kind: 'cli',
+      available: claudeCode.isAvailable(), executable: claudeCode.executable() },
+    { id: 'codex',      displayName: 'Codex (your subscription)', kind: 'cli',
+      available: codex.isAvailable(), executable: codex.executable() },
   ];
 }
 
@@ -56,10 +62,17 @@ async function generateFromRecording({ recording, templateId, provider, model })
   const mod = PROVIDERS[providerId];
   if (!mod) throw new Error('Unknown provider: ' + providerId);
 
+  const prompt = makeRecordingPrompt({ template: tpl, recording });
+
+  // CLI providers don't need an API key or model — they shell out to the
+  // user's installed CLI which uses their existing subscription.
+  if (providerId === 'claudeCode' || providerId === 'codex') {
+    const text = await mod.generate({ prompt });
+    return { text, providerId, modelId: null, templateId };
+  }
+
   const apiKey = providerId === 'anthropic' ? cfg.anthropicApiKey : cfg.openaiApiKey;
   const modelId = model || (providerId === 'anthropic' ? cfg.anthropicModel : cfg.openaiModel) || mod.DEFAULT_MODEL;
-
-  const prompt = makeRecordingPrompt({ template: tpl, recording });
   const text = await mod.generate({ apiKey, model: modelId, prompt });
   return { text, providerId, modelId, templateId };
 }

@@ -735,7 +735,13 @@ function openAINotePopup(recordingId, x, y) {
   // them to Settings up front.
   const cfg = window.__lastSettings || {};
   const provider = cfg.aiNotesProvider || 'anthropic';
-  const keyOk = (provider === 'anthropic' && cfg.anthropicApiKey) || (provider === 'openai' && cfg.openaiApiKey);
+  // Anthropic / OpenAI need an API key. Claude Code / Codex just need the
+  // CLI on disk (validated at generate time — we don't pre-check here, the
+  // error path on missing CLI is friendly enough).
+  const needsKey = provider === 'anthropic' || provider === 'openai';
+  const keyOk = !needsKey ||
+    (provider === 'anthropic' && cfg.anthropicApiKey) ||
+    (provider === 'openai' && cfg.openaiApiKey);
   if (!keyOk) {
     if (confirm('No API key on file for the AI Notes provider. Open the Engine tab to add one?')) {
       switchTab('engine');
@@ -776,8 +782,13 @@ function openAINotePopup(recordingId, x, y) {
     opt.textContent = t.name;
     sel.appendChild(opt);
   }
-  popup.querySelector('#aiPopProviderHint').textContent =
-    `Using ${provider} · ${provider === 'anthropic' ? (cfg.anthropicModel || 'default') : (cfg.openaiModel || 'default')}.`;
+  const providerLabel = {
+    anthropic: `Anthropic · ${cfg.anthropicModel || 'default'}`,
+    openai: `OpenAI · ${cfg.openaiModel || 'default'}`,
+    claudeCode: 'Claude Code (your subscription)',
+    codex: 'Codex (your subscription)',
+  }[provider] || provider;
+  popup.querySelector('#aiPopProviderHint').textContent = `Using ${providerLabel}.`;
 
   const close = () => { popup.remove(); document.removeEventListener('mousedown', dismiss); document.removeEventListener('keydown', escDismiss); };
   const dismiss = (ev) => { if (!popup.contains(ev.target)) close(); };
@@ -1050,9 +1061,12 @@ const saveAiNotesBtn = document.getElementById('saveAiNotes');
 const aiNotesSaveStatusEl = document.getElementById('aiNotesSaveStatus');
 
 function applyAiNotesProvider(kind) {
-  const k = (kind === 'openai') ? 'openai' : 'anthropic';
+  const valid = ['anthropic', 'openai', 'claudeCode', 'codex'];
+  const k = valid.includes(kind) ? kind : 'anthropic';
   aiAnthropicEl.classList.toggle('active', k === 'anthropic');
   aiOpenaiEl.classList.toggle('active', k === 'openai');
+  document.getElementById('aiClaudeCode').classList.toggle('active', k === 'claudeCode');
+  document.getElementById('aiCodex').classList.toggle('active', k === 'codex');
   document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
     r.checked = r.value === k;
   });
@@ -1065,7 +1079,7 @@ async function populateAiNotesModels() {
   const providers = await window.wisper.aiNotesProviders();
   const fill = (selectEl, providerId) => {
     const p = providers.find((x) => x.id === providerId);
-    if (!p) return;
+    if (!p || !p.models) return;
     selectEl.innerHTML = '';
     for (const m of p.models) {
       const opt = document.createElement('option');
@@ -1076,6 +1090,28 @@ async function populateAiNotesModels() {
   };
   fill(anthropicModelEl, 'anthropic');
   fill(openaiModelEl, 'openai');
+
+  // CLI provider availability hints
+  const cc = providers.find((p) => p.id === 'claudeCode');
+  const cx = providers.find((p) => p.id === 'codex');
+  const ccStatus = document.getElementById('claudeCodeStatus');
+  const cxStatus = document.getElementById('codexStatus');
+  const ccDetail = document.getElementById('claudeCodeDetail');
+  const cxDetail = document.getElementById('codexDetail');
+  if (cc) {
+    ccStatus.textContent = cc.available ? '· installed' : '· not found';
+    ccStatus.style.color = cc.available ? '#30d158' : 'var(--danger)';
+    ccDetail.textContent = cc.available
+      ? `Found at ${cc.executable}. Uses your Claude Code subscription — no API key charged.`
+      : 'No claude CLI found on PATH. Install Claude Code (npm install -g @anthropic-ai/claude-code) and re-launch WisperHelp.';
+  }
+  if (cx) {
+    cxStatus.textContent = cx.available ? '· installed' : '· not found';
+    cxStatus.style.color = cx.available ? '#30d158' : 'var(--danger)';
+    cxDetail.textContent = cx.available
+      ? `Found at ${cx.executable}. Uses your Codex subscription — no API key charged.`
+      : 'No codex CLI found on PATH. Install OpenAI Codex and re-launch WisperHelp.';
+  }
 }
 
 saveAiNotesBtn.addEventListener('click', async () => {
