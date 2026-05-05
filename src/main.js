@@ -18,20 +18,33 @@ let isProcessing = false;
 
 function createFloatingWindow() {
   const display = screen.getPrimaryDisplay();
-  const { width, height } = display.workArea;
+  const { x: waX, y: waY, width: waW, height: waH } = display.workArea;
+  const W = 220, H = 44;
+  // workArea is in screen-DIP coordinates. Earlier code ignored x/y, which
+  // put the window off-screen on multi-monitor setups where the primary
+  // display isn't anchored at (0,0). Compute relative to the work area.
+  const x = Math.round(waX + (waW - W) / 2);
+  const y = Math.round(waY + waH - H - 20);
+  console.log('[main] floating window position:', { x, y, workArea: display.workArea, scale: display.scaleFactor });
 
+  // Windows + transparent BrowserWindow has a long history of compositor bugs
+  // — the most reliable cross-Windows approach is a solid backgroundColor.
+  // We pick the same color as the pill's body so the seam disappears, and
+  // the pill fills the whole window (CSS handles rounded corners visually
+  // even though the window frame itself is rectangular).
   floatingWindow = new BrowserWindow({
-    width: 220,
-    height: 44,
-    x: Math.round(width / 2 - 110),
-    y: height - 64,
+    width: W,
+    height: H,
+    x, y,
     frame: false,
-    transparent: true,
+    transparent: false,
+    backgroundColor: '#141416',
     resizable: false,
     movable: true,
     skipTaskbar: true,
     alwaysOnTop: true,
     focusable: false,
+    hasShadow: false,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload-floating.js'),
@@ -41,6 +54,9 @@ function createFloatingWindow() {
   });
   floatingWindow.setAlwaysOnTop(true, 'screen-saver');
   floatingWindow.loadFile(path.join(__dirname, '..', 'ui', 'floating.html'));
+  floatingWindow.webContents.once('did-finish-load', () => {
+    console.log('[main] floating window loaded');
+  });
 }
 
 function showFloating(state) {

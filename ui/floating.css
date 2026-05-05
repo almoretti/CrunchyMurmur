@@ -1,7 +1,8 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: transparent;
+  /* Match the BrowserWindow backgroundColor so there's no seam at the edges. */
+  background: #141416;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: #fff;
   -webkit-user-select: none;
@@ -10,11 +11,12 @@ html, body {
 }
 
 .pill {
-  height: 36px;
-  margin: 4px 6px;
-  border-radius: 18px;
-  background: rgba(20, 20, 22, 0.92);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.08) inset;
+  /* Fill the window — no margin, no rounded corners on this rectangle since
+     Windows can't reliably render a rounded transparent BrowserWindow. */
+  height: 100%;
+  margin: 0;
+  background: #141416;
+  box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08) inset;
   display: flex;
   align-items: center;
   gap: 10px;
