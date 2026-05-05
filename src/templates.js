@@ -4,7 +4,7 @@ const { app } = require('electron');
 
 // Bundled note-templates ported verbatim from Mac NoteTemplates.swift —
 // these are the source of truth. User edits live as JSON overrides at
-// %APPDATA%\WisperHelp\Templates\<id>.json; the loader merges them on top.
+// %APPDATA%\CrunchyMurmur\Templates\<id>.json; the loader merges them on top.
 //
 // Keep the wording and formatting in sync with the Mac copy when one changes.
 

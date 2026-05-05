@@ -1641,14 +1641,14 @@ async function populateAiNotesModels() {
     ccStatus.style.color = cc.available ? '#30d158' : 'var(--danger)';
     ccDetail.textContent = cc.available
       ? `Found at ${cc.executable}. Uses your Claude Code subscription — no API key charged.`
-      : 'No claude CLI found on PATH. Install Claude Code (npm install -g @anthropic-ai/claude-code) and re-launch WisperHelp.';
+      : 'No claude CLI found on PATH. Install Claude Code (npm install -g @anthropic-ai/claude-code) and re-launch CrunchyMurmur.';
   }
   if (cx) {
     cxStatus.textContent = cx.available ? '· installed' : '· not found';
     cxStatus.style.color = cx.available ? '#30d158' : 'var(--danger)';
     cxDetail.textContent = cx.available
       ? `Found at ${cx.executable}. Uses your Codex subscription — no API key charged.`
-      : 'No codex CLI found on PATH. Install OpenAI Codex and re-launch WisperHelp.';
+      : 'No codex CLI found on PATH. Install OpenAI Codex and re-launch CrunchyMurmur.';
   }
 }
 

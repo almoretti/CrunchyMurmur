@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { app, shell } = require('electron');
 
 // On-disk layout:
-//   %APPDATA%\WisperHelp\Meetings\
+//   %APPDATA%\CrunchyMurmur\Meetings\
 //     <id>\
 //       meta.json    — id, title, createdAt, endedAt, userNotes, transcript, aiNotes, aiTemplateId
 //       mic.wav      — captured microphone audio (16 kHz mono PCM16)

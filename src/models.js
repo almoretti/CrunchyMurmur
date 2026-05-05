@@ -217,7 +217,7 @@ function downloadModel(id, onProgress) {
     fileStream.on('error', onError);
 
     const req = https.get(modelUrl(id), {
-      headers: { 'User-Agent': 'WisperHelp-Windows' },
+      headers: { 'User-Agent': 'CrunchyMurmur-Windows' },
     }, handleResponse);
     req.on('error', onError);
 

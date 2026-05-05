@@ -21,7 +21,7 @@ function isAvailable() {
 async function generate({ prompt }) {
   const exe = executable();
   if (!exe) {
-    const err = new Error('claude CLI not found on PATH. Install Claude Code and re-launch WisperHelp.');
+    const err = new Error('claude CLI not found on PATH. Install Claude Code and re-launch CrunchyMurmur.');
     err.code = 'cli-missing';
     throw err;
   }

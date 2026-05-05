@@ -19,7 +19,7 @@ function isAvailable() {
 async function generate({ prompt }) {
   const exe = executable();
   if (!exe) {
-    const err = new Error('codex CLI not found on PATH. Install OpenAI Codex and re-launch WisperHelp.');
+    const err = new Error('codex CLI not found on PATH. Install OpenAI Codex and re-launch CrunchyMurmur.');
     err.code = 'cli-missing';
     throw err;
   }

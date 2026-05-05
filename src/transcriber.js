@@ -48,7 +48,7 @@ function transcribeWav(wavPath, { whisperCliPath, modelPath, language }) {
  * Returns the file path.
  */
 function writeTempWav(float32Samples) {
-  const tmp = path.join(os.tmpdir(), `wisperhelp-${Date.now()}.wav`);
+  const tmp = path.join(os.tmpdir(), `crunchymurmur-${Date.now()}.wav`);
   const buffer = encodeWav(float32Samples, 16000);
   fs.writeFileSync(tmp, buffer);
   return tmp;

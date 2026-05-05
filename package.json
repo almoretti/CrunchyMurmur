@@ -1,7 +1,8 @@
 {
-  "name": "wisperhelp-windows",
+  "name": "crunchymurmur-windows",
+  "productName": "CrunchyMurmur",
   "version": "0.1.0",
-  "description": "Local-Whisper dictation tool for Windows. Hold Ctrl+Win, speak, release.",
+  "description": "CrunchyMurmur — local-Whisper dictation, meetings, and AI notes for Windows. Hold Ctrl+Win, speak, release.",
   "main": "src/main.js",
   "private": true,
   "scripts": {
@@ -18,8 +19,8 @@
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId": "cc.moretti.wisperhelp.windows",
-    "productName": "WisperHelp",
+    "appId": "cc.moretti.crunchymurmur.windows",
+    "productName": "CrunchyMurmur",
     "files": [
       "src/**/*",
       "ui/**/*",

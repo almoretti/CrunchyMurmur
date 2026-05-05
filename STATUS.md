@@ -1,10 +1,10 @@
-# WisperHelp Windows — Status & TODO
+# CrunchyMurmur Windows — Status & TODO
 
 > Snapshot of what's in the v1 scaffold, what's broken/unverified, and what's
-> still missing relative to the macOS WisperHelp app. Read this before picking
+> still missing relative to the macOS CrunchyMurmur app. Read this before picking
 > up work on a Windows machine.
 
-The macOS app lives at `/Users/alemoretti/Documents/Coding-Projects/WisperHelp/`
+The macOS app lives at `/Users/alemoretti/Documents/Coding-Projects/CrunchyMurmur/`
 (separate Swift codebase, separate git repo). This Windows project is a
 **dictation-only v1 in Electron** — Meetings/Notes/Calendar are intentionally
 out of scope for now.
@@ -23,12 +23,12 @@ actually held Ctrl+Win on a Windows desktop.
 | Hold Ctrl+Win → record | `src/hotkey.js` | Both keys must be held; release of either stops |
 | Floating recording pill | `ui/floating.html/css/js` | Frameless transparent always-on-top BrowserWindow at bottom-center of primary display, with pulsing red dot + 5-bar mic level meter + spinner state for transcribing |
 | Mic capture + 16 kHz downsample | `ui/floating.js` | `getUserMedia` → `ScriptProcessor` chunks → linear-interp downsample → ship to main via IPC |
-| WAV write | `src/transcriber.js` (`writeTempWav`) | PCM16 mono into `%TEMP%\wisperhelp-<ts>.wav` |
+| WAV write | `src/transcriber.js` (`writeTempWav`) | PCM16 mono into `%TEMP%\crunchymurmur-<ts>.wav` |
 | Local engine | `src/transcriber.js` | Spawns `whisper-cli.exe -m model.bin -f input.wav -nt --no-prints` |
 | Groq engine | `src/groq.js` | Multipart POST to `api.groq.com/openai/v1/audio/transcriptions`, `response_format=text` |
 | Groq key encryption | `src/settings.js` | `safeStorage` (Windows DPAPI) — encrypted blob persisted as base64 |
 | Synthetic Ctrl+V paste | `src/paste.js` | Clipboard write + `nut-js` Ctrl+V → restores prior clipboard after 350 ms |
-| History | `src/history.js`, `ui/main.html/js` | JSON in `%APPDATA%\WisperHelp\history.json`; search, copy, delete, clear-all |
+| History | `src/history.js`, `ui/main.html/js` | JSON in `%APPDATA%\CrunchyMurmur\history.json`; search, copy, delete, clear-all |
 | Settings UI | `ui/main.html/css/js` | Engine radio (Local / Groq), conditional fields, language picker |
 | First-launch redirect | `src/main.js` (`whenReady`) + `ui/main.js` | Opens main window + jumps to Settings tab if engine isn't configured |
 
@@ -111,7 +111,7 @@ so the user isn't left wondering where the text went.
   Uses `node-ical` so RRULE expansion works; supports Google / iCloud / Outlook
   published feeds. EventKit (Mac) was not portable.
 - **Meetings** — start/stop, mic capture, transcription (reuses Local/Groq engine),
-  AI summarization, persistent per-meeting folder under `%APPDATA%\WisperHelp\Meetings\`
+  AI summarization, persistent per-meeting folder under `%APPDATA%\CrunchyMurmur\Meetings\`
   (`src/meetings-store.js`).
 
 ### ❗ Remaining gap — system audio capture
@@ -167,7 +167,7 @@ The Mac app captures both microphone and **system audio** in parallel via
 ## 📂 What lives where
 
 ```
-WisperHelp-Windows/
+CrunchyMurmur-Windows/
 ├── package.json              # electron, electron-builder, nut-js, node-global-key-listener
 ├── README.md                 # User-facing setup guide
 ├── STATUS.md                 # ← you are here
@@ -196,8 +196,8 @@ WisperHelp-Windows/
 ## 🚀 Picking up on Windows — quickstart
 
 ```cmd
-git clone https://github.com/almoretti/WisperHelp-Windows.git
-cd WisperHelp-Windows
+git clone https://github.com/almoretti/CrunchyMurmur-Windows.git
+cd CrunchyMurmur-Windows
 npm install
 npm start
 ```

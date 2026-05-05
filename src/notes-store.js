@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { app, shell } = require('electron');
 
 // Markdown notebook backed by real .md files on disk:
-//   %USERPROFILE%\Documents\WisperHelp Notes\
+//   %USERPROFILE%\Documents\CrunchyMurmur Notes\
 //       Inbox\
 //           note-1.md
 //       Meetings\
@@ -13,12 +13,16 @@ const { app, shell } = require('electron');
 //
 // Folders are real subdirectories. The user can edit files in any external
 // editor and we'll see the changes the next time we reload.
+//
+// Note: pre-rename this folder was called "WisperHelp Notes". The migration
+// in main.js renames it to "CrunchyMurmur Notes" on first launch after the
+// rename, so existing users keep their notes.
 
 const SEED_FOLDERS = ['Inbox', 'Meetings'];
 
 function rootDir() {
   const docs = app.getPath('documents') || path.join(os.homedir(), 'Documents');
-  const dir = path.join(docs, 'WisperHelp Notes');
+  const dir = path.join(docs, 'CrunchyMurmur Notes');
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }

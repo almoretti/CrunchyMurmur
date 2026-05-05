@@ -14,8 +14,72 @@ app.disableHardwareAcceleration();
 // taskbar inherits electron.exe's icon. Must be called before any window is
 // created. The string matches package.json `build.appId`.
 if (process.platform === 'win32') {
-  app.setAppUserModelId('cc.moretti.wisperhelp.windows');
+  app.setAppUserModelId('cc.moretti.crunchymurmur.windows');
 }
+
+// Force the runtime app name to match the productName from package.json so
+// dev mode and packaged builds both write to %APPDATA%\CrunchyMurmur\
+// (otherwise Electron uses the lowercased package "name" in dev, which
+// would put data at %APPDATA%\crunchymurmur-windows\).
+app.setName('CrunchyMurmur');
+
+// One-time migration: the app was renamed WisperHelp → CrunchyMurmur. The
+// older codebase used the package name `wisperhelp-windows` as the userData
+// folder in dev (because no productName was set top-level), and the
+// packaged build used `WisperHelp`. Either could be the legacy directory
+// — try both. Idempotent: only runs when the new dir is empty.
+function migrateLegacyDataDir() {
+  if (process.platform !== 'win32') return;
+  const fsx = require('fs');
+  const pathx = require('path');
+
+  try {
+    const newDir = app.getPath('userData');
+    const parent = pathx.dirname(newDir);
+    const candidates = ['WisperHelp', 'wisperhelp-windows']
+      .map((name) => pathx.join(parent, name))
+      .filter((p) => p !== newDir && fsx.existsSync(p));
+    if (candidates.length === 0) return;
+
+    // Don't clobber a fresh install: only migrate when the new dir is
+    // missing or empty (no settings.json yet).
+    if (fsx.existsSync(newDir)) {
+      const entries = fsx.readdirSync(newDir);
+      if (entries.length > 0) return;
+    }
+
+    const legacyDir = candidates[0];
+    fsx.mkdirSync(parent, { recursive: true });
+    try {
+      fsx.rmSync(newDir, { recursive: true, force: true });
+      fsx.renameSync(legacyDir, newDir);
+    } catch (e) {
+      if (e.code === 'EXDEV') {
+        fsx.cpSync(legacyDir, newDir, { recursive: true });
+        fsx.rmSync(legacyDir, { recursive: true, force: true });
+      } else {
+        throw e;
+      }
+    }
+    console.log('[main] migrated user data from', legacyDir, 'to', newDir);
+  } catch (err) {
+    console.warn('[main] data migration failed (non-fatal):', err.message);
+  }
+
+  // Also migrate the user's Notes folder under ~/Documents.
+  try {
+    const docs = app.getPath('documents');
+    const oldNotes = pathx.join(docs, 'WisperHelp Notes');
+    const newNotes = pathx.join(docs, 'CrunchyMurmur Notes');
+    if (fsx.existsSync(oldNotes) && !fsx.existsSync(newNotes)) {
+      fsx.renameSync(oldNotes, newNotes);
+      console.log('[main] migrated notes folder from', oldNotes, 'to', newNotes);
+    }
+  } catch (err) {
+    console.warn('[main] notes-folder migration failed (non-fatal):', err.message);
+  }
+}
+migrateLegacyDataDir();
 
 const settings = require('./settings');
 const history = require('./history');
@@ -101,7 +165,7 @@ function showMainWindow() {
     height: 720,
     minWidth: 720,
     minHeight: 480,
-    title: 'WisperHelp',
+    title: 'CrunchyMurmur',
     icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload-main.js'),
@@ -132,9 +196,9 @@ function createTray() {
   }
 
   tray = new Tray(image);
-  tray.setToolTip('WisperHelp — hold Ctrl+Win to dictate');
+  tray.setToolTip('CrunchyMurmur — hold Ctrl+Win to dictate');
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Open WisperHelp', click: showMainWindow },
+    { label: 'Open CrunchyMurmur', click: showMainWindow },
     { type: 'separator' },
     { label: 'Quit', click: () => { app.quit(); } },
   ]));

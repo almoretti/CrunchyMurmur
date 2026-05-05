@@ -39,7 +39,7 @@ function fetchText(url) {
     // webcal:// is the legacy scheme — promote to https.
     const finalUrl = url.startsWith('webcal://') ? 'https://' + url.slice('webcal://'.length) : url;
     const lib = finalUrl.startsWith('https:') ? https : http;
-    const req = lib.get(finalUrl, { headers: { 'User-Agent': 'WisperHelp-Windows' } }, (res) => {
+    const req = lib.get(finalUrl, { headers: { 'User-Agent': 'CrunchyMurmur-Windows' } }, (res) => {
       // Follow one redirect — most calendar feeds use them.
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
