@@ -9,6 +9,14 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nati
 // UI surfaces and worth it for a proper-looking pill.
 app.disableHardwareAcceleration();
 
+// Bind the app to its own AppUserModelID so Windows groups our windows under
+// a single taskbar entry with our icon — without this, in dev mode the
+// taskbar inherits electron.exe's icon. Must be called before any window is
+// created. The string matches package.json `build.appId`.
+if (process.platform === 'win32') {
+  app.setAppUserModelId('cc.moretti.wisperhelp.windows');
+}
+
 const settings = require('./settings');
 const history = require('./history');
 const models = require('./models');
