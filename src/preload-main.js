@@ -55,4 +55,14 @@ contextBridge.exposeInMainWorld('wisper', {
   // AI Notes
   aiNotesProviders: () => ipcRenderer.invoke('ai-notes:providers'),
   aiNotesGenerateFromRecording: (payload) => ipcRenderer.invoke('ai-notes:generate-from-recording', payload),
+
+  // Calendar
+  calendarSnapshot:   () => ipcRenderer.invoke('calendar:snapshot'),
+  calendarRefresh:    () => ipcRenderer.invoke('calendar:refresh'),
+  calendarAddFeed:    (payload) => ipcRenderer.invoke('calendar:add-feed', payload),
+  calendarUpdateFeed: (payload) => ipcRenderer.invoke('calendar:update-feed', payload),
+  calendarRemoveFeed: (id) => ipcRenderer.invoke('calendar:remove-feed', id),
+  onCalendarChanged: (cb) => {
+    ipcRenderer.on('calendar:changed', (_e, snap) => cb(snap));
+  },
 });

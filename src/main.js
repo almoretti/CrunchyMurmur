@@ -15,6 +15,7 @@ const models = require('./models');
 const notes = require('./notes-store');
 const templates = require('./templates');
 const aiNotes = require('./notes-generator');
+const calendar = require('./calendar-store');
 const { transcribeWav, writeTempWav } = require('./transcriber');
 const { transcribeWithGroq } = require('./groq');
 const { pasteText } = require('./paste');
@@ -264,6 +265,29 @@ ipcMain.handle('templates:revert', (_e, id) => templates.revert(id));
 // ---------- IPC: AI Notes generation ----------
 
 ipcMain.handle('ai-notes:providers', () => aiNotes.listProviders());
+
+// ---------- IPC: calendar ----------
+
+function broadcastCalendar() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('calendar:changed', calendar.snapshot());
+  }
+}
+
+ipcMain.handle('calendar:snapshot', () => calendar.snapshot());
+ipcMain.handle('calendar:refresh',  async () => { await calendar.refreshAll(); broadcastCalendar(); return calendar.snapshot(); });
+ipcMain.handle('calendar:add-feed', async (_e, payload) => {
+  const id = calendar.addFeed(payload);
+  await calendar.refresh(id).catch(() => {});
+  broadcastCalendar();
+  return id;
+});
+ipcMain.handle('calendar:update-feed', async (_e, payload) => {
+  calendar.updateFeed(payload);
+  await calendar.refresh(payload.id).catch(() => {});
+  broadcastCalendar();
+});
+ipcMain.handle('calendar:remove-feed', (_e, id) => { calendar.removeFeed(id); broadcastCalendar(); });
 
 ipcMain.handle('ai-notes:generate-from-recording', async (_e, payload) => {
   // payload: { recordingId, templateId, provider?, model?, folder? }

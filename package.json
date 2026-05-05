@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@nut-tree-fork/nut-js": "^4.2.2",
-    "node-global-key-listener": "^0.3.0"
+    "node-global-key-listener": "^0.3.0",
+    "node-ical": "^0.26.1"
   },
   "devDependencies": {
     "electron": "^32.0.0",

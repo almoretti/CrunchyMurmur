@@ -727,6 +727,125 @@ templateSaveBtn.addEventListener('click', async () => {
   setTimeout(() => { templateSaveStatusEl.textContent = ''; templateSaveStatusEl.style.color = ''; }, 1500);
 });
 
+// ----- Meetings tab — Calendar feed + meetings list -----
+const calendarListEl = document.getElementById('calendarList');
+const calendarEmptyEl = document.getElementById('calendarEmpty');
+const meetingsListEl = document.getElementById('meetingsList');
+const meetingsEmptyEl = document.getElementById('meetingsEmpty');
+const manageFeedsBtn = document.getElementById('manageFeedsBtn');
+const refreshCalendarBtn = document.getElementById('refreshCalendarBtn');
+const feedsDialogEl = document.getElementById('feedsDialog');
+const feedsDialogCloseBtn = document.getElementById('feedsDialogClose');
+const feedsListEl = document.getElementById('feedsList');
+const feedNewUrlEl = document.getElementById('feedNewUrl');
+const feedNewLabelEl = document.getElementById('feedNewLabel');
+const feedAddBtn = document.getElementById('feedAddBtn');
+
+let calendarSnapshot = { feeds: [], events: [] };
+
+function eventTimingClass(ev) {
+  const now = Date.now();
+  const start = new Date(ev.start).getTime();
+  const end = new Date(ev.end).getTime();
+  if (now >= start && now < end) return 'happening';
+  if (start - now <= 15 * 60 * 1000 && start > now) return 'soon';
+  return '';
+}
+
+function fmtEventTime(ev) {
+  const s = new Date(ev.start);
+  const e = new Date(ev.end);
+  const sameDay = s.toDateString() === e.toDateString();
+  const opts = { hour: '2-digit', minute: '2-digit' };
+  if (ev.isAllDay) return 'All day';
+  if (sameDay) return `${s.toLocaleTimeString(undefined, opts)} – ${e.toLocaleTimeString(undefined, opts)}`;
+  return s.toLocaleString(undefined, { month: 'short', day: 'numeric', ...opts });
+}
+
+function renderCalendar() {
+  calendarListEl.innerHTML = '';
+  const upcoming = calendarSnapshot.events.filter((e) => new Date(e.end).getTime() > Date.now()).slice(0, 6);
+  for (const ev of upcoming) {
+    const li = document.createElement('li');
+    const cls = eventTimingClass(ev);
+    if (cls) li.classList.add(cls);
+    if (ev.color) li.style.borderLeftColor = ev.color;
+    li.innerHTML = `
+      <div class="when"></div>
+      <div class="title"></div>
+      ${ev.location ? '<div class="where"></div>' : ''}
+    `;
+    li.querySelector('.when').textContent = fmtEventTime(ev);
+    li.querySelector('.title').textContent = ev.title;
+    if (ev.location) li.querySelector('.where').textContent = ev.location;
+    calendarListEl.appendChild(li);
+  }
+  calendarEmptyEl.style.display = (calendarSnapshot.feeds.length === 0) ? 'block' : 'none';
+}
+
+function renderFeedsDialog() {
+  feedsListEl.innerHTML = '';
+  for (const f of calendarSnapshot.feeds) {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div class="swatch" style="background:${f.color || '#0a84ff'}"></div>
+      <div class="info">
+        <div class="label"></div>
+        <div class="url"></div>
+        ${f.lastError ? '<div class="err"></div>' : ''}
+      </div>
+      <button class="text-button danger" data-action="remove">Remove</button>
+    `;
+    li.querySelector('.label').textContent = f.label || '(unlabeled)';
+    li.querySelector('.url').textContent = f.url;
+    if (f.lastError) li.querySelector('.err').textContent = f.lastError;
+    li.querySelector('[data-action="remove"]').addEventListener('click', async () => {
+      if (!confirm(`Remove feed "${f.label || f.url}"?`)) return;
+      await window.wisper.calendarRemoveFeed(f.id);
+    });
+    feedsListEl.appendChild(li);
+  }
+}
+
+manageFeedsBtn.addEventListener('click', () => {
+  feedsDialogEl.classList.remove('hidden');
+  renderFeedsDialog();
+});
+feedsDialogCloseBtn.addEventListener('click', () => feedsDialogEl.classList.add('hidden'));
+feedsDialogEl.addEventListener('click', (e) => {
+  if (e.target === feedsDialogEl) feedsDialogEl.classList.add('hidden');
+});
+
+feedAddBtn.addEventListener('click', async () => {
+  const url = feedNewUrlEl.value.trim();
+  if (!url) { alert('Paste an ICS URL first.'); return; }
+  await window.wisper.calendarAddFeed({ url, label: feedNewLabelEl.value.trim() });
+  feedNewUrlEl.value = '';
+  feedNewLabelEl.value = '';
+});
+
+refreshCalendarBtn.addEventListener('click', async () => {
+  refreshCalendarBtn.textContent = '…';
+  await window.wisper.calendarRefresh();
+  refreshCalendarBtn.textContent = '↻';
+});
+
+window.wisper.onCalendarChanged((snap) => {
+  calendarSnapshot = snap;
+  renderCalendar();
+  if (!feedsDialogEl.classList.contains('hidden')) renderFeedsDialog();
+});
+
+// Re-fetch when the user switches to Meetings (cheap; throttled by node-ical
+// network anyway).
+document.querySelectorAll('.nav-item').forEach((b) => {
+  b.addEventListener('click', () => {
+    if (b.dataset.tab === 'meetings' && calendarSnapshot.feeds.length > 0) {
+      window.wisper.calendarRefresh();
+    }
+  });
+});
+
 // ----- AI Notes generation popover (used from the Recordings tab) -----
 
 function openAINotePopup(recordingId, x, y) {
@@ -1171,6 +1290,15 @@ saveGeneralBtn.addEventListener('click', async () => {
 
   // Templates tab data.
   await reloadTemplates();
+
+  // Calendar snapshot — initial render is fast even before fetches finish
+  // (we just show whatever's cached). Then refresh in the background so any
+  // new events show up.
+  calendarSnapshot = await window.wisper.calendarSnapshot();
+  renderCalendar();
+  if (calendarSnapshot.feeds.length > 0) {
+    window.wisper.calendarRefresh();
+  }
 
   const needsSetup = (cfg.engineKind === 'groq')
     ? !cfg.groqApiKey

@@ -45,14 +45,90 @@
         </div>
       </section>
 
-      <!-- Meetings (placeholder) -->
-      <section id="tab-meetings" class="tab">
-        <div class="placeholder">
-          <div class="placeholder-icon">▢</div>
-          <h2>Meetings</h2>
-          <p>Multi-speaker meeting capture is on the roadmap. The Mac app records system audio + microphone in parallel; the Windows port needs WASAPI loopback before this can ship.</p>
-        </div>
+      <!-- Meetings -->
+      <section id="tab-meetings" class="tab meetings-tab">
+        <aside class="meetings-list-pane">
+          <header class="notes-pane-header">
+            <span>Today</span>
+            <button id="manageFeedsBtn" class="text-button" title="Manage calendar feeds">Feeds</button>
+            <button id="refreshCalendarBtn" class="text-button" title="Refresh calendar">↻</button>
+          </header>
+          <ul id="calendarList" class="calendar-list"></ul>
+          <div id="calendarEmpty" class="muted small calendar-empty">
+            No calendar feeds yet. Click <strong>Feeds</strong> to add a Google / iCloud / Outlook ICS URL.
+          </div>
+
+          <header class="notes-pane-header" style="margin-top:6px">
+            <span>Meetings</span>
+            <button id="startMeetingBtn" class="primary-button" style="padding:3px 8px;font-size:11px">Start</button>
+          </header>
+          <ul id="meetingsList" class="meetings-list"></ul>
+          <div id="meetingsEmpty" class="muted small calendar-empty">
+            No meetings yet. Click <strong>Start</strong> for a long-form recording — mic only for now (system audio capture lands when WASAPI loopback is wired up).
+          </div>
+        </aside>
+
+        <main class="meetings-detail-pane">
+          <div id="meetingDetail" class="meeting-detail hidden">
+            <header class="meeting-detail-header">
+              <input id="meetingTitle" type="text" class="note-title" placeholder="Untitled meeting" />
+              <span id="meetingRecordingStatus" class="muted small"></span>
+              <button id="stopMeetingBtn" class="text-button danger" hidden>Stop</button>
+              <button id="transcribeMeetingBtn" class="text-button" hidden>Transcribe</button>
+              <button id="aiNotesMeetingBtn" class="text-button" hidden>AI note…</button>
+              <button id="deleteMeetingBtn" class="text-button danger" hidden>Delete</button>
+            </header>
+
+            <div class="meeting-section">
+              <h3>Your notes</h3>
+              <textarea id="meetingUserNotes" class="meeting-notes" placeholder="Type live notes here while you record. Autosaves."></textarea>
+            </div>
+
+            <div class="meeting-section">
+              <h3>Transcript</h3>
+              <div id="meetingTranscriptBox" class="meeting-transcript-box">
+                <div id="meetingTranscriptEmpty" class="muted small">No transcript yet. After stopping the recording, click <strong>Transcribe</strong>.</div>
+                <pre id="meetingTranscript" class="meeting-transcript hidden"></pre>
+              </div>
+            </div>
+
+            <div class="meeting-section">
+              <h3>AI notes</h3>
+              <div id="meetingAiNotesBox" class="meeting-ai-box">
+                <div id="meetingAiNotesEmpty" class="muted small">No AI notes yet. After transcription, click <strong>AI note…</strong> to summarize.</div>
+                <pre id="meetingAiNotes" class="meeting-ai-notes hidden"></pre>
+              </div>
+            </div>
+          </div>
+
+          <div id="meetingsSelectMessage" class="placeholder">
+            <div class="placeholder-icon">▢</div>
+            <h2>Pick a meeting</h2>
+            <p>Click <strong>Start</strong> in the sidebar to begin a long-form recording, or pick a past meeting from the list to view its transcript and notes.</p>
+          </div>
+        </main>
       </section>
+
+      <!-- Calendar feeds dialog (modal-ish overlay) -->
+      <div id="feedsDialog" class="modal-overlay hidden">
+        <div class="modal">
+          <header class="modal-header">
+            <h3>Calendar feeds</h3>
+            <button class="text-button" id="feedsDialogClose">Close</button>
+          </header>
+          <p class="muted small">
+            Paste an ICS URL — the public iCalendar feed from your provider:
+            Google Calendar (settings → "Secret address in iCal format"),
+            Outlook (settings → Shared calendars → Publish), iCloud (settings → Public calendar). Events refresh every time you switch to the Meetings tab.
+          </p>
+          <ul id="feedsList" class="feeds-list"></ul>
+          <div class="feeds-add">
+            <input id="feedNewUrl" type="text" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" />
+            <input id="feedNewLabel" type="text" placeholder="Label (optional)" />
+            <button id="feedAddBtn" class="primary-button">Add</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Notes -->
       <section id="tab-notes" class="tab notes-tab">
