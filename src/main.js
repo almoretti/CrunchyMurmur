@@ -16,6 +16,7 @@ const notes = require('./notes-store');
 const templates = require('./templates');
 const aiNotes = require('./notes-generator');
 const calendar = require('./calendar-store');
+const meetings = require('./meetings-store');
 const { transcribeWav, writeTempWav } = require('./transcriber');
 const { transcribeWithGroq } = require('./groq');
 const { pasteText } = require('./paste');
@@ -288,6 +289,71 @@ ipcMain.handle('calendar:update-feed', async (_e, payload) => {
   broadcastCalendar();
 });
 ipcMain.handle('calendar:remove-feed', (_e, id) => { calendar.removeFeed(id); broadcastCalendar(); });
+
+// ---------- IPC: meetings ----------
+
+function broadcastMeetings() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('meetings:changed', meetings.list());
+  }
+}
+
+ipcMain.handle('meetings:list',   () => meetings.list());
+ipcMain.handle('meetings:get',    (_e, id) => meetings.get(id));
+ipcMain.handle('meetings:create', (_e, payload) => { const m = meetings.create(payload); broadcastMeetings(); return m; });
+ipcMain.handle('meetings:update', (_e, payload) => { const m = meetings.update(payload.id, payload.partial || {}); broadcastMeetings(); return m; });
+ipcMain.handle('meetings:delete', (_e, id) => { meetings.remove(id); broadcastMeetings(); return { ok: true }; });
+ipcMain.handle('meetings:reveal', (_e, id) => meetings.reveal(id));
+ipcMain.handle('meetings:save-audio', (_e, payload) => {
+  // Renderer ships Float32 16 kHz mono samples; we encode and write the WAV.
+  meetings.writeMicWav(payload.id, Float32Array.from(payload.samples));
+  const m = meetings.update(payload.id, { endedAt: new Date().toISOString() });
+  broadcastMeetings();
+  return m;
+});
+
+ipcMain.handle('meetings:transcribe', async (_e, id) => {
+  const m = meetings.get(id);
+  if (!m) return { ok: false, error: 'Meeting not found.' };
+  if (!m.hasMicAudio) return { ok: false, error: 'No audio captured for this meeting.' };
+  const cfg = settings.load();
+  try {
+    const wav = meetings.micWavPath(id);
+    const text = cfg.engineKind === 'groq'
+      ? await require('./groq').transcribeWithGroq(wav, cfg)
+      : await require('./transcriber').transcribeWav(wav, cfg);
+    const updated = meetings.update(id, { transcript: (text || '').trim() });
+    broadcastMeetings();
+    return { ok: true, meeting: updated };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+});
+
+ipcMain.handle('meetings:generate-ai-notes', async (_e, payload) => {
+  const m = meetings.get(payload.id);
+  if (!m) return { ok: false, error: 'Meeting not found.' };
+  if (!m.transcript) return { ok: false, error: 'Transcribe the meeting first.' };
+  try {
+    // We re-use the recording-flavored prompt by mapping a meeting onto the
+    // same shape (text + createdAt + durationSec). It's the same prompt
+    // backbone so this works without a separate codepath.
+    const result = await aiNotes.generateFromRecording({
+      recording: {
+        text: m.transcript,
+        createdAt: m.createdAt,
+        durationSec: m.durationSec || 0,
+        language: settings.load().language,
+      },
+      templateId: payload.templateId,
+    });
+    const updated = meetings.update(payload.id, { aiNotes: result.text, aiTemplateId: payload.templateId });
+    broadcastMeetings();
+    return { ok: true, meeting: updated, providerId: result.providerId, modelId: result.modelId };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+});
 
 ipcMain.handle('ai-notes:generate-from-recording', async (_e, payload) => {
   // payload: { recordingId, templateId, provider?, model?, folder? }

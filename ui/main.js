@@ -846,6 +846,323 @@ document.querySelectorAll('.nav-item').forEach((b) => {
   });
 });
 
+// ----- Meetings recording + detail pane -----
+const startMeetingBtn = document.getElementById('startMeetingBtn');
+const meetingDetailEl = document.getElementById('meetingDetail');
+const meetingsSelectMessageEl = document.getElementById('meetingsSelectMessage');
+const meetingTitleEl = document.getElementById('meetingTitle');
+const meetingRecordingStatusEl = document.getElementById('meetingRecordingStatus');
+const stopMeetingBtn = document.getElementById('stopMeetingBtn');
+const transcribeMeetingBtn = document.getElementById('transcribeMeetingBtn');
+const aiNotesMeetingBtn = document.getElementById('aiNotesMeetingBtn');
+const deleteMeetingBtn = document.getElementById('deleteMeetingBtn');
+const meetingUserNotesEl = document.getElementById('meetingUserNotes');
+const meetingTranscriptEl = document.getElementById('meetingTranscript');
+const meetingTranscriptEmptyEl = document.getElementById('meetingTranscriptEmpty');
+const meetingAiNotesEl = document.getElementById('meetingAiNotes');
+const meetingAiNotesEmptyEl = document.getElementById('meetingAiNotesEmpty');
+
+let meetingsList = [];
+let selectedMeeting = null;
+let activeMeetingId = null; // currently-recording meeting (if any)
+let mtgMediaStream = null;
+let mtgAudioCtx = null;
+let mtgProcessor = null;
+let mtgChunks = [];
+let mtgNativeRate = 48_000;
+let mtgStartedAt = 0;
+let mtgTimerHandle = null;
+let mtgTitleSaveTimer = null;
+let mtgNotesSaveTimer = null;
+
+function fmtDuration(sec) {
+  const total = Math.max(0, Math.floor(sec));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function renderMeetingsList() {
+  meetingsListEl.innerHTML = '';
+  for (const m of meetingsList) {
+    const li = document.createElement('li');
+    if (m.id === selectedMeeting?.id) li.classList.add('active');
+    if (m.id === activeMeetingId) li.classList.add('recording');
+    const date = new Date(m.createdAt);
+    const subtitle = m.id === activeMeetingId
+      ? '● Recording…'
+      : `${date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` +
+        (m.durationSec ? ' · ' + fmtDuration(m.durationSec) : '');
+    li.innerHTML = `<div class="title"></div><div class="meta"></div>`;
+    li.querySelector('.title').textContent = m.title;
+    li.querySelector('.meta').textContent = subtitle;
+    li.addEventListener('click', () => openMeeting(m));
+    li.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      showContextMenu(ev.clientX, ev.clientY, [
+        { label: 'Reveal in Explorer', action: () => window.wisper.meetingsReveal(m.id) },
+        { label: 'Delete meeting', danger: true, action: () => deleteMeeting(m) },
+      ]);
+    });
+    meetingsListEl.appendChild(li);
+  }
+  meetingsEmptyEl.style.display = meetingsList.length === 0 ? 'block' : 'none';
+}
+
+function renderMeetingDetail() {
+  if (!selectedMeeting) {
+    meetingDetailEl.classList.add('hidden');
+    meetingsSelectMessageEl.classList.remove('hidden');
+    return;
+  }
+  meetingDetailEl.classList.remove('hidden');
+  meetingsSelectMessageEl.classList.add('hidden');
+
+  if (document.activeElement !== meetingTitleEl)
+    meetingTitleEl.value = selectedMeeting.title;
+  if (document.activeElement !== meetingUserNotesEl)
+    meetingUserNotesEl.value = selectedMeeting.userNotes || '';
+
+  const isRecording = activeMeetingId === selectedMeeting.id;
+  stopMeetingBtn.hidden = !isRecording;
+  transcribeMeetingBtn.hidden = isRecording || !selectedMeeting.hasMicAudio || Boolean(selectedMeeting.transcript);
+  aiNotesMeetingBtn.hidden = isRecording || !selectedMeeting.transcript;
+  deleteMeetingBtn.hidden = isRecording;
+
+  if (isRecording) {
+    meetingRecordingStatusEl.textContent = `Recording · ${fmtDuration((Date.now() - mtgStartedAt) / 1000)}`;
+    meetingRecordingStatusEl.style.color = 'var(--danger)';
+  } else if (selectedMeeting.durationSec) {
+    meetingRecordingStatusEl.textContent = `Length · ${fmtDuration(selectedMeeting.durationSec)}`;
+    meetingRecordingStatusEl.style.color = '';
+  } else {
+    meetingRecordingStatusEl.textContent = '';
+  }
+
+  if (selectedMeeting.transcript) {
+    meetingTranscriptEl.classList.remove('hidden');
+    meetingTranscriptEl.textContent = selectedMeeting.transcript;
+    meetingTranscriptEmptyEl.style.display = 'none';
+  } else {
+    meetingTranscriptEl.classList.add('hidden');
+    meetingTranscriptEmptyEl.style.display = '';
+  }
+  if (selectedMeeting.aiNotes) {
+    meetingAiNotesEl.classList.remove('hidden');
+    meetingAiNotesEl.textContent = selectedMeeting.aiNotes;
+    meetingAiNotesEmptyEl.style.display = 'none';
+  } else {
+    meetingAiNotesEl.classList.add('hidden');
+    meetingAiNotesEmptyEl.style.display = '';
+  }
+}
+
+function renderMeetingsAll() {
+  renderMeetingsList();
+  renderMeetingDetail();
+}
+
+function openMeeting(m) {
+  selectedMeeting = m ? { ...m } : null;
+  renderMeetingsAll();
+}
+
+async function deleteMeeting(m) {
+  if (!confirm(`Delete "${m.title}"? Audio + transcript + notes will be removed.`)) return;
+  await window.wisper.meetingsDelete(m.id);
+  if (selectedMeeting?.id === m.id) selectedMeeting = null;
+}
+
+async function startMeeting() {
+  // Get the chosen mic up front so we fail fast if it's misconfigured.
+  const cfg = window.__lastSettings || {};
+  const constraints = {
+    channelCount: 1,
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  };
+  if (cfg.micDeviceId) constraints.deviceId = { exact: cfg.micDeviceId };
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+  } catch (e) {
+    alert('Could not open the microphone. ' + (e.message || e));
+    return;
+  }
+
+  // Create the meeting record only after getUserMedia succeeds, so we don't
+  // leave empty stubs behind on permission failures.
+  const m = await window.wisper.meetingsCreate({});
+  activeMeetingId = m.id;
+  selectedMeeting = m;
+
+  mtgMediaStream = stream;
+  mtgAudioCtx = new AudioContext();
+  mtgNativeRate = mtgAudioCtx.sampleRate;
+  const source = mtgAudioCtx.createMediaStreamSource(mtgMediaStream);
+  mtgProcessor = mtgAudioCtx.createScriptProcessor(4096, 1, 1);
+  mtgProcessor.onaudioprocess = (ev) => {
+    const ch = ev.inputBuffer.getChannelData(0);
+    mtgChunks.push(new Float32Array(ch));
+  };
+  source.connect(mtgProcessor);
+  mtgProcessor.connect(mtgAudioCtx.destination);
+
+  mtgStartedAt = Date.now();
+  mtgChunks = [];
+  // Tick once a second so the running timer in the header updates without us
+  // having to drive the whole render() loop on rAF.
+  if (mtgTimerHandle) clearInterval(mtgTimerHandle);
+  mtgTimerHandle = setInterval(() => {
+    if (selectedMeeting && selectedMeeting.id === activeMeetingId) {
+      meetingRecordingStatusEl.textContent = `Recording · ${fmtDuration((Date.now() - mtgStartedAt) / 1000)}`;
+    }
+  }, 1000);
+
+  renderMeetingsAll();
+}
+
+async function stopMeeting() {
+  if (!activeMeetingId) return;
+  const meetingId = activeMeetingId;
+  if (mtgTimerHandle) { clearInterval(mtgTimerHandle); mtgTimerHandle = null; }
+  // Tear down the audio graph.
+  if (mtgProcessor) { try { mtgProcessor.disconnect(); } catch {} mtgProcessor = null; }
+  if (mtgAudioCtx)  { try { mtgAudioCtx.close(); }     catch {} mtgAudioCtx = null; }
+  if (mtgMediaStream) {
+    mtgMediaStream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+    mtgMediaStream = null;
+  }
+
+  // Concat and downsample to 16 kHz mono — same pipeline as the dictation
+  // floating window. Whisper gets exactly what it expects.
+  const total = mtgChunks.reduce((n, c) => n + c.length, 0);
+  const flat = new Float32Array(total);
+  let o = 0;
+  for (const c of mtgChunks) { flat.set(c, o); o += c.length; }
+  mtgChunks = [];
+
+  const ratio = mtgNativeRate / 16_000;
+  const targetLen = Math.floor(flat.length / ratio);
+  const out = new Float32Array(targetLen);
+  for (let i = 0; i < targetLen; i++) {
+    const srcIdx = i * ratio;
+    const lo = Math.floor(srcIdx);
+    const hi = Math.min(lo + 1, flat.length - 1);
+    const frac = srcIdx - lo;
+    out[i] = flat[lo] * (1 - frac) + flat[hi] * frac;
+  }
+
+  meetingRecordingStatusEl.textContent = 'Saving audio…';
+  meetingRecordingStatusEl.style.color = '';
+  await window.wisper.meetingsSaveAudio(meetingId, Array.from(out));
+  activeMeetingId = null;
+
+  // The store broadcast already refreshes the list; we just need to keep the
+  // selection.
+  selectedMeeting = await window.wisper.meetingsGet(meetingId);
+  renderMeetingsAll();
+}
+
+async function transcribeMeeting() {
+  if (!selectedMeeting) return;
+  meetingRecordingStatusEl.textContent = 'Transcribing…';
+  transcribeMeetingBtn.disabled = true;
+  const r = await window.wisper.meetingsTranscribe(selectedMeeting.id);
+  transcribeMeetingBtn.disabled = false;
+  if (!r.ok) {
+    meetingRecordingStatusEl.textContent = '';
+    alert('Transcription failed: ' + r.error);
+    return;
+  }
+  selectedMeeting = r.meeting;
+  meetingRecordingStatusEl.textContent = '';
+  renderMeetingsAll();
+}
+
+async function generateMeetingAINotes() {
+  if (!selectedMeeting) return;
+  // Pick template via a small popup, same as Recordings.
+  const popup = document.createElement('div');
+  popup.id = 'ai-note-popup';
+  popup.className = 'ai-note-popup';
+  popup.style.left = '50%';
+  popup.style.top = '120px';
+  popup.style.transform = 'translateX(-50%)';
+  popup.innerHTML = `
+    <div class="ai-pop-header">AI notes for this meeting</div>
+    <label class="ai-pop-label">Template</label>
+    <select id="aiPopMeetingTemplate"></select>
+    <div class="ai-pop-actions">
+      <button class="text-button" id="aiPopMeetingCancel">Cancel</button>
+      <button class="primary-button" id="aiPopMeetingGenerate">Generate</button>
+    </div>
+    <div class="ai-pop-status" id="aiPopMeetingStatus"></div>
+  `;
+  document.body.appendChild(popup);
+  const sel = popup.querySelector('#aiPopMeetingTemplate');
+  for (const t of templatesCatalog) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name;
+    if (selectedMeeting.aiTemplateId === t.id) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  const close = () => popup.remove();
+  popup.querySelector('#aiPopMeetingCancel').addEventListener('click', close);
+  popup.querySelector('#aiPopMeetingGenerate').addEventListener('click', async () => {
+    const status = popup.querySelector('#aiPopMeetingStatus');
+    const btn = popup.querySelector('#aiPopMeetingGenerate');
+    status.textContent = 'Generating…';
+    btn.disabled = true;
+    const r = await window.wisper.meetingsGenerateAINotes(selectedMeeting.id, sel.value);
+    if (!r.ok) {
+      status.textContent = '';
+      alert('Generation failed: ' + r.error);
+      btn.disabled = false;
+      return;
+    }
+    selectedMeeting = r.meeting;
+    renderMeetingsAll();
+    close();
+  });
+}
+
+startMeetingBtn.addEventListener('click', startMeeting);
+stopMeetingBtn.addEventListener('click', stopMeeting);
+transcribeMeetingBtn.addEventListener('click', transcribeMeeting);
+aiNotesMeetingBtn.addEventListener('click', generateMeetingAINotes);
+deleteMeetingBtn.addEventListener('click', () => { if (selectedMeeting) deleteMeeting(selectedMeeting); });
+
+meetingTitleEl.addEventListener('input', () => {
+  if (mtgTitleSaveTimer) clearTimeout(mtgTitleSaveTimer);
+  mtgTitleSaveTimer = setTimeout(async () => {
+    if (!selectedMeeting) return;
+    const updated = await window.wisper.meetingsUpdate(selectedMeeting.id, { title: meetingTitleEl.value.trim() });
+    selectedMeeting = updated;
+  }, 400);
+});
+meetingUserNotesEl.addEventListener('input', () => {
+  if (mtgNotesSaveTimer) clearTimeout(mtgNotesSaveTimer);
+  mtgNotesSaveTimer = setTimeout(async () => {
+    if (!selectedMeeting) return;
+    const updated = await window.wisper.meetingsUpdate(selectedMeeting.id, { userNotes: meetingUserNotesEl.value });
+    selectedMeeting = updated;
+  }, 400);
+});
+
+window.wisper.onMeetingsChanged((list) => {
+  meetingsList = list;
+  if (selectedMeeting) {
+    selectedMeeting = list.find((m) => m.id === selectedMeeting.id) || null;
+  }
+  renderMeetingsAll();
+});
+
 // ----- AI Notes generation popover (used from the Recordings tab) -----
 
 function openAINotePopup(recordingId, x, y) {
@@ -1299,6 +1616,10 @@ saveGeneralBtn.addEventListener('click', async () => {
   if (calendarSnapshot.feeds.length > 0) {
     window.wisper.calendarRefresh();
   }
+
+  // Meetings list
+  meetingsList = await window.wisper.meetingsList();
+  renderMeetingsAll();
 
   const needsSetup = (cfg.engineKind === 'groq')
     ? !cfg.groqApiKey

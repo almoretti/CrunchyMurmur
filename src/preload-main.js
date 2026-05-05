@@ -65,4 +65,18 @@ contextBridge.exposeInMainWorld('wisper', {
   onCalendarChanged: (cb) => {
     ipcRenderer.on('calendar:changed', (_e, snap) => cb(snap));
   },
+
+  // Meetings
+  meetingsList:           () => ipcRenderer.invoke('meetings:list'),
+  meetingsGet:            (id) => ipcRenderer.invoke('meetings:get', id),
+  meetingsCreate:         (payload) => ipcRenderer.invoke('meetings:create', payload),
+  meetingsUpdate:         (id, partial) => ipcRenderer.invoke('meetings:update', { id, partial }),
+  meetingsDelete:         (id) => ipcRenderer.invoke('meetings:delete', id),
+  meetingsReveal:         (id) => ipcRenderer.invoke('meetings:reveal', id),
+  meetingsSaveAudio:      (id, samples) => ipcRenderer.invoke('meetings:save-audio', { id, samples }),
+  meetingsTranscribe:     (id) => ipcRenderer.invoke('meetings:transcribe', id),
+  meetingsGenerateAINotes:(id, templateId) => ipcRenderer.invoke('meetings:generate-ai-notes', { id, templateId }),
+  onMeetingsChanged: (cb) => {
+    ipcRenderer.on('meetings:changed', (_e, list) => cb(list));
+  },
 });
