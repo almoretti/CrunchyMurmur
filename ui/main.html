@@ -74,8 +74,6 @@
               <input id="meetingTitle" type="text" class="note-title" placeholder="Untitled meeting" />
               <span id="meetingRecordingStatus" class="muted small"></span>
               <button id="stopMeetingBtn" class="text-button danger" hidden>Stop</button>
-              <button id="transcribeMeetingBtn" class="text-button" hidden>Transcribe</button>
-              <button id="aiNotesMeetingBtn" class="text-button" hidden>AI note…</button>
               <button id="deleteMeetingBtn" class="text-button danger" hidden>Delete</button>
             </header>
 
@@ -85,17 +83,23 @@
             </div>
 
             <div class="meeting-section">
-              <h3>Transcript</h3>
+              <div class="meeting-section-head">
+                <h3>Transcript</h3>
+                <button id="transcribeMeetingBtn" class="text-button" hidden>Transcribe</button>
+              </div>
               <div id="meetingTranscriptBox" class="meeting-transcript-box">
-                <div id="meetingTranscriptEmpty" class="muted small">No transcript yet. After stopping the recording, click <strong>Transcribe</strong>.</div>
+                <div id="meetingTranscriptEmpty" class="muted small">No transcript yet. Stop the recording first, then click <strong>Transcribe</strong>.</div>
                 <pre id="meetingTranscript" class="meeting-transcript hidden"></pre>
               </div>
             </div>
 
             <div class="meeting-section">
-              <h3>AI notes</h3>
+              <div class="meeting-section-head">
+                <h3>AI notes</h3>
+                <button id="aiNotesMeetingBtn" class="primary-button" hidden>Generate</button>
+              </div>
               <div id="meetingAiNotesBox" class="meeting-ai-box">
-                <div id="meetingAiNotesEmpty" class="muted small">No AI notes yet. After transcription, click <strong>AI note…</strong> to summarize.</div>
+                <div id="meetingAiNotesEmpty" class="muted small">No AI notes yet. Click <strong>Generate</strong> above to summarize the transcript with the chosen template.</div>
                 <pre id="meetingAiNotes" class="meeting-ai-notes hidden"></pre>
               </div>
             </div>

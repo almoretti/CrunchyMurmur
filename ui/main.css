@@ -548,6 +548,12 @@ kbd {
   color: var(--text-muted); margin: 0 0 6px 0;
   font-weight: 600;
 }
+.meeting-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 6px;
+}
+.meeting-section-head h3 { margin: 0; }
+.meeting-section-head .primary-button { padding: 5px 12px; font-size: 12px; }
 .meeting-notes {
   width: 100%; min-height: 100px;
   appearance: none; border: 0.5px solid var(--border);
