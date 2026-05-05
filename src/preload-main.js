@@ -76,7 +76,12 @@ contextBridge.exposeInMainWorld('wisper', {
   meetingsSaveAudio:      (id, samples) => ipcRenderer.invoke('meetings:save-audio', { id, samples }),
   meetingsTranscribe:     (id) => ipcRenderer.invoke('meetings:transcribe', id),
   meetingsGenerateAINotes:(id, templateId) => ipcRenderer.invoke('meetings:generate-ai-notes', { id, templateId }),
+  meetingsPillStart:      (payload) => ipcRenderer.invoke('meetings:pill-start', payload),
+  meetingsPillStop:       () => ipcRenderer.invoke('meetings:pill-stop'),
   onMeetingsChanged: (cb) => {
     ipcRenderer.on('meetings:changed', (_e, list) => cb(list));
+  },
+  onPillRequestStopMeeting: (cb) => {
+    ipcRenderer.on('main:request-stop-meeting', () => cb());
   },
 });

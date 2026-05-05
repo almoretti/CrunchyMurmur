@@ -7,8 +7,19 @@ contextBridge.exposeInMainWorld('wisper', {
   // Renderer → main: read settings (used to pick the right mic device).
   getSettings: () => ipcRenderer.invoke('settings:get'),
 
-  // Main → renderer: state transitions ('idle' | 'recording' | 'transcribing').
+  // Renderer → main: pill clicked while in meeting state. Main forwards to
+  // the main window which actually owns the meeting recording.
+  requestStopMeeting: () => ipcRenderer.send('floating:request-stop-meeting'),
+
+  // Main → renderer: state transitions ('idle' | 'recording' | 'flushing'
+  // | 'transcribing' | 'meeting').
   onState: (cb) => {
     ipcRenderer.on('floating:state', (_e, state) => cb(state));
+  },
+
+  // Main → renderer: meeting started — gives the pill the timestamp it
+  // needs to drive its own elapsed timer locally.
+  onMeetingState: (cb) => {
+    ipcRenderer.on('floating:meeting-state', (_e, payload) => cb(payload));
   },
 });

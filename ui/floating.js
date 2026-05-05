@@ -6,6 +6,8 @@
 //   transcribing → show spinner (no meter), waiting for main to hide us
 
 const labelEl = document.getElementById('label');
+const timerEl = document.getElementById('timer');
+const pillEl = document.getElementById('pill');
 const meterBars = Array.from(document.querySelectorAll('.meter .bar'));
 
 let mediaStream = null;
@@ -15,6 +17,12 @@ let analyser = null;
 let chunks = []; // Float32Array[] at native sample rate
 let nativeSampleRate = 48000;
 let rafHandle = null;
+
+// Meeting timer state — when in 'meeting' state, we tick a 1 s timer based
+// on the startedAt timestamp passed from main. Independent of the dictation
+// audio graph.
+let meetingStartedAt = 0;
+let meetingTimerHandle = null;
 
 async function startCapture() {
   let micDeviceId = '';
@@ -123,12 +131,39 @@ function flushAndSubmit() {
 
 function setLabel(text) { labelEl.textContent = text; }
 
+function fmtElapsed(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function tickMeetingTimer() {
+  if (!meetingStartedAt) return;
+  timerEl.textContent = fmtElapsed(Date.now() - meetingStartedAt);
+}
+
+function startMeetingTimer() {
+  if (meetingTimerHandle) clearInterval(meetingTimerHandle);
+  tickMeetingTimer();
+  meetingTimerHandle = setInterval(tickMeetingTimer, 1000);
+}
+
+function stopMeetingTimer() {
+  if (meetingTimerHandle) { clearInterval(meetingTimerHandle); meetingTimerHandle = null; }
+  meetingStartedAt = 0;
+  timerEl.textContent = '';
+}
+
 function setState(state) {
-  document.body.classList.remove('state-recording', 'state-flushing', 'state-transcribing');
+  document.body.classList.remove('state-recording', 'state-flushing', 'state-transcribing', 'state-meeting');
   document.body.classList.add('state-' + state);
 
   if (state === 'recording') {
     setLabel('Recording');
+    stopMeetingTimer();
     startCapture();
   } else if (state === 'flushing') {
     setLabel('…');
@@ -136,11 +171,31 @@ function setState(state) {
     flushAndSubmit();
   } else if (state === 'transcribing') {
     setLabel('Transcribing');
+  } else if (state === 'meeting') {
+    setLabel('Recording meeting · click to stop');
+    stopCapture();
+    chunks = [];
+    // Timer is started once we receive the startedAt from main (see below).
   } else if (state === 'idle') {
     setLabel('');
     stopCapture();
+    stopMeetingTimer();
     chunks = [];
   }
 }
 
 window.wisper.onState((state) => setState(state));
+
+window.wisper.onMeetingState(({ startedAt }) => {
+  meetingStartedAt = startedAt || Date.now();
+  startMeetingTimer();
+});
+
+// Click anywhere on the pill while in meeting state → ask main to stop
+// the meeting. Main forwards to the main window's renderer which actually
+// owns the audio capture.
+pillEl.addEventListener('click', () => {
+  if (document.body.classList.contains('state-meeting')) {
+    window.wisper.requestStopMeeting();
+  }
+});

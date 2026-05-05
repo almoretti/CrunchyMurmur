@@ -74,3 +74,25 @@ body.state-flushing .dot { animation: none; opacity: 0.6; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Meeting state — pill becomes clickable (click to stop), timer replaces meter. */
+.timer {
+  display: none;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  font-size: 12px;
+  font-weight: 600;
+  color: #ff453a;
+  letter-spacing: 0.5px;
+}
+body.state-meeting .timer { display: block; }
+body.state-meeting .meter { display: none; }
+body.state-meeting .label { color: #ff453a; font-weight: 600; }
+body.state-meeting .pill {
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+body.state-meeting .pill:hover {
+  background: rgba(40, 22, 25, 0.96);
+}

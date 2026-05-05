@@ -34,6 +34,7 @@ let tray = null;
 let mainWindow = null;
 let floatingWindow = null;
 let isProcessing = false;
+let activeMeetingId = null;  // truthy while a meeting is recording
 
 // ---------- Windows ----------
 
@@ -143,12 +144,15 @@ function createTray() {
 // ---------- Recording lifecycle ----------
 
 function onHotkeyDown() {
-  if (isProcessing) return;
+  // Don't trigger dictation while a meeting is recording — the pill is
+  // showing meeting state, and the renderer's audio graph is owned by the
+  // meeting capture loop. Dictation is disabled until the meeting stops.
+  if (isProcessing || activeMeetingId) return;
   showFloating('recording');
 }
 
 function onHotkeyUp() {
-  if (isProcessing) return;
+  if (isProcessing || activeMeetingId) return;
   showFloating('flushing');
   // The actual stop happens in the renderer when it sees the 'flushing' state;
   // it then submits samples back to main via IPC.
@@ -318,6 +322,35 @@ ipcMain.handle('meetings:save-audio', (_e, payload) => {
   const m = meetings.update(payload.id, { endedAt: new Date().toISOString() });
   broadcastMeetings();
   return m;
+});
+
+// ----- Meeting <-> floating pill bridge -----
+//
+// When the user starts a meeting, the main-window renderer tells us so we can
+// show the floating pill in 'meeting' state with the start timestamp. The
+// pill ticks its own elapsed timer locally. Clicking the pill sends
+// "request-stop" back to main, which forwards to the main-window renderer to
+// stop the meeting (which in turn calls meetings:save-audio + meetings:pill-stop).
+
+ipcMain.handle('meetings:pill-start', (_e, payload) => {
+  activeMeetingId = payload.id;
+  if (!floatingWindow) return;
+  if (!floatingWindow.isVisible()) floatingWindow.showInactive();
+  floatingWindow.webContents.send('floating:state', 'meeting');
+  floatingWindow.webContents.send('floating:meeting-state', { startedAt: payload.startedAt });
+});
+
+ipcMain.handle('meetings:pill-stop', () => {
+  activeMeetingId = null;
+  hideFloating();
+});
+
+ipcMain.on('floating:request-stop-meeting', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.webContents.send('main:request-stop-meeting');
+  }
 });
 
 ipcMain.handle('meetings:transcribe', async (_e, id) => {

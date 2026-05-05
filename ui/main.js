@@ -1023,6 +1023,9 @@ async function startMeeting() {
     }
   }, 1000);
 
+  // Tell main to show the floating pill in meeting state.
+  window.wisper.meetingsPillStart({ id: m.id, startedAt: mtgStartedAt });
+
   renderMeetingsAll();
 }
 
@@ -1062,11 +1065,21 @@ async function stopMeeting() {
   await window.wisper.meetingsSaveAudio(meetingId, Array.from(out));
   activeMeetingId = null;
 
+  // Hide the floating pill — meeting is over.
+  window.wisper.meetingsPillStop();
+
   // The store broadcast already refreshes the list; we just need to keep the
   // selection.
   selectedMeeting = await window.wisper.meetingsGet(meetingId);
   renderMeetingsAll();
 }
+
+// Stop request from the floating pill — user clicked the pill while a meeting
+// was recording. Forward to the same stopMeeting() the in-app Stop button
+// uses so the audio save + UI update path is identical.
+window.wisper.onPillRequestStopMeeting(() => {
+  if (activeMeetingId) stopMeeting();
+});
 
 async function transcribeMeeting() {
   if (!selectedMeeting) return;
