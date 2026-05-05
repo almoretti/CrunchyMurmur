@@ -473,6 +473,29 @@ kbd {
 #templatesSelectMessage { display: flex; }
 #templatesSelectMessage.hidden { display: none; }
 
+/* AI Notes generation popover */
+.ai-note-popup {
+  position: fixed; z-index: 1100;
+  background: var(--bg-elevated);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  width: 280px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ai-pop-header { font-size: 13px; font-weight: 600; }
+.ai-pop-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.ai-note-popup select {
+  appearance: none; border: 0.5px solid var(--border);
+  background: rgba(0,0,0,0.25); color: var(--text);
+  border-radius: 7px; padding: 6px 9px; font: inherit; font-size: 12px;
+  width: 100%;
+}
+.ai-pop-hint { font-size: 11px; color: var(--text-muted); margin: 4px 0 0; }
+.ai-pop-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+.ai-pop-status { font-size: 11px; color: var(--text-muted); min-height: 14px; }
+
 .card {
   background: var(--bg-elevated);
   border: 0.5px solid var(--border);

@@ -98,11 +98,12 @@ function render() {
     copyBtn.addEventListener('click', () => copyEntry(id, copyBtn));
     deleteBtn.addEventListener('click', () => deleteEntry(id));
 
-    // Right-click context menu — Copy / Delete, mirroring Mac.
+    // Right-click context menu — Copy / Generate AI note / Delete.
     el.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
       showContextMenu(ev.clientX, ev.clientY, [
         { label: 'Copy', action: () => copyEntry(id, copyBtn) },
+        { label: 'Generate AI note…', action: () => openAINotePopup(id, ev.clientX, ev.clientY) },
         { label: 'Delete', danger: true, action: () => deleteEntry(id) },
       ]);
     });
@@ -726,6 +727,96 @@ templateSaveBtn.addEventListener('click', async () => {
   setTimeout(() => { templateSaveStatusEl.textContent = ''; templateSaveStatusEl.style.color = ''; }, 1500);
 });
 
+// ----- AI Notes generation popover (used from the Recordings tab) -----
+
+function openAINotePopup(recordingId, x, y) {
+  // Bail early if we have no provider configured. Otherwise the user clicks
+  // Generate and gets a generic "missing key" error — friendlier to nudge
+  // them to Settings up front.
+  const cfg = window.__lastSettings || {};
+  const provider = cfg.aiNotesProvider || 'anthropic';
+  const keyOk = (provider === 'anthropic' && cfg.anthropicApiKey) || (provider === 'openai' && cfg.openaiApiKey);
+  if (!keyOk) {
+    if (confirm('No API key on file for the AI Notes provider. Open the Engine tab to add one?')) {
+      switchTab('engine');
+    }
+    return;
+  }
+
+  // Lightweight popover near the click point.
+  const existing = document.getElementById('ai-note-popup');
+  if (existing) existing.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'ai-note-popup';
+  popup.className = 'ai-note-popup';
+  popup.innerHTML = `
+    <div class="ai-pop-header">Generate AI note</div>
+    <label class="ai-pop-label">Template</label>
+    <select id="aiPopTemplate"></select>
+    <p class="ai-pop-hint" id="aiPopProviderHint"></p>
+    <div class="ai-pop-actions">
+      <button class="text-button" id="aiPopCancel">Cancel</button>
+      <button class="primary-button" id="aiPopGenerate">Generate</button>
+    </div>
+    <div class="ai-pop-status" id="aiPopStatus"></div>
+  `;
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  document.body.appendChild(popup);
+
+  const rect = popup.getBoundingClientRect();
+  if (rect.right > window.innerWidth) popup.style.left = (window.innerWidth - rect.width - 12) + 'px';
+  if (rect.bottom > window.innerHeight) popup.style.top = (window.innerHeight - rect.height - 12) + 'px';
+
+  const sel = popup.querySelector('#aiPopTemplate');
+  for (const t of templatesCatalog) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name;
+    sel.appendChild(opt);
+  }
+  popup.querySelector('#aiPopProviderHint').textContent =
+    `Using ${provider} · ${provider === 'anthropic' ? (cfg.anthropicModel || 'default') : (cfg.openaiModel || 'default')}.`;
+
+  const close = () => { popup.remove(); document.removeEventListener('mousedown', dismiss); document.removeEventListener('keydown', escDismiss); };
+  const dismiss = (ev) => { if (!popup.contains(ev.target)) close(); };
+  const escDismiss = (ev) => { if (ev.key === 'Escape') close(); };
+  setTimeout(() => {
+    document.addEventListener('mousedown', dismiss);
+    document.addEventListener('keydown', escDismiss);
+  }, 0);
+
+  popup.querySelector('#aiPopCancel').addEventListener('click', close);
+  popup.querySelector('#aiPopGenerate').addEventListener('click', async () => {
+    const templateId = sel.value;
+    const statusEl = popup.querySelector('#aiPopStatus');
+    statusEl.textContent = 'Generating…';
+    popup.querySelector('#aiPopGenerate').disabled = true;
+    popup.querySelector('#aiPopCancel').disabled = true;
+
+    const r = await window.wisper.aiNotesGenerateFromRecording({ recordingId, templateId });
+    if (!r.ok) {
+      statusEl.textContent = '';
+      alert('Generation failed: ' + r.error);
+      popup.querySelector('#aiPopGenerate').disabled = false;
+      popup.querySelector('#aiPopCancel').disabled = false;
+      return;
+    }
+    statusEl.textContent = 'Saved to Notes / Inbox.';
+    setTimeout(() => {
+      close();
+      switchTab('notes');
+      // Open the newly created note.
+      if (r.note) {
+        selectedFolder = r.note.folder;
+        selectedNote = { ...r.note };
+        renderNotesTab();
+      }
+    }, 600);
+  });
+}
+
 templateRevertBtn.addEventListener('click', async () => {
   const t = selectedTemplate();
   if (!t) return;
@@ -936,28 +1027,84 @@ document.getElementById('pickModel').addEventListener('click', async () => {
 
 saveEngineBtn.addEventListener('click', async () => {
   const engineKind = document.querySelector('input[name="engineKind"]:checked')?.value || 'local';
-  await window.wisper.saveSettings({
+  const cfg = await window.wisper.saveSettings({
     engineKind,
     whisperCliPath: whisperCliPathEl.value.trim(),
     modelPath: modelPathEl.value.trim(),
     groqApiKey: groqApiKeyEl.value.trim(),
     groqModel: groqModelEl.value,
   });
+  window.__lastSettings = cfg;
   engineSaveStatusEl.textContent = 'Saved.';
   setTimeout(() => { engineSaveStatusEl.textContent = ''; }, 1500);
 });
 
+// AI Notes provider config
+const aiAnthropicEl = document.getElementById('aiAnthropic');
+const aiOpenaiEl = document.getElementById('aiOpenai');
+const anthropicApiKeyEl = document.getElementById('anthropicApiKey');
+const anthropicModelEl = document.getElementById('anthropicModel');
+const openaiApiKeyEl = document.getElementById('openaiApiKey');
+const openaiModelEl = document.getElementById('openaiModel');
+const saveAiNotesBtn = document.getElementById('saveAiNotes');
+const aiNotesSaveStatusEl = document.getElementById('aiNotesSaveStatus');
+
+function applyAiNotesProvider(kind) {
+  const k = (kind === 'openai') ? 'openai' : 'anthropic';
+  aiAnthropicEl.classList.toggle('active', k === 'anthropic');
+  aiOpenaiEl.classList.toggle('active', k === 'openai');
+  document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
+    r.checked = r.value === k;
+  });
+}
+document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
+  r.addEventListener('change', (e) => applyAiNotesProvider(e.target.value));
+});
+
+async function populateAiNotesModels() {
+  const providers = await window.wisper.aiNotesProviders();
+  const fill = (selectEl, providerId) => {
+    const p = providers.find((x) => x.id === providerId);
+    if (!p) return;
+    selectEl.innerHTML = '';
+    for (const m of p.models) {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.label;
+      selectEl.appendChild(opt);
+    }
+  };
+  fill(anthropicModelEl, 'anthropic');
+  fill(openaiModelEl, 'openai');
+}
+
+saveAiNotesBtn.addEventListener('click', async () => {
+  const provider = document.querySelector('input[name="aiNotesProvider"]:checked')?.value || 'anthropic';
+  const cfg = await window.wisper.saveSettings({
+    aiNotesProvider: provider,
+    anthropicApiKey: anthropicApiKeyEl.value.trim(),
+    anthropicModel: anthropicModelEl.value,
+    openaiApiKey: openaiApiKeyEl.value.trim(),
+    openaiModel: openaiModelEl.value,
+  });
+  window.__lastSettings = cfg;
+  aiNotesSaveStatusEl.textContent = 'Saved.';
+  setTimeout(() => { aiNotesSaveStatusEl.textContent = ''; }, 1500);
+});
+
 saveGeneralBtn.addEventListener('click', async () => {
-  await window.wisper.saveSettings({
+  const cfg = await window.wisper.saveSettings({
     language: languageEl.value,
     micDeviceId: micDeviceEl.value,
   });
+  window.__lastSettings = cfg;
   generalSaveStatusEl.textContent = 'Saved.';
   setTimeout(() => { generalSaveStatusEl.textContent = ''; }, 1500);
 });
 
 (async () => {
   const cfg = await window.wisper.getSettings();
+  window.__lastSettings = cfg;
   whisperCliPathEl.value = cfg.whisperCliPath || '';
   modelPathEl.value = cfg.modelPath || '';
   groqApiKeyEl.value = cfg.groqApiKey || '';
@@ -965,6 +1112,14 @@ saveGeneralBtn.addEventListener('click', async () => {
   languageEl.value = cfg.language || 'auto';
   applyEngineKind(cfg.engineKind || 'local');
   await populateMicDevices(cfg.micDeviceId || '');
+
+  // AI Notes provider config
+  await populateAiNotesModels();
+  applyAiNotesProvider(cfg.aiNotesProvider || 'anthropic');
+  anthropicApiKeyEl.value = cfg.anthropicApiKey || '';
+  anthropicModelEl.value = cfg.anthropicModel || 'claude-sonnet-4-6';
+  openaiApiKeyEl.value = cfg.openaiApiKey || '';
+  openaiModelEl.value = cfg.openaiModel || 'gpt-4o';
 
   entries = await window.wisper.getHistory();
   render();

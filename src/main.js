@@ -14,6 +14,7 @@ const history = require('./history');
 const models = require('./models');
 const notes = require('./notes-store');
 const templates = require('./templates');
+const aiNotes = require('./notes-generator');
 const { transcribeWav, writeTempWav } = require('./transcriber');
 const { transcribeWithGroq } = require('./groq');
 const { pasteText } = require('./paste');
@@ -259,6 +260,38 @@ ipcMain.handle('notes:open-root',    () => shell.openPath(notes.rootDir()));
 ipcMain.handle('templates:list',   () => templates.list());
 ipcMain.handle('templates:save',   (_e, t) => templates.save(t));
 ipcMain.handle('templates:revert', (_e, id) => templates.revert(id));
+
+// ---------- IPC: AI Notes generation ----------
+
+ipcMain.handle('ai-notes:providers', () => aiNotes.listProviders());
+
+ipcMain.handle('ai-notes:generate-from-recording', async (_e, payload) => {
+  // payload: { recordingId, templateId, provider?, model?, folder? }
+  try {
+    const all = history.load();
+    const rec = all.find((e) => e.id === payload.recordingId);
+    if (!rec) return { ok: false, error: 'Recording not found.' };
+
+    const result = await aiNotes.generateFromRecording({
+      recording: rec,
+      templateId: payload.templateId,
+      provider: payload.provider,
+      model: payload.model,
+    });
+    const note = aiNotes.saveToNotes({
+      markdown: result.text,
+      recording: rec,
+      templateId: payload.templateId,
+      providerId: result.providerId,
+      modelId: result.modelId,
+      folder: payload.folder || 'Inbox',
+    });
+    broadcastNotes();
+    return { ok: true, note, providerId: result.providerId, modelId: result.modelId };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+});
 
 // ---------- App lifecycle ----------
 

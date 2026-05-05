@@ -235,11 +235,53 @@
 
           <h2 style="margin-top:24px">AI Notes</h2>
           <p class="muted">
-            Provider for AI-generated meeting summaries. Lands once the Notes &amp; Meetings tabs
-            are wired up — for now this is a placeholder so the structure mirrors the Mac app.
+            Provider used to generate summaries from your recordings (and meetings, when those land).
+            Right-click any recording → <em>Generate AI note</em> to produce a Markdown note saved to
+            <strong>Notes / Inbox</strong>. The prompt template is the one you pick at generation time
+            (manage them in the <a href="#" data-jump-tab="templates">Templates</a> tab).
           </p>
-          <div class="card placeholder-card">
-            <p class="muted small">Anthropic / OpenAI / Claude Code / Codex providers coming soon.</p>
+
+          <div class="card">
+            <label>Provider</label>
+            <div class="row engine-radio">
+              <label class="radio">
+                <input type="radio" name="aiNotesProvider" value="anthropic" />
+                <span>Anthropic</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="aiNotesProvider" value="openai" />
+                <span>OpenAI</span>
+              </label>
+            </div>
+
+            <div id="aiAnthropic" class="engine-section">
+              <label>Anthropic API key</label>
+              <input id="anthropicApiKey" type="password" placeholder="sk-ant-..." autocomplete="off" />
+              <p class="muted small">
+                Stored encrypted via Windows DPAPI. Get a key at
+                <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
+              </p>
+
+              <label>Model</label>
+              <select id="anthropicModel"></select>
+            </div>
+
+            <div id="aiOpenai" class="engine-section">
+              <label>OpenAI API key</label>
+              <input id="openaiApiKey" type="password" placeholder="sk-..." autocomplete="off" />
+              <p class="muted small">
+                Stored encrypted via Windows DPAPI. Get a key at
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>.
+              </p>
+
+              <label>Model</label>
+              <select id="openaiModel"></select>
+            </div>
+
+            <div class="row end">
+              <span id="aiNotesSaveStatus" class="muted small"></span>
+              <button id="saveAiNotes" class="primary-button">Save</button>
+            </div>
           </div>
         </div>
       </section>

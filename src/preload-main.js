@@ -51,4 +51,8 @@ contextBridge.exposeInMainWorld('wisper', {
   templatesList:   () => ipcRenderer.invoke('templates:list'),
   templatesSave:   (t) => ipcRenderer.invoke('templates:save', t),
   templatesRevert: (id) => ipcRenderer.invoke('templates:revert', id),
+
+  // AI Notes
+  aiNotesProviders: () => ipcRenderer.invoke('ai-notes:providers'),
+  aiNotesGenerateFromRecording: (payload) => ipcRenderer.invoke('ai-notes:generate-from-recording', payload),
 });
