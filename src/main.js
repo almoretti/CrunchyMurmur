@@ -371,6 +371,35 @@ ipcMain.handle('meetings:transcribe', async (_e, id) => {
   }
 });
 
+ipcMain.handle('meetings:send-to-notes', (_e, payload) => {
+  // Compose a Notes-folder Markdown file from the meeting's AI body + user's
+  // live notes + a provenance header. Default folder = "Meetings".
+  try {
+    const m = meetings.get(payload.id);
+    if (!m) return { ok: false, error: 'Meeting not found.' };
+    if (!m.aiNotes) return { ok: false, error: 'No AI notes on this meeting yet.' };
+    const folder = payload.folder || 'Meetings';
+    const ts = new Date(m.createdAt);
+    const minutes = Math.max(1, Math.round((m.durationSec || 0) / 60));
+    const lines = [
+      `# ${m.title}`,
+      '',
+      `> Recorded ${ts.toLocaleString()} · ~${minutes} minute${minutes === 1 ? '' : 's'}.`,
+      '',
+    ];
+    const liveNotes = (m.userNotes || '').trim();
+    if (liveNotes) {
+      lines.push('## My live notes', '', liveNotes, '');
+    }
+    lines.push(m.aiNotes.trim(), '');
+    const r = notes.createNote({ title: m.title, content: lines.join('\n'), folder });
+    broadcastNotes();
+    return { ok: true, note: r.note };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+});
+
 ipcMain.handle('meetings:generate-ai-notes', async (_e, payload) => {
   const m = meetings.get(payload.id);
   if (!m) return { ok: false, error: 'Meeting not found.' };

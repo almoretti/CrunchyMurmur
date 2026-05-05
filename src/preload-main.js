@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('wisper', {
   meetingsSaveAudio:      (id, samples) => ipcRenderer.invoke('meetings:save-audio', { id, samples }),
   meetingsTranscribe:     (id) => ipcRenderer.invoke('meetings:transcribe', id),
   meetingsGenerateAINotes:(id, templateId) => ipcRenderer.invoke('meetings:generate-ai-notes', { id, templateId }),
+  meetingsSendToNotes:    (id, folder) => ipcRenderer.invoke('meetings:send-to-notes', { id, folder }),
   meetingsPillStart:      (payload) => ipcRenderer.invoke('meetings:pill-start', payload),
   meetingsPillStop:       () => ipcRenderer.invoke('meetings:pill-stop'),
   onMeetingsChanged: (cb) => {

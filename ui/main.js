@@ -861,6 +861,10 @@ const meetingTranscriptEl = document.getElementById('meetingTranscript');
 const meetingTranscriptEmptyEl = document.getElementById('meetingTranscriptEmpty');
 const meetingAiNotesEl = document.getElementById('meetingAiNotes');
 const meetingAiNotesEmptyEl = document.getElementById('meetingAiNotesEmpty');
+const meetingAiActionsEl = document.getElementById('meetingAiNotesActions');
+const aiNotesCopyBtn = document.getElementById('aiNotesCopyBtn');
+const aiNotesRegenBtn = document.getElementById('aiNotesRegenBtn');
+const aiNotesSendBtn = document.getElementById('aiNotesSendBtn');
 
 let meetingsList = [];
 let selectedMeeting = null;
@@ -953,9 +957,11 @@ function renderMeetingDetail() {
     meetingAiNotesEl.classList.remove('hidden');
     meetingAiNotesEl.textContent = selectedMeeting.aiNotes;
     meetingAiNotesEmptyEl.style.display = 'none';
+    meetingAiActionsEl.hidden = false;
   } else {
     meetingAiNotesEl.classList.add('hidden');
     meetingAiNotesEmptyEl.style.display = '';
+    meetingAiActionsEl.hidden = true;
   }
 }
 
@@ -1080,6 +1086,89 @@ async function stopMeeting() {
 window.wisper.onPillRequestStopMeeting(() => {
   if (activeMeetingId) stopMeeting();
 });
+
+// AI notes action row — Copy / Re-generate / Send to Notes
+aiNotesCopyBtn.addEventListener('click', async () => {
+  if (!selectedMeeting?.aiNotes) return;
+  await window.wisper.copyText(selectedMeeting.aiNotes);
+  aiNotesCopyBtn.textContent = 'Copied';
+  aiNotesCopyBtn.classList.add('copied');
+  setTimeout(() => { aiNotesCopyBtn.textContent = 'Copy'; aiNotesCopyBtn.classList.remove('copied'); }, 1200);
+});
+
+aiNotesRegenBtn.addEventListener('click', () => {
+  if (!selectedMeeting?.transcript) return;
+  // Reuse the same template-picker popover the first generation uses.
+  generateMeetingAINotes();
+});
+
+aiNotesSendBtn.addEventListener('click', () => {
+  if (!selectedMeeting?.aiNotes) return;
+  openSendToNotesPopup(selectedMeeting.id);
+});
+
+// Folder-picker popover — pick a Notes folder, save the AI notes there.
+function openSendToNotesPopup(meetingId) {
+  const existing = document.getElementById('ai-note-popup');
+  if (existing) existing.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'ai-note-popup';
+  popup.className = 'ai-note-popup';
+  popup.style.left = '50%';
+  popup.style.top = '120px';
+  popup.style.transform = 'translateX(-50%)';
+  popup.innerHTML = `
+    <div class="ai-pop-header">Send to Notes</div>
+    <label class="ai-pop-label">Folder</label>
+    <select id="sendToFolderSel"></select>
+    <p class="ai-pop-hint">A new note will be created with the meeting title, your live notes, and the AI summary.</p>
+    <div class="ai-pop-actions">
+      <button class="text-button" id="sendToCancel">Cancel</button>
+      <button class="primary-button" id="sendToConfirm">Send</button>
+    </div>
+    <div class="ai-pop-status" id="sendToStatus"></div>
+  `;
+  document.body.appendChild(popup);
+
+  // Populate folders, default to "Meetings" if it exists.
+  const sel = popup.querySelector('#sendToFolderSel');
+  const folders = (notesSnapshot.folders || []);
+  for (const f of folders) {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f;
+    sel.appendChild(opt);
+  }
+  if (folders.includes('Meetings')) sel.value = 'Meetings';
+  else if (folders.includes('Inbox')) sel.value = 'Inbox';
+
+  const close = () => popup.remove();
+  popup.querySelector('#sendToCancel').addEventListener('click', close);
+  popup.querySelector('#sendToConfirm').addEventListener('click', async () => {
+    const status = popup.querySelector('#sendToStatus');
+    const btn = popup.querySelector('#sendToConfirm');
+    btn.disabled = true;
+    status.textContent = 'Saving…';
+    const r = await window.wisper.meetingsSendToNotes(meetingId, sel.value);
+    if (!r.ok) {
+      status.textContent = '';
+      alert('Send failed: ' + r.error);
+      btn.disabled = false;
+      return;
+    }
+    status.textContent = 'Sent.';
+    setTimeout(() => {
+      close();
+      switchTab('notes');
+      if (r.note) {
+        selectedFolder = r.note.folder;
+        selectedNote = { ...r.note };
+        renderNotesTab();
+      }
+    }, 500);
+  });
+}
 
 async function transcribeMeeting() {
   if (!selectedMeeting) return;
