@@ -110,13 +110,39 @@
         </main>
       </section>
 
-      <!-- Templates (placeholder) -->
-      <section id="tab-templates" class="tab">
-        <div class="placeholder">
-          <div class="placeholder-icon">⚙</div>
-          <h2>Templates</h2>
-          <p>AI Notes templates (one-on-one, sales discovery, customer interview, standup, …) ship with the Mac app. They land here once the Notes app and AI providers are wired up.</p>
-        </div>
+      <!-- Templates -->
+      <section id="tab-templates" class="tab templates-tab">
+        <aside class="templates-list-pane">
+          <header class="notes-pane-header"><span>AI Notes templates</span></header>
+          <ul id="templatesList" class="templates-list"></ul>
+        </aside>
+        <main class="templates-editor-pane">
+          <div id="templateEditor" class="template-editor hidden">
+            <header class="template-editor-header">
+              <input id="templateName" type="text" class="note-title" placeholder="Template name" />
+              <span id="templateSaveStatus" class="muted small"></span>
+              <button id="templateRevertBtn" class="text-button" title="Revert to bundled default" hidden>Revert to default</button>
+              <button id="templateSaveBtn" class="primary-button">Save</button>
+            </header>
+            <div class="template-form">
+              <label>Description</label>
+              <input id="templateDescription" type="text" placeholder="Short summary, shown in the picker" />
+
+              <label>Instructions</label>
+              <p class="muted small" style="margin: 0 0 6px 0">
+                These are the prompt instructions the AI receives when generating notes
+                with this template. They're appended after the meeting transcript and the
+                user's live notes. Output should be Markdown.
+              </p>
+              <textarea id="templateInstructions" class="template-instructions" spellcheck="false"></textarea>
+            </div>
+          </div>
+          <div id="templatesSelectMessage" class="placeholder">
+            <div class="placeholder-icon">⚙</div>
+            <h2>Pick a template</h2>
+            <p>Choose a template on the left to edit its name, description, and prompt instructions. Edits save as overrides — you can always revert to the bundled default.</p>
+          </div>
+        </main>
       </section>
 
       <!-- Models -->

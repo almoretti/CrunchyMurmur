@@ -46,4 +46,9 @@ contextBridge.exposeInMainWorld('wisper', {
   onNotesChanged:    (cb) => {
     ipcRenderer.on('notes:changed', (_e, snapshot) => cb(snapshot));
   },
+
+  // Templates
+  templatesList:   () => ipcRenderer.invoke('templates:list'),
+  templatesSave:   (t) => ipcRenderer.invoke('templates:save', t),
+  templatesRevert: (id) => ipcRenderer.invoke('templates:revert', id),
 });

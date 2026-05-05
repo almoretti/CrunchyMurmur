@@ -13,6 +13,7 @@ const settings = require('./settings');
 const history = require('./history');
 const models = require('./models');
 const notes = require('./notes-store');
+const templates = require('./templates');
 const { transcribeWav, writeTempWav } = require('./transcriber');
 const { transcribeWithGroq } = require('./groq');
 const { pasteText } = require('./paste');
@@ -252,6 +253,12 @@ ipcMain.handle('notes:delete',       (_e, p) => { const s = notes.deleteNote(p);
 ipcMain.handle('notes:rename',       (_e, p) => { const n = notes.renameNote(p); broadcastNotes(); return n; });
 ipcMain.handle('notes:move',         (_e, p) => { const n = notes.moveNote(p); broadcastNotes(); return n; });
 ipcMain.handle('notes:open-root',    () => shell.openPath(notes.rootDir()));
+
+// ---------- IPC: templates ----------
+
+ipcMain.handle('templates:list',   () => templates.list());
+ipcMain.handle('templates:save',   (_e, t) => templates.save(t));
+ipcMain.handle('templates:revert', (_e, id) => templates.revert(id));
 
 // ---------- App lifecycle ----------
 

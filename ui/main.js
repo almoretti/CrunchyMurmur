@@ -624,6 +624,122 @@ document.querySelectorAll('.nav-item').forEach((b) => {
   b.addEventListener('click', () => { if (saveDirty) flushPendingSave(true); });
 });
 
+// ----- Templates tab -----
+const templatesListEl = document.getElementById('templatesList');
+const templateEditorEl = document.getElementById('templateEditor');
+const templatesSelectMessageEl = document.getElementById('templatesSelectMessage');
+const templateNameEl = document.getElementById('templateName');
+const templateDescriptionEl = document.getElementById('templateDescription');
+const templateInstructionsEl = document.getElementById('templateInstructions');
+const templateSaveBtn = document.getElementById('templateSaveBtn');
+const templateRevertBtn = document.getElementById('templateRevertBtn');
+const templateSaveStatusEl = document.getElementById('templateSaveStatus');
+
+let templatesCatalog = [];
+let selectedTemplateId = null;
+let templateOriginal = null; // last-saved snapshot, used to detect dirty edits
+
+function selectedTemplate() {
+  return templatesCatalog.find((t) => t.id === selectedTemplateId) || null;
+}
+
+function renderTemplatesList() {
+  templatesListEl.innerHTML = '';
+  for (const t of templatesCatalog) {
+    const li = document.createElement('li');
+    if (t.id === selectedTemplateId) li.classList.add('active');
+    const customizedDot = t.customized ? '<span class="customized" title="Customized"></span>' : '';
+    li.innerHTML = `
+      <div class="name">${customizedDot}<span class="label-text"></span></div>
+      <div class="desc"></div>
+    `;
+    li.querySelector('.label-text').textContent = t.name;
+    li.querySelector('.desc').textContent = t.description;
+    li.addEventListener('click', () => openTemplate(t.id));
+    templatesListEl.appendChild(li);
+  }
+}
+
+function renderTemplateEditor() {
+  const t = selectedTemplate();
+  if (!t) {
+    templateEditorEl.classList.add('hidden');
+    templatesSelectMessageEl.classList.remove('hidden');
+    return;
+  }
+  templateEditorEl.classList.remove('hidden');
+  templatesSelectMessageEl.classList.add('hidden');
+  if (document.activeElement !== templateNameEl)         templateNameEl.value = t.name;
+  if (document.activeElement !== templateDescriptionEl)  templateDescriptionEl.value = t.description;
+  if (document.activeElement !== templateInstructionsEl) templateInstructionsEl.value = t.instructions;
+  templateRevertBtn.hidden = !t.customized;
+}
+
+function isTemplateDirty() {
+  if (!templateOriginal) return false;
+  return (
+    templateNameEl.value !== templateOriginal.name ||
+    templateDescriptionEl.value !== templateOriginal.description ||
+    templateInstructionsEl.value !== templateOriginal.instructions
+  );
+}
+
+async function openTemplate(id) {
+  // Guard against losing edits if the user clicks another template mid-edit.
+  if (templateOriginal && isTemplateDirty()) {
+    if (!confirm('You have unsaved changes to this template. Discard them?')) return;
+  }
+  selectedTemplateId = id;
+  const t = selectedTemplate();
+  templateOriginal = t ? { name: t.name, description: t.description, instructions: t.instructions } : null;
+  renderTemplatesList();
+  renderTemplateEditor();
+}
+
+async function reloadTemplates() {
+  templatesCatalog = await window.wisper.templatesList();
+  if (!selectedTemplateId && templatesCatalog.length) {
+    selectedTemplateId = templatesCatalog[0].id;
+    const t = selectedTemplate();
+    templateOriginal = t ? { name: t.name, description: t.description, instructions: t.instructions } : null;
+  }
+  renderTemplatesList();
+  renderTemplateEditor();
+}
+
+templateSaveBtn.addEventListener('click', async () => {
+  const t = selectedTemplate();
+  if (!t) return;
+  const updated = await window.wisper.templatesSave({
+    id: t.id,
+    name: templateNameEl.value.trim() || t.name,
+    description: templateDescriptionEl.value.trim(),
+    instructions: templateInstructionsEl.value,
+  });
+  // Refresh the in-memory catalog so the customized-dot updates.
+  templatesCatalog = templatesCatalog.map((x) => (x.id === updated.id ? updated : x));
+  templateOriginal = { name: updated.name, description: updated.description, instructions: updated.instructions };
+  renderTemplatesList();
+  renderTemplateEditor();
+  templateSaveStatusEl.textContent = 'Saved';
+  templateSaveStatusEl.style.color = '#30d158';
+  setTimeout(() => { templateSaveStatusEl.textContent = ''; templateSaveStatusEl.style.color = ''; }, 1500);
+});
+
+templateRevertBtn.addEventListener('click', async () => {
+  const t = selectedTemplate();
+  if (!t) return;
+  if (!confirm(`Revert "${t.name}" to the bundled default? Your edits will be lost.`)) return;
+  const reverted = await window.wisper.templatesRevert(t.id);
+  templatesCatalog = templatesCatalog.map((x) => (x.id === reverted.id ? reverted : x));
+  templateOriginal = { name: reverted.name, description: reverted.description, instructions: reverted.instructions };
+  renderTemplatesList();
+  renderTemplateEditor();
+  templateSaveStatusEl.textContent = 'Reverted';
+  templateSaveStatusEl.style.color = 'var(--text-muted)';
+  setTimeout(() => { templateSaveStatusEl.textContent = ''; templateSaveStatusEl.style.color = ''; }, 1500);
+});
+
 // Settings
 const whisperCliPathEl = document.getElementById('whisperCliPath');
 const modelPathEl = document.getElementById('modelPath');
@@ -861,6 +977,9 @@ saveGeneralBtn.addEventListener('click', async () => {
   // Notes tab data — folders, notes, then drop into the most recent note
   // of the first folder for immediate continuity.
   await reloadNotes(true);
+
+  // Templates tab data.
+  await reloadTemplates();
 
   const needsSetup = (cfg.engineKind === 'groq')
     ? !cfg.groqApiKey
