@@ -425,11 +425,14 @@ function broadcastHistory() {
 // ---------- Tray ----------
 
 function createTray() {
-  // 16×16 transparent placeholder; user can drop a real .ico into assets/.
+  // The source artwork is intentionally high resolution. Constrain it before
+  // handing it to the OS so macOS does not render it as an oversized status
+  // item (and so it remains a conventional tray size elsewhere).
   const iconPath = path.join(__dirname, '..', 'assets', 'tray-palette.png');
   let image;
   try {
     image = nativeImage.createFromPath(iconPath);
+    if (!image.isEmpty()) image = image.resize({ width: 18, height: 18, quality: 'best' });
     if (image.isEmpty()) image = nativeImage.createEmpty();
   } catch {
     image = nativeImage.createEmpty();
