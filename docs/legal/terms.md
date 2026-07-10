@@ -2,7 +2,7 @@
 
 Effective: 10 July 2026
 
-CrunchyMurmur is open-source software provided under the [MIT License](LICENSE). These terms add practical conditions for use of the distributed application; they do not remove rights granted by that license.
+CrunchyMurmur is open-source software provided under the [MIT License](../../LICENSE). These terms add practical conditions for use of the distributed application; they do not remove rights granted by that license.
 
 ## Your responsibilities
 
@@ -27,4 +27,3 @@ The software is provided "as is", without warranty, to the fullest extent permit
 ## Changes
 
 Material changes will be published in the repository and included in a future release. Continued use of that release means you accept its accompanying terms.
-

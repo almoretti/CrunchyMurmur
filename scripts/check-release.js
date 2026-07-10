@@ -5,13 +5,16 @@ const { execFileSync } = require('child_process');
 const root = path.resolve(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const required = [
-  'LICENSE', 'PRIVACY.md', 'TERMS.md', 'SECURITY.md', 'CHANGELOG.md',
+  'LICENSE', 'docs/legal/privacy.md', 'docs/legal/terms.md', '.github/SECURITY.md', 'CHANGELOG.md',
   'install.ps1', 'install.sh', '.github/workflows/release.yml', 'scripts/after-pack.js',
   'docs/platform-support.md', 'scripts/normalize-linux-artifacts.js',
   'assets/brand-mark.svg', 'assets/brand-mark.png', 'assets/icon-palette.ico',
   'assets/tray-palette.png', 'scripts/build-brand-assets.py',
   'scripts/verify-update-manifest.js', 'docs/README.md', 'docs/updating.md',
-  'SUPPORT.md', 'ROADMAP.md',
+  'docs/project/support.md', 'docs/project/roadmap.md', 'docs/project/status.md',
+  'docs/legal/README.md', 'docs/project/README.md', 'assets/README.md',
+  '.github/CODE_OF_CONDUCT.md', '.github/CONTRIBUTING.md',
+  'scripts/check-doc-links.js',
 ];
 const failures = [];
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
@@ -20,11 +23,18 @@ const releaseWorkflow = fs.readFileSync(path.join(root, '.github', 'workflows', 
 for (const filename of required) {
   if (!fs.existsSync(path.join(root, filename))) failures.push(`Missing ${filename}`);
 }
+for (const filename of ['PRIVACY.md', 'TERMS.md', 'ROADMAP.md', 'STATUS.md', 'SUPPORT.md']) {
+  if (fs.existsSync(path.join(root, filename))) failures.push(`Legacy root document must stay organized under docs/: ${filename}`);
+}
+if (fs.existsSync(path.join(root, 'assets', 'New assets'))) failures.push('Legacy design exports must not ship in assets/New assets.');
 if (!pkg.build?.publish || pkg.build.publish.provider !== 'github') failures.push('GitHub publish provider is not configured.');
 if (!pkg.dependencies?.['electron-updater']) failures.push('electron-updater is not installed.');
 if (pkg.dependencies?.['node-global-key-listener']) failures.push('Archived node-global-key-listener must not ship.');
 if (!pkg.dependencies?.['uiohook-napi']) failures.push('Windows Ctrl + Win support dependency is missing.');
 if (!pkg.build?.afterPack) failures.push('Electron fuse hardening hook is not configured.');
+const extraResources = pkg.build?.extraResources || [];
+if (!extraResources.some((entry) => entry.from === 'docs/legal/privacy.md' && entry.to === 'PRIVACY.md')) failures.push('Packaged privacy document mapping is missing.');
+if (!extraResources.some((entry) => entry.from === 'docs/legal/terms.md' && entry.to === 'TERMS.md')) failures.push('Packaged terms document mapping is missing.');
 if (pkg.desktopName !== 'CrunchyMurmur') failures.push('Linux desktop window association is not configured.');
 if (!pkg.scripts?.['build:linux']?.includes('normalize-linux-artifacts')) failures.push('Linux release artifacts are not normalized to stable x64 names.');
 if (pkg.version.startsWith('0.')) failures.push('Stable releases must use version 1.0.0 or newer.');
