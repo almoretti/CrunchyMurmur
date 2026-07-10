@@ -6,13 +6,13 @@
   "description": "Cross-platform Whisper dictation, meeting transcription, activity statistics, and AI notes for Windows, macOS, and Linux.",
   "author": "almoretti and contributors",
   "license": "MIT",
-  "homepage": "https://github.com/almoretti/CrunchyMurmur-Windows#readme",
+  "homepage": "https://github.com/almoretti/CrunchyMurmur#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/almoretti/CrunchyMurmur-Windows.git"
+    "url": "git+https://github.com/almoretti/CrunchyMurmur.git"
   },
   "bugs": {
-    "url": "https://github.com/almoretti/CrunchyMurmur-Windows/issues"
+    "url": "https://github.com/almoretti/CrunchyMurmur/issues"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -20,17 +20,19 @@
   "main": "src/main.js",
   "private": true,
   "scripts": {
-    "start": "node scripts/ensure-macos-native.js && electron .",
-    "lint": "node scripts/check-js.js",
+    "build:editor": "node scripts/build-editor.js",
+    "start": "npm run build:editor && node scripts/ensure-macos-native.js && electron .",
+    "lint": "npm run build:editor && node scripts/check-js.js",
     "test": "node --test test/*.test.js",
-    "test:e2e": "node --test test/e2e/electron.test.js",
+    "test:e2e": "npm run build:editor && node --test test/e2e/electron.test.js",
     "smoke:packaged": "node scripts/smoke-packaged.js",
+    "verify:update-manifests": "node scripts/verify-update-manifest.js",
     "check": "npm run lint && npm test",
     "release:check": "node scripts/check-release.js",
-    "pack:win": "electron-builder --dir --win --x64",
-    "build:win": "electron-builder --win",
-    "build:mac": "bash scripts/prepare-macos-icon.sh && bash scripts/build-macos-native.sh && electron-builder --mac",
-    "build:linux": "bash scripts/prepare-linux-icons.sh && electron-builder --linux --publish never && node scripts/normalize-linux-artifacts.js"
+    "pack:win": "npm run build:editor && electron-builder --dir --win --x64",
+    "build:win": "npm run build:editor && electron-builder --win",
+    "build:mac": "npm run build:editor && bash scripts/prepare-macos-icon.sh && bash scripts/build-macos-native.sh && electron-builder --mac",
+    "build:linux": "npm run build:editor && bash scripts/prepare-linux-icons.sh && electron-builder --linux --publish never && node scripts/normalize-linux-artifacts.js"
   },
   "dependencies": {
     "electron-log": "^5.4.4",
@@ -39,10 +41,16 @@
     "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/state": "^6.7.1",
+    "@codemirror/view": "^6.43.6",
     "@electron/fuses": "^1.8.0",
     "@playwright/test": "^1.61.1",
+    "codemirror": "^6.0.2",
     "electron": "^43.1.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1",
+    "markdown-it": "^14.3.0"
   },
   "build": {
     "appId": "cc.moretti.crunchymurmur.desktop",
@@ -50,8 +58,10 @@
     "files": [
       "src/**/*",
       "ui/**/*",
-      "assets/icon.ico",
-      "assets/tray.png",
+      "assets/icon-palette.ico",
+      "assets/tray-palette.png",
+      "assets/brand-mark.png",
+      "assets/brand-mark.svg",
       "LICENSE",
       "PRIVACY.md",
       "TERMS.md",
@@ -79,7 +89,7 @@
     "publish": {
       "provider": "github",
       "owner": "almoretti",
-      "repo": "CrunchyMurmur-Windows",
+      "repo": "CrunchyMurmur",
       "releaseType": "release"
     },
     "win": {
@@ -92,7 +102,7 @@
           ]
         }
       ],
-      "icon": "assets/icon.ico",
+      "icon": "assets/icon-palette.ico",
       "signExts": [
         ".exe",
         ".dll",

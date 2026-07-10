@@ -8,6 +8,10 @@ const required = [
   'LICENSE', 'PRIVACY.md', 'TERMS.md', 'SECURITY.md', 'CHANGELOG.md',
   'install.ps1', 'install.sh', '.github/workflows/release.yml', 'scripts/after-pack.js',
   'docs/platform-support.md', 'scripts/normalize-linux-artifacts.js',
+  'assets/brand-mark.svg', 'assets/brand-mark.png', 'assets/icon-palette.ico',
+  'assets/tray-palette.png', 'scripts/build-brand-assets.py',
+  'scripts/verify-update-manifest.js', 'docs/README.md', 'docs/updating.md',
+  'SUPPORT.md', 'ROADMAP.md',
 ];
 const failures = [];
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
@@ -28,6 +32,11 @@ if (lock.packages?.['']?.version !== pkg.version) failures.push('package-lock.js
 if (!pkg.build?.mac?.notarize) failures.push('macOS notarization is not required by the build configuration.');
 if (!releaseWorkflow.includes('forceCodeSigning=true')) failures.push('Release workflow does not require Windows code signing.');
 if (!releaseWorkflow.includes('attest-build-provenance')) failures.push('Release workflow does not generate provenance attestations.');
+if ((releaseWorkflow.match(/verify-update-manifest\.js/g) || []).length !== 3) failures.push('Every platform release must verify its updater manifest.');
+
+const updaterSource = fs.readFileSync(path.join(root, 'src', 'updater.js'), 'utf8');
+if (!updaterSource.includes('allowPrerelease = false')) failures.push('Stable updater must reject prereleases.');
+if (!updaterSource.includes('allowDowngrade = false')) failures.push('Stable updater must reject downgrades.');
 
 const tag = process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : '';
 if (tag && tag !== `v${pkg.version}`) failures.push(`Tag ${tag} does not match package version v${pkg.version}.`);

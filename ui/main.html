@@ -8,7 +8,7 @@
   </head>
   <body>
     <header class="app-titlebar">
-      <div class="titlebar-mark" aria-hidden="true">∿</div>
+      <img class="titlebar-mark" src="../assets/brand-mark.svg" alt="" aria-hidden="true" />
       <span class="titlebar-product">CrunchyMurmur</span>
       <nav class="titlebar-menu" aria-label="Application menu">
         <button type="button" data-app-menu="file">File</button>
@@ -103,7 +103,20 @@
             </header>
 
             <div class="meeting-section">
-              <h3>Your notes</h3>
+              <div class="meeting-section-head">
+                <h3>Your notes</h3>
+                <span id="meetingNotesStats" class="editor-stats"></span>
+              </div>
+              <div id="meetingNotesToolbar" class="md-toolbar compact-toolbar" aria-label="Meeting notes formatting">
+                <button class="md-btn" data-editor-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+                <button class="md-btn" data-editor-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+                <button class="md-btn" data-editor-action="bullet" title="Bulleted list">•</button>
+                <button class="md-btn" data-editor-action="todo" title="To-do">☐</button>
+                <button class="md-btn" data-editor-action="link" title="Link (Ctrl+K)">Link</button>
+                <span class="editor-toolbar-spacer"></span>
+                <button class="editor-mode-btn active" data-editor-mode="write" aria-pressed="true">Write</button>
+                <button class="editor-mode-btn" data-editor-mode="preview" aria-pressed="false">Preview</button>
+              </div>
               <textarea id="meetingUserNotes" class="meeting-notes" placeholder="Type live notes here while you record. Autosaves."></textarea>
             </div>
 
@@ -193,25 +206,32 @@
               <button id="noteMoveBtn" class="text-button" title="Move to folder">Move</button>
               <button id="noteDeleteBtn" class="text-button danger" title="Delete note">Delete</button>
             </header>
-            <div class="md-toolbar">
-              <button class="md-btn" data-md="h1" title="Heading 1">H1</button>
-              <button class="md-btn" data-md="h2" title="Heading 2">H2</button>
-              <button class="md-btn" data-md="h3" title="Heading 3">H3</button>
+            <div id="noteEditorToolbar" class="md-toolbar" aria-label="Note formatting and view">
+              <button class="md-btn" data-editor-action="h1" title="Heading 1">H1</button>
+              <button class="md-btn" data-editor-action="h2" title="Heading 2">H2</button>
+              <button class="md-btn" data-editor-action="h3" title="Heading 3">H3</button>
               <span class="md-divider"></span>
-              <button class="md-btn" data-md="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-              <button class="md-btn" data-md="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-              <button class="md-btn" data-md="strike" title="Strikethrough"><s>S</s></button>
-              <button class="md-btn" data-md="code" title="Code (Ctrl+E)">&lt;/&gt;</button>
+              <button class="md-btn" data-editor-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button class="md-btn" data-editor-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button class="md-btn" data-editor-action="strike" title="Strikethrough"><s>S</s></button>
+              <button class="md-btn" data-editor-action="code" title="Inline code (Ctrl+E)">&lt;/&gt;</button>
               <span class="md-divider"></span>
-              <button class="md-btn" data-md="bullet" title="Bulleted list">•</button>
-              <button class="md-btn" data-md="numbered" title="Numbered list">1.</button>
-              <button class="md-btn" data-md="todo" title="To-do">☐</button>
-              <button class="md-btn" data-md="quote" title="Quote">❝</button>
+              <button class="md-btn" data-editor-action="bullet" title="Bulleted list">•</button>
+              <button class="md-btn" data-editor-action="numbered" title="Numbered list">1.</button>
+              <button class="md-btn" data-editor-action="todo" title="To-do">☐</button>
+              <button class="md-btn" data-editor-action="quote" title="Quote">“</button>
               <span class="md-divider"></span>
-              <button class="md-btn" data-md="link" title="Link (Ctrl+K)">🔗</button>
-              <button class="md-btn" data-md="hr" title="Divider">―</button>
+              <button class="md-btn" data-editor-action="link" title="Link (Ctrl+K)">Link</button>
+              <button class="md-btn" data-editor-action="hr" title="Divider">—</button>
+              <span class="editor-toolbar-spacer"></span>
+              <div class="editor-mode-switch" role="group" aria-label="Editor view">
+                <button class="editor-mode-btn active" data-editor-mode="write" aria-pressed="true">Write</button>
+                <button class="editor-mode-btn" data-editor-mode="split" aria-pressed="false">Split</button>
+                <button class="editor-mode-btn" data-editor-mode="preview" aria-pressed="false">Preview</button>
+              </div>
             </div>
             <textarea id="noteBody" class="note-body" spellcheck="false" placeholder="Start writing..."></textarea>
+            <footer class="editor-footer"><span>Markdown</span><span id="noteEditorStats" class="editor-stats"></span></footer>
           </div>
           <div id="notesSelectMessage" class="placeholder">
             <div class="placeholder-icon">✎</div>
@@ -235,6 +255,20 @@
               <button id="templateRevertBtn" class="text-button" title="Revert to bundled default" hidden>Revert to default</button>
               <button id="templateSaveBtn" class="primary-button">Save</button>
             </header>
+            <div id="templateEditorToolbar" class="md-toolbar" aria-label="Template instructions formatting and view">
+              <button class="md-btn" data-editor-action="h2" title="Heading">H2</button>
+              <button class="md-btn" data-editor-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button class="md-btn" data-editor-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button class="md-btn" data-editor-action="bullet" title="Bulleted list">•</button>
+              <button class="md-btn" data-editor-action="numbered" title="Numbered list">1.</button>
+              <button class="md-btn" data-editor-action="code" title="Inline code (Ctrl+E)">&lt;/&gt;</button>
+              <span class="editor-toolbar-spacer"></span>
+              <div class="editor-mode-switch" role="group" aria-label="Editor view">
+                <button class="editor-mode-btn active" data-editor-mode="write" aria-pressed="true">Write</button>
+                <button class="editor-mode-btn" data-editor-mode="split" aria-pressed="false">Split</button>
+                <button class="editor-mode-btn" data-editor-mode="preview" aria-pressed="false">Preview</button>
+              </div>
+            </div>
             <div class="template-form">
               <label>Description</label>
               <input id="templateDescription" type="text" placeholder="Short summary, shown in the picker" />
@@ -246,6 +280,7 @@
                 user's live notes. Output should be Markdown.
               </p>
               <textarea id="templateInstructions" class="template-instructions" spellcheck="false"></textarea>
+              <footer class="editor-footer"><span>Prompt instructions · Markdown</span><span id="templateEditorStats" class="editor-stats"></span></footer>
             </div>
           </div>
           <div id="templatesSelectMessage" class="placeholder">
@@ -433,6 +468,34 @@
           <h2>General</h2>
 
           <div class="card">
+            <label>Appearance</label>
+            <div id="themeOptions" class="theme-options" role="radiogroup" aria-label="Colour theme">
+              <label class="theme-option">
+                <input type="radio" name="theme" value="system" />
+                <span><strong>System</strong><small>Follow the operating system</small></span>
+              </label>
+              <label class="theme-option">
+                <input type="radio" name="theme" value="light" />
+                <span><strong>Light</strong><small>Warm ivory and Mediterranean green</small></span>
+              </label>
+              <label class="theme-option">
+                <input type="radio" name="theme" value="dark" />
+                <span><strong>Dark</strong><small>Deep green with pistachio accents</small></span>
+              </label>
+            </div>
+            <div class="palette-strip" aria-label="Theme accent palette">
+              <span style="--swatch:#f79164" title="Apricot"></span>
+              <span style="--swatch:#d35290" title="Bougainvillea"></span>
+              <span style="--swatch:#fcd885" title="Butter"></span>
+              <span style="--swatch:#7eb880" title="Pistachio"></span>
+              <span style="--swatch:#256351" title="Mediterranean green"></span>
+              <span style="--swatch:#6ea8c7" title="Ceramic blue"></span>
+              <span style="--swatch:#9a479d" title="Lavender"></span>
+            </div>
+            <p id="themeHint" class="muted small">System mode follows your operating-system appearance automatically.</p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
             <label>Microphone</label>
             <div class="row">
               <select id="micDeviceId" style="flex:1">
@@ -567,6 +630,7 @@
     </main>
     </div>
 
+    <script src="editor.bundle.js"></script>
     <script src="main.js"></script>
   </body>
 </html>

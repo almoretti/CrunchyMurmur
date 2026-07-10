@@ -25,8 +25,9 @@ Enable GitHub private vulnerability reporting, require pull requests and CI on `
 3. Merge the reviewed release commit to `main`.
 4. Create and push the matching annotated tag, for example `v1.0.0`.
 5. The Release workflow validates the tag/version pair, builds and signs Windows x64/arm64, signs and notarizes macOS universal, and builds Linux x64/arm64 AppImage and Debian packages.
-6. The publish job creates an SPDX SBOM and `SHA256SUMS`, generates GitHub build-provenance attestations, and publishes the immutable GitHub Release.
-7. Verify installation and updating on clean Windows x64/arm64, supported macOS Intel/Apple Silicon, Linux X11, and Linux Wayland systems before announcing the release.
+6. Each platform job verifies that its updater manifest references files that were actually built.
+7. The publish job creates an SPDX SBOM and `SHA256SUMS`, generates GitHub build-provenance attestations, and publishes the immutable GitHub Release.
+8. Verify installation and updating on clean Windows x64/arm64, supported macOS Intel/Apple Silicon, Linux X11, and Linux Wayland systems before announcing the release.
 
 Do not manually replace assets on a published release. Fix the source and publish a new patch version.
 
@@ -47,7 +48,7 @@ The release workflow keeps these names stable for a future website:
 - `install.ps1`
 - `install.sh`
 
-Prefix any name with `https://github.com/almoretti/CrunchyMurmur-Windows/releases/latest/download/` for a website download link.
+Prefix any name with `https://github.com/almoretti/CrunchyMurmur/releases/latest/download/` for a website download link.
 
 ## Verification
 
@@ -55,3 +56,4 @@ Prefix any name with `https://github.com/almoretti/CrunchyMurmur-Windows/release
 - macOS: run `codesign --verify --deep --strict`, `spctl --assess --type execute`, and `xcrun stapler validate` against the installed application/package.
 - Linux and all platforms: compare the artifact SHA-256 with `SHA256SUMS` and verify the GitHub attestation with GitHub CLI.
 - Confirm the app's updater discovers the release and applies it from the previous stable version.
+- Confirm the updater ignores prereleases and never offers a downgrade. Debian packages update by rerunning the terminal installer.

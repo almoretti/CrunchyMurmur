@@ -6,7 +6,7 @@ logic can be exercised without Windows UI automation.
 
 ## Development setup
 
-1. Install Node.js 22.12 or newer on Windows.
+1. Install Node.js 22.12 or newer on Windows, macOS, or Linux.
 2. Run `npm ci`.
 3. Run `npm run check`.
 4. Start the app with `npm start`.
@@ -21,7 +21,9 @@ calendar feed URLs, model files, or generated installer output.
 - Keep privileged operations in the Electron main process.
 - Validate IPC senders and all renderer-supplied paths and payload sizes.
 - Avoid retaining complete meeting recordings in JavaScript memory.
-- Run `npm run check` and `npm run pack:win` before requesting review.
+- Run `npm run check` and `npm run test:e2e` before requesting review.
+- Run the relevant native package command for packaging or integration changes.
 - Update `CHANGELOG.md` under **Unreleased** for user-visible changes.
+- Update the relevant file under `docs/` when behavior, requirements, privacy, or release operations change.
 
 By participating, you agree to follow the project Code of Conduct.

@@ -106,8 +106,10 @@ test('settings public view masks persisted API keys', (t) => {
   assert.equal(settings.defaultHotkey('win32'), 'Control+Super');
   assert.equal(settings.defaultHotkey('darwin'), 'Fn');
   assert.equal(settings.defaultHotkey('linux'), 'CommandOrControl+Shift+Space');
-  settings.save({ groqApiKey: 'secret-value', language: 'en' });
+  assert.equal(settings.load().theme, 'system');
+  settings.save({ groqApiKey: 'secret-value', language: 'en', theme: 'light' });
   assert.equal(settings.load().groqApiKey, 'secret-value');
+  assert.equal(settings.load().theme, 'light');
   assert.equal(settings.publicView().groqApiKey, settings.SECRET_MASK);
   assert.equal(settings.save({ groqApiKey: settings.SECRET_MASK }).groqApiKey, 'secret-value');
   assert.doesNotMatch(fs.readFileSync(settings.configPath(), 'utf8'), /"groqApiKey"\s*:/);

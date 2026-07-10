@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [switch]$Silent,
-  [string]$Repository = 'almoretti/CrunchyMurmur-Windows'
+  [string]$Repository = 'almoretti/CrunchyMurmur'
 )
 
 $ErrorActionPreference = 'Stop'

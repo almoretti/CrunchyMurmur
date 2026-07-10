@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-source_png="$root/assets/New assets/app-icon-mac.png"
+source_png="$root/assets/brand-mark.png"
 iconset="$root/build/icon.iconset"
 base="$root/build/icon-mac-square.png"
 

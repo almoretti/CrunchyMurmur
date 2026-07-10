@@ -34,6 +34,13 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.ok(page, 'main application window did not open');
   await page.waitForLoadState('domcontentloaded');
   assert.equal(await page.title(), 'CrunchyMurmur');
+  const titlebarMark = await page.locator('.titlebar-mark').evaluate((mark) => ({
+    tag: mark.tagName,
+    source: mark.getAttribute('src'),
+    loaded: mark.complete && mark.naturalWidth > 0,
+    text: mark.textContent,
+  }));
+  assert.deepEqual(titlebarMark, { tag: 'IMG', source: '../assets/brand-mark.svg', loaded: true, text: '' });
   const menuLabels = await electronApp.evaluate(({ Menu }) => (
     Menu.getApplicationMenu()?.items.map((item) => item.label) || []
   ));
@@ -48,6 +55,95 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     assert.deepEqual(divider, { left: 0, right: divider.viewport, viewport: divider.viewport, border: '1px' });
   }
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+
+  await page.locator('[data-tab="general"]').click();
+  assert.equal(await page.locator('input[name="theme"]').count(), 3);
+  assert.equal(await page.locator('input[name="theme"][value="system"]').isChecked(), true);
+  await page.locator('input[name="theme"][value="light"] + span').click();
+  await page.waitForFunction(() => document.documentElement.dataset.effectiveTheme === 'light');
+  const lightPalette = await page.evaluate(() => ({
+    background: getComputedStyle(document.body).backgroundColor,
+    text: getComputedStyle(document.body).color,
+    titlebar: getComputedStyle(document.querySelector('.app-titlebar')).backgroundColor,
+    sidebar: getComputedStyle(document.querySelector('.sidebar')).backgroundColor,
+  }));
+  assert.deepEqual(lightPalette, {
+    background: 'rgb(250, 248, 243)',
+    text: 'rgb(36, 51, 45)',
+    titlebar: 'rgb(242, 235, 221)',
+    sidebar: 'rgb(242, 235, 221)',
+  });
+  if (process.env.CRUNCHYMURMUR_SCREENSHOT_LIGHT) {
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_LIGHT) });
+  }
+  assert.equal(await electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'light');
+
+  await page.locator('input[name="theme"][value="dark"] + span').click();
+  await page.waitForFunction(() => document.documentElement.dataset.effectiveTheme === 'dark');
+  const darkPalette = await page.evaluate(() => ({
+    background: getComputedStyle(document.body).backgroundColor,
+    text: getComputedStyle(document.body).color,
+    titlebar: getComputedStyle(document.querySelector('.app-titlebar')).backgroundColor,
+    sidebar: getComputedStyle(document.querySelector('.sidebar')).backgroundColor,
+  }));
+  assert.deepEqual(darkPalette, {
+    background: 'rgb(16, 24, 21)',
+    text: 'rgb(246, 241, 232)',
+    titlebar: 'rgb(21, 32, 28)',
+    sidebar: 'rgb(21, 32, 28)',
+  });
+  if (process.env.CRUNCHYMURMUR_SCREENSHOT_DARK) {
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_DARK) });
+  }
+  assert.equal(await electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'dark');
+  await page.locator('input[name="theme"][value="system"] + span').click();
+  await page.waitForFunction(() => document.documentElement.dataset.themePreference === 'system');
+  assert.equal(await electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'system');
+
+  // All editable Markdown surfaces use the same editor, preserve Markdown,
+  // expose a safe preview, and remain usable at narrow desktop sizes.
+  await page.locator('[data-tab="templates"]').click();
+  await page.locator('#templateEditor:not(.hidden) .cm-editor').waitFor({ state: 'visible' });
+  const editorRegression = await page.evaluate(() => {
+    const textarea = document.getElementById('templateInstructions');
+    const editor = textarea.__crunchyEditor;
+    const original = editor.getValue();
+    editor.setValue('format me');
+    editor.view.dispatch({ selection: { anchor: 0, head: editor.view.state.doc.length } });
+    editor.format('bold');
+    const formatted = editor.getValue();
+    editor.setValue('# Agenda\n\n**Decision**\n\n<script>window.editorXss = true</script>');
+    editor.setMode('split');
+    const sourceDisplay = getComputedStyle(editor.shell.querySelector('.text-editor-source')).display;
+    const previewDisplay = getComputedStyle(editor.shell.querySelector('.text-editor-preview')).display;
+    const heading = editor.shell.querySelector('.text-editor-preview h1')?.textContent;
+    const strong = editor.shell.querySelector('.text-editor-preview strong')?.textContent;
+    const scriptCount = editor.shell.querySelectorAll('.text-editor-preview script').length;
+    const stats = document.getElementById('templateEditorStats').textContent;
+    editor.setValue(original);
+    editor.setMode('write');
+    return {
+      formatted, sourceDisplay, previewDisplay, heading, strong, scriptCount, stats,
+      mountedEditors: document.querySelectorAll('.text-editor-shell').length,
+    };
+  });
+  assert.equal(editorRegression.formatted, '**format me**');
+  assert.notEqual(editorRegression.sourceDisplay, 'none');
+  assert.notEqual(editorRegression.previewDisplay, 'none');
+  assert.equal(editorRegression.heading, 'Agenda');
+  assert.equal(editorRegression.strong, 'Decision');
+  assert.equal(editorRegression.scriptCount, 0, 'Markdown preview rendered executable HTML');
+  assert.match(editorRegression.stats, /words · .*characters · .*lines/);
+  assert.equal(editorRegression.mountedEditors, 3, 'not every editable Markdown surface uses the shared editor');
+  if (process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) {
+    await page.locator('#templateEditorToolbar [data-editor-mode="split"]').click();
+    assert.equal(await page.locator('#templateEditorToolbar [data-editor-mode="split"]').getAttribute('aria-pressed'), 'true');
+    await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) });
+    await page.locator('#templateEditorToolbar [data-editor-mode="write"]').click();
+  }
+
   await page.locator('[data-tab="dashboard"]').click();
   assert.ok(Number((await page.locator('#statTotalWords').textContent()).replace(/[^0-9.]/g, '')) > 0);
   assert.ok(Number(await page.locator('#statWpm').textContent()) > 0);

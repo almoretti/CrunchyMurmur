@@ -11,10 +11,11 @@ CrunchyMurmur shares its data model and most product features across Windows, ma
 | Meeting microphone capture | Supported | Supported | Supported |
 | Meeting system/call audio | Supported | Supported on macOS 13+ | Not currently supported |
 | Speaker-labelled chunked transcription | Supported when both tracks exist | Supported when both tracks exist | User microphone is labelled `YOU` |
-| Default global shortcut | Hold Ctrl + Win | Hold Fn (🌐) | Configurable toggle shortcut |
+| Default global shortcut | Hold Ctrl + Win | Hold Fn | Configurable toggle shortcut |
 | Calendar | ICS feeds | Native EventKit and ICS feeds | ICS feeds |
 | Automatic paste | Native input simulation | Requires Accessibility/Automation | Requires `wtype` on Wayland or `xdotool` on X11 |
 | Packages | NSIS x64/ARM64 | Signed/notarized universal DMG and ZIP | AppImage and Debian x64/ARM64 |
+| Updates | Automatic | Automatic | Automatic for AppImage; reinstall for Debian |
 
 ## Linux desktop requirements
 

@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell, session, systemPreferences, Notification, desktopCapturer } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell, session, systemPreferences, Notification, desktopCapturer, nativeTheme } = require('electron');
 const log = require('electron-log/main');
 
 log.initialize();
@@ -269,6 +269,7 @@ function createFloatingWindow() {
   floatingWindow.loadFile(path.join(__dirname, '..', 'ui', 'floating.html'));
   floatingWindow.webContents.once('did-finish-load', () => {
     console.log('[main] floating window loaded');
+    floatingWindow.webContents.send('theme:changed', settings.load().theme);
   });
 }
 
@@ -296,12 +297,12 @@ function showMainWindow() {
     title: 'CrunchyMurmur',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     titleBarOverlay: process.platform === 'darwin' ? undefined : {
-      color: '#181818',
-      symbolColor: '#a9a9ae',
+      color: nativeTheme.shouldUseDarkColors ? '#15201c' : '#f2ebdd',
+      symbolColor: nativeTheme.shouldUseDarkColors ? '#f6f1e8' : '#24332d',
       height: 40,
     },
     autoHideMenuBar: false,
-    icon: path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'tray.png'),
+    icon: path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'icon-palette.ico' : 'brand-mark.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload-main.js'),
       contextIsolation: true,
@@ -309,6 +310,7 @@ function showMainWindow() {
     },
   });
   hardenWindow(mainWindow);
+  updateWindowThemeChrome();
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault();
@@ -317,6 +319,34 @@ function showMainWindow() {
   });
   mainWindow.loadFile(path.join(__dirname, '..', 'ui', 'main.html'));
 }
+
+function normalizedTheme(value) {
+  return ['system', 'light', 'dark'].includes(value) ? value : 'system';
+}
+
+function updateWindowThemeChrome() {
+  if (process.platform === 'darwin' || !mainWindow || mainWindow.isDestroyed()) return;
+  const dark = nativeTheme.shouldUseDarkColors;
+  mainWindow.setTitleBarOverlay({
+    color: dark ? '#15201c' : '#f2ebdd',
+    symbolColor: dark ? '#f6f1e8' : '#24332d',
+    height: 40,
+  });
+}
+
+function applyThemePreference(value) {
+  nativeTheme.themeSource = normalizedTheme(value);
+  updateWindowThemeChrome();
+  const preference = nativeTheme.themeSource;
+  for (const window of [mainWindow, floatingWindow]) {
+    if (window && !window.isDestroyed() && !window.webContents.isLoading()) {
+      window.webContents.send('theme:changed', preference);
+    }
+  }
+  return preference;
+}
+
+nativeTheme.on('updated', updateWindowThemeChrome);
 
 function createApplicationMenu() {
   const template = [
@@ -364,7 +394,7 @@ function createApplicationMenu() {
           }),
         },
         { label: 'Privacy', click: () => shell.openPath(path.join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'PRIVACY.md')) },
-        { label: 'Report an Issue…', click: () => shell.openExternal('https://github.com/almoretti/CrunchyMurmur-Windows/issues') },
+        { label: 'Report an Issue…', click: () => shell.openExternal('https://github.com/almoretti/CrunchyMurmur/issues') },
       ],
     },
   ];
@@ -384,7 +414,7 @@ function broadcastHistory() {
 
 function createTray() {
   // 16×16 transparent placeholder; user can drop a real .ico into assets/.
-  const iconPath = path.join(__dirname, '..', 'assets', 'tray.png');
+  const iconPath = path.join(__dirname, '..', 'assets', 'tray-palette.png');
   let image;
   try {
     image = nativeImage.createFromPath(iconPath);
@@ -548,7 +578,10 @@ handle('settings:save', (_e, partial) => {
       throw error;
     }
   }
-  return shortcutMetadata(settings.save(changes));
+  if (Object.hasOwn(changes, 'theme')) changes.theme = normalizedTheme(changes.theme);
+  const saved = settings.save(changes);
+  if (Object.hasOwn(changes, 'theme')) applyThemePreference(saved.theme);
+  return shortcutMetadata(saved);
 });
 
 handle('settings:pick-file', async (_e, filters) => {
@@ -920,6 +953,7 @@ handle('ai-notes:generate-from-recording', async (_e, payload) => {
 
 app.whenReady().then(() => {
   if (!hasSingleInstanceLock) return;
+  applyThemePreference(settings.load().theme);
   Menu.setApplicationMenu(createApplicationMenu());
   createTray();
   session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {

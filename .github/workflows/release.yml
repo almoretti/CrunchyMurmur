@@ -17,6 +17,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build:editor
       - run: npm run check
       - run: npm audit --audit-level=high
       - run: npm run release:check
@@ -40,7 +41,9 @@ jobs:
           if (-not $env:CSC_LINK -or -not $env:CSC_KEY_PASSWORD) {
             throw 'WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD repository secrets are required.'
           }
+      - run: npm run build:editor
       - run: npx electron-builder --win --publish never -c.forceCodeSigning=true
+      - run: node scripts/verify-update-manifest.js dist/latest.yml
       - run: npm run smoke:packaged -- dist\win-unpacked\CrunchyMurmur.exe
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -67,6 +70,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build:editor
       - run: bash scripts/prepare-macos-icon.sh
       - run: bash scripts/build-macos-native.sh
       - run: npm run test:e2e
@@ -79,6 +83,7 @@ jobs:
             exit 1
           }
       - run: npx electron-builder --mac --publish never
+      - run: node scripts/verify-update-manifest.js dist/latest-mac.yml
       - run: npm run smoke:packaged -- dist/mac-universal/CrunchyMurmur.app/Contents/MacOS/CrunchyMurmur
         env:
           CRUNCHYMURMUR_DISABLE_NATIVE_HOTKEY: '1'
@@ -105,6 +110,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y imagemagick
       - run: xvfb-run --auto-servernum npm run test:e2e
       - run: npm run build:linux
+      - run: node scripts/verify-update-manifest.js dist/latest-linux.yml
       - run: xvfb-run --auto-servernum npm run smoke:packaged -- dist/linux-unpacked/crunchymurmur
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

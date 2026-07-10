@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-source_png="$root/assets/New assets/app-icon-win.png"
+source_png="$root/assets/brand-mark.png"
 icons="$root/build/icons"
 
 mkdir -p "$icons"

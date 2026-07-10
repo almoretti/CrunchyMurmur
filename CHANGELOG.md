@@ -3,6 +3,23 @@
 All notable changes are documented here. This project follows Semantic
 Versioning and the Keep a Changelog structure.
 
+## [Unreleased]
+
+### Added
+
+- Open-source project documentation, branded README feature icons, support policy, roadmap, getting-started guide, and update/troubleshooting guides.
+- Release-time validation that every platform updater manifest references artifacts that were actually built.
+- Shared offline Markdown editor for notes, AI-note templates, and live meeting notes.
+- Markdown syntax support, search and undo, formatting shortcuts, safe live preview, split view, and document statistics.
+- System-aware light and dark themes based on the ivory, Mediterranean green, pistachio, ceramic blue, butter, apricot, and bougainvillea palette.
+
+### Changed
+
+- Stable automatic updates now explicitly reject prereleases and downgrades.
+- Text-editing surfaces now use one accessible cross-platform editor while preserving the existing Markdown and autosave storage formats.
+- Window chrome, scrollbars, cards, controls, editor surfaces, and the recording overlay now follow the saved appearance preference across Windows, macOS, and Linux.
+- Replaced the placeholder in-app waveform glyph and legacy orange/blue package variants with one palette-aligned five-bar app mark across title bar, tray, Windows, macOS, and Linux artifacts.
+
 ## [1.0.0] - 2026-07-10
 
 ### Added

@@ -323,6 +323,12 @@ const noteEditorEl = document.getElementById('noteEditor');
 const notesSelectMessageEl = document.getElementById('notesSelectMessage');
 const noteTitleEl = document.getElementById('noteTitle');
 const noteBodyEl = document.getElementById('noteBody');
+const noteBodyEditor = window.CrunchyEditor.mount(noteBodyEl, {
+  toolbar: '#noteEditorToolbar',
+  stats: '#noteEditorStats',
+  label: 'Note body',
+  placeholder: 'Start writing…',
+});
 const noteSaveStatusEl = document.getElementById('noteSaveStatus');
 const newFolderBtn = document.getElementById('newFolder');
 const newNoteBtn = document.getElementById('newNote');
@@ -426,7 +432,7 @@ function renderEditor() {
   // Only update DOM if changed, so the user's caret position isn't reset
   // every time we re-render after typing.
   if (document.activeElement !== noteTitleEl) noteTitleEl.value = selectedNote.title;
-  if (document.activeElement !== noteBodyEl)  noteBodyEl.value = selectedNote.content;
+  if (!noteBodyEditor.hasFocus()) noteBodyEditor.setValue(selectedNote.content);
 }
 
 function renderNotesTab() {
@@ -472,7 +478,7 @@ async function flushPendingSave(immediate = false) {
   const folder = selectedNote.folder;
   const filename = selectedNote.filename;
   const selectionVersion = noteSelectionVersion;
-  const content = noteBodyEl.value;
+  const content = noteBodyEditor.getValue();
   const title = noteTitleEl.value.trim();
   const updated = await window.wisper.notesUpdate({ folder, filename, content });
   // If the title changed, rename the file (which changes the filename slug).
@@ -591,75 +597,6 @@ window.wisper.onNotesChanged((snap) => {
   renderNotesTab();
 });
 
-// Markdown toolbar — wrap or prefix selected text in the textarea.
-function applyMd(kind) {
-  const ta = noteBodyEl;
-  if (!ta) return;
-  const start = ta.selectionStart, end = ta.selectionEnd;
-  const before = ta.value.slice(0, start);
-  const sel = ta.value.slice(start, end);
-  const after = ta.value.slice(end);
-
-  const wrap = (left, right) => {
-    ta.value = before + left + sel + right + after;
-    ta.selectionStart = start + left.length;
-    ta.selectionEnd = end + left.length;
-  };
-  const linePrefix = (prefix) => {
-    // Apply to the start of every line in the selection (or the current line).
-    const lineStart = before.lastIndexOf('\n') + 1;
-    const lineEnd = end + (after.indexOf('\n') === -1 ? after.length : after.indexOf('\n'));
-    const head = ta.value.slice(0, lineStart);
-    const tail = ta.value.slice(lineEnd);
-    const lines = ta.value.slice(lineStart, lineEnd).split('\n').map((l) => prefix + l).join('\n');
-    ta.value = head + lines + tail;
-    ta.selectionStart = lineStart;
-    ta.selectionEnd = lineStart + lines.length;
-  };
-
-  switch (kind) {
-    case 'h1':       linePrefix('# '); break;
-    case 'h2':       linePrefix('## '); break;
-    case 'h3':       linePrefix('### '); break;
-    case 'bold':     wrap('**', '**'); break;
-    case 'italic':   wrap('*', '*'); break;
-    case 'strike':   wrap('~~', '~~'); break;
-    case 'code':     wrap('`', '`'); break;
-    case 'bullet':   linePrefix('- '); break;
-    case 'numbered': linePrefix('1. '); break;
-    case 'todo':     linePrefix('- [ ] '); break;
-    case 'quote':    linePrefix('> '); break;
-    case 'link': {
-      const url = prompt('URL:', sel.startsWith('http') ? sel : 'https://');
-      if (!url) return;
-      const display = sel || 'link';
-      ta.value = before + `[${display}](${url})` + after;
-      ta.selectionStart = before.length + 1;
-      ta.selectionEnd = before.length + 1 + display.length;
-      break;
-    }
-    case 'hr':       ta.value = before + '\n---\n' + after; break;
-  }
-  ta.focus();
-  scheduleSave();
-}
-document.querySelectorAll('.md-btn').forEach((btn) => {
-  btn.addEventListener('click', () => applyMd(btn.dataset.md));
-});
-
-// Editor keyboard shortcuts within the textarea.
-noteBodyEl.addEventListener('keydown', (e) => {
-  if (!e.ctrlKey && !e.metaKey) return;
-  const k = e.key.toLowerCase();
-  if (k === 'b') { e.preventDefault(); applyMd('bold'); }
-  else if (k === 'i') { e.preventDefault(); applyMd('italic'); }
-  else if (k === 'e') { e.preventDefault(); applyMd('code'); }
-  else if (k === 'k') { e.preventDefault(); applyMd('link'); }
-  else if (k === '1' && e.shiftKey === false) { e.preventDefault(); applyMd('h1'); }
-  else if (k === '2' && e.shiftKey === false) { e.preventDefault(); applyMd('h2'); }
-  else if (k === '3' && e.shiftKey === false) { e.preventDefault(); applyMd('h3'); }
-});
-
 // Ensure pending saves flush when the tab is changed away.
 document.querySelectorAll('.nav-item').forEach((b) => {
   b.addEventListener('click', () => { if (saveDirty) flushPendingSave(true); });
@@ -672,6 +609,12 @@ const templatesSelectMessageEl = document.getElementById('templatesSelectMessage
 const templateNameEl = document.getElementById('templateName');
 const templateDescriptionEl = document.getElementById('templateDescription');
 const templateInstructionsEl = document.getElementById('templateInstructions');
+const templateInstructionsEditor = window.CrunchyEditor.mount(templateInstructionsEl, {
+  toolbar: '#templateEditorToolbar',
+  stats: '#templateEditorStats',
+  label: 'AI note template instructions',
+  placeholder: 'Describe the structure, tone, and details the AI should produce…',
+});
 const templateSaveBtn = document.getElementById('templateSaveBtn');
 const templateRevertBtn = document.getElementById('templateRevertBtn');
 const templateSaveStatusEl = document.getElementById('templateSaveStatus');
@@ -712,7 +655,7 @@ function renderTemplateEditor() {
   templatesSelectMessageEl.classList.add('hidden');
   if (document.activeElement !== templateNameEl)         templateNameEl.value = t.name;
   if (document.activeElement !== templateDescriptionEl)  templateDescriptionEl.value = t.description;
-  if (document.activeElement !== templateInstructionsEl) templateInstructionsEl.value = t.instructions;
+  if (!templateInstructionsEditor.hasFocus()) templateInstructionsEditor.setValue(t.instructions);
   templateRevertBtn.hidden = !t.customized;
 }
 
@@ -721,7 +664,7 @@ function isTemplateDirty() {
   return (
     templateNameEl.value !== templateOriginal.name ||
     templateDescriptionEl.value !== templateOriginal.description ||
-    templateInstructionsEl.value !== templateOriginal.instructions
+    templateInstructionsEditor.getValue() !== templateOriginal.instructions
   );
 }
 
@@ -755,7 +698,7 @@ templateSaveBtn.addEventListener('click', async () => {
     id: t.id,
     name: templateNameEl.value.trim() || t.name,
     description: templateDescriptionEl.value.trim(),
-    instructions: templateInstructionsEl.value,
+    instructions: templateInstructionsEditor.getValue(),
   });
   // Refresh the in-memory catalog so the customized-dot updates.
   templatesCatalog = templatesCatalog.map((x) => (x.id === updated.id ? updated : x));
@@ -903,6 +846,13 @@ const cancelTranscriptionBtn = document.getElementById('cancelTranscriptionBtn')
 const aiNotesMeetingBtn = document.getElementById('aiNotesMeetingBtn');
 const deleteMeetingBtn = document.getElementById('deleteMeetingBtn');
 const meetingUserNotesEl = document.getElementById('meetingUserNotes');
+const meetingNotesEditor = window.CrunchyEditor.mount(meetingUserNotesEl, {
+  toolbar: '#meetingNotesToolbar',
+  stats: '#meetingNotesStats',
+  label: 'Live meeting notes',
+  placeholder: 'Type live notes here while you record. Autosaves.',
+  compact: true,
+});
 const meetingTranscriptEl = document.getElementById('meetingTranscript');
 const meetingTranscriptEmptyEl = document.getElementById('meetingTranscriptEmpty');
 const meetingAiNotesEl = document.getElementById('meetingAiNotes');
@@ -976,8 +926,8 @@ function renderMeetingDetail() {
 
   if (document.activeElement !== meetingTitleEl)
     meetingTitleEl.value = selectedMeeting.title;
-  if (document.activeElement !== meetingUserNotesEl)
-    meetingUserNotesEl.value = selectedMeeting.userNotes || '';
+  if (!meetingNotesEditor.hasFocus())
+    meetingNotesEditor.setValue(selectedMeeting.userNotes || '');
 
   const isRecording = activeMeetingId === selectedMeeting.id;
   stopMeetingBtn.hidden = !isRecording;
@@ -1395,7 +1345,7 @@ meetingUserNotesEl.addEventListener('input', () => {
   if (mtgNotesSaveTimer) clearTimeout(mtgNotesSaveTimer);
   mtgNotesSaveTimer = setTimeout(async () => {
     if (!selectedMeeting) return;
-    const updated = await window.wisper.meetingsUpdate(selectedMeeting.id, { userNotes: meetingUserNotesEl.value });
+    const updated = await window.wisper.meetingsUpdate(selectedMeeting.id, { userNotes: meetingNotesEditor.getValue() });
     selectedMeeting = updated;
   }, 400);
 });
@@ -1541,6 +1491,8 @@ const hotkeyDisplayEl = document.getElementById('hotkeyDisplay');
 const recordHotkeyBtn = document.getElementById('recordHotkey');
 const hotkeyHintEl = document.getElementById('hotkeyHint');
 const useFnHotkeyBtn = document.getElementById('useFnHotkey');
+const themeInputs = [...document.querySelectorAll('input[name="theme"]')];
+const themeHintEl = document.getElementById('themeHint');
 const autoUpdateEl = document.getElementById('autoUpdate');
 const audioRetentionPolicyEl = document.getElementById('audioRetentionPolicy');
 const aiFormatEnabledEl = document.getElementById('aiFormatEnabled');
@@ -1552,6 +1504,37 @@ const engineSaveStatusEl = document.getElementById('engineSaveStatus');
 const generalSaveStatusEl = document.getElementById('generalSaveStatus');
 const engineLocalEl = document.getElementById('engineLocal');
 const engineGroqEl = document.getElementById('engineGroq');
+
+const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+function selectedTheme() {
+  return document.querySelector('input[name="theme"]:checked')?.value || 'system';
+}
+function updateThemeHint() {
+  const preference = selectedTheme();
+  const effective = preference === 'system'
+    ? (systemDarkMode.matches ? 'Dark' : 'Light')
+    : (preference === 'dark' ? 'Dark' : 'Light');
+  themeHintEl.textContent = preference === 'system'
+    ? `Following ${window.__lastSettings?.platform === 'darwin' ? 'macOS' : window.__lastSettings?.platform === 'linux' ? 'Linux' : 'Windows'} · ${effective} mode is active.`
+    : `${effective} mode is selected. Choose System to follow operating-system changes automatically.`;
+  document.documentElement.dataset.themePreference = preference;
+  document.documentElement.dataset.effectiveTheme = effective.toLowerCase();
+  window.dispatchEvent(new CustomEvent('crunchy-theme-change', { detail: { dark: effective === 'Dark' } }));
+}
+systemDarkMode.addEventListener('change', updateThemeHint);
+themeInputs.forEach((input) => {
+  input.addEventListener('change', async () => {
+    if (!input.checked) return;
+    try {
+      const cfg = await window.wisper.saveSettings({ theme: input.value });
+      window.__lastSettings = cfg;
+      updateThemeHint();
+    } catch (error) {
+      generalSaveStatusEl.style.color = 'var(--danger)';
+      generalSaveStatusEl.textContent = error.message || String(error);
+    }
+  });
+});
 
 async function populateInstalledPicker() {
   const installed = await window.wisper.modelsInstalled();
@@ -1831,6 +1814,7 @@ saveAiNotesBtn.addEventListener('click', async () => {
 saveGeneralBtn.addEventListener('click', async () => {
   try {
     const cfg = await window.wisper.saveSettings({
+      theme: selectedTheme(),
       language: languageEl.value,
       micDeviceId: micDeviceEl.value,
       hotkey: hotkeyEl.value.trim(),
@@ -2050,6 +2034,10 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
     : hotkeyEl.value === 'Control+Super' ? 'Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.'
       : 'Use your global shortcut anywhere to dictate.';
   autoUpdateEl.value = cfg.autoUpdate || 'true';
+  const theme = ['system', 'light', 'dark'].includes(cfg.theme) ? cfg.theme : 'system';
+  const themeInput = themeInputs.find((input) => input.value === theme);
+  if (themeInput) themeInput.checked = true;
+  updateThemeHint();
   audioRetentionPolicyEl.value = cfg.audioRetentionPolicy || 'never';
   aiFormatEnabledEl.value = cfg.aiFormatEnabled || 'false';
   groqFormatModelEl.value = cfg.groqFormatModel || 'llama-3.1-8b-instant';

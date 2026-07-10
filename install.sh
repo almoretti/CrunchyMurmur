@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repository="${CRUNCHYMURMUR_REPOSITORY:-almoretti/CrunchyMurmur-Windows}"
+repository="${CRUNCHYMURMUR_REPOSITORY:-almoretti/CrunchyMurmur}"
 base="https://github.com/$repository/releases/latest/download"
 os="$(uname -s)"
 machine="$(uname -m)"
@@ -52,4 +52,3 @@ case "$os" in
     ;;
   *) echo "Unsupported operating system: $os" >&2; exit 1 ;;
 esac
-

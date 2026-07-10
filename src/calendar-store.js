@@ -47,7 +47,7 @@ function normalizeFeedUrl(url) {
 function fetchText(url, redirects = 0) {
   return new Promise((resolve, reject) => {
     const finalUrl = normalizeFeedUrl(url);
-    const req = https.get(finalUrl, { headers: { 'User-Agent': 'CrunchyMurmur-Windows' } }, (res) => {
+    const req = https.get(finalUrl, { headers: { 'User-Agent': 'CrunchyMurmur' } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
         if (redirects >= 5) return reject(new Error('Too many calendar feed redirects.'));

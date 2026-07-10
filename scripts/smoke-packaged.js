@@ -64,6 +64,12 @@ async function command(target, method, params = {}) {
 
 async function evaluate(target, expression) {
   const result = await command(target, 'Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+  if (result.exceptionDetails) {
+    const description = result.exceptionDetails.exception?.description
+      || result.exceptionDetails.text
+      || 'Unknown renderer exception';
+    throw new Error(description);
+  }
   return result.result.value;
 }
 
@@ -71,8 +77,9 @@ async function evaluate(target, expression) {
   try {
     const target = await findMainTarget();
     await delay(500);
-    const state = await evaluate(target, '({title:document.title,htmlLength:document.documentElement.outerHTML.length,bodyText:document.body?.innerText||"",styleSheets:document.styleSheets.length,scripts:document.scripts.length})');
-    if (state.title !== 'CrunchyMurmur' || state.htmlLength < 1_000 || !state.bodyText.includes('CrunchyMurmur') || state.styleSheets < 1 || state.scripts < 1) {
+    const state = await evaluate(target, '({title:document.title,htmlLength:document.documentElement.outerHTML.length,bodyText:document.body?.innerText||"",styleSheets:document.styleSheets.length,scripts:document.scripts.length,brandMark:{tag:document.querySelector(".titlebar-mark")?.tagName,loaded:document.querySelector(".titlebar-mark")?.complete&&document.querySelector(".titlebar-mark")?.naturalWidth>0,source:document.querySelector(".titlebar-mark")?.getAttribute("src")}})');
+    if (state.title !== 'CrunchyMurmur' || state.htmlLength < 1_000 || !state.bodyText.includes('CrunchyMurmur') || state.styleSheets < 1 || state.scripts < 1
+        || state.brandMark.tag !== 'IMG' || !state.brandMark.loaded || state.brandMark.source !== '../assets/brand-mark.svg') {
       throw new Error(`Packaged renderer is blank or incomplete: ${JSON.stringify(state)}`);
     }
     console.log(`Packaged renderer loaded correctly (${state.htmlLength} HTML characters).`);
@@ -84,8 +91,9 @@ async function evaluate(target, expression) {
       mobile: false,
     });
     await delay(150);
-    const regression = await evaluate(target, `(() => {
+    const regression = await evaluate(target, `(async () => {
       const keyText = () => document.getElementById('hotkeyDisplay').innerText;
+      const painted = () => new Promise((resolve) => setTimeout(resolve, 75));
       document.querySelector('[data-tab="general"]').click();
       document.getElementById('recordHotkey').click();
       window.dispatchEvent(new KeyboardEvent('keydown', { key:'Control', code:'ControlLeft', ctrlKey:true, bubbles:true, cancelable:true }));
@@ -102,6 +110,21 @@ async function evaluate(target, expression) {
       const macChord = keyText();
       window.__lastSettings.platform = realPlatform;
 
+      await window.wisper.saveSettings({ theme: 'light' });
+      await painted();
+      const lightTheme = {
+        background: getComputedStyle(document.body).backgroundColor,
+        text: getComputedStyle(document.body).color,
+      };
+      await window.wisper.saveSettings({ theme: 'dark' });
+      await painted();
+      const darkTheme = {
+        background: getComputedStyle(document.body).backgroundColor,
+        text: getComputedStyle(document.body).color,
+      };
+      await window.wisper.saveSettings({ theme: 'system' });
+      await painted();
+
       document.querySelector('[data-tab="engine"]').click();
       const tab = document.getElementById('tab-engine');
       const visible = (element) => element.getClientRects().length > 0;
@@ -115,23 +138,60 @@ async function evaluate(target, expression) {
           return rect.left >= box.left - 1 && rect.right <= box.right + 1;
         });
       });
+      const cardsClip = cards.some((card) => card.scrollWidth > card.clientWidth + 1 || card.scrollHeight > card.clientHeight + 1);
+      const minimumModuleHeight = Math.min(...modules.map((module) => module.getBoundingClientRect().height));
+      const modulesCentered = modules.every((module) => getComputedStyle(module).alignItems === 'center');
+      const minimumControlHeight = Math.min(...controls.map((control) => control.getBoundingClientRect().height));
+
+      document.querySelector('[data-tab="templates"]').click();
+      const templateTextarea = document.getElementById('templateInstructions');
+      const templateEditor = templateTextarea.__crunchyEditor;
+      const originalTemplate = templateEditor.getValue();
+      templateEditor.setValue('# Packaged editor\\n\\n**Safe preview**\\n\\n<script>window.packagedEditorXss=true</script>');
+      templateEditor.setMode('split');
+      const editorPreview = templateEditor.shell.querySelector('.text-editor-preview');
+      const editorRegression = {
+        mounted: document.querySelectorAll('.text-editor-shell').length,
+        heading: editorPreview.querySelector('h1')?.textContent,
+        strong: editorPreview.querySelector('strong')?.textContent,
+        scriptCount: editorPreview.querySelectorAll('script').length,
+        sourceVisible: getComputedStyle(templateEditor.shell.querySelector('.text-editor-source')).display !== 'none',
+        previewVisible: getComputedStyle(editorPreview).display !== 'none',
+        stats: document.getElementById('templateEditorStats').textContent,
+      };
+      templateEditor.setValue(originalTemplate);
+      templateEditor.setMode('write');
       return {
-        liveModifier, incompleteKey, completedChord, macChord, contained,
-        cardsClip: cards.some((card) => card.scrollWidth > card.clientWidth + 1 || card.scrollHeight > card.clientHeight + 1),
-        minimumModuleHeight: Math.min(...modules.map((module) => module.getBoundingClientRect().height)),
-        modulesCentered: modules.every((module) => getComputedStyle(module).alignItems === 'center'),
-        minimumControlHeight: Math.min(...controls.map((control) => control.getBoundingClientRect().height)),
+        liveModifier, incompleteKey, completedChord, macChord, contained, editorRegression, lightTheme, darkTheme,
+        cardsClip, minimumModuleHeight, modulesCentered, minimumControlHeight,
       };
     })()`);
     if (!/Ctrl/.test(regression.liveModifier) || !/K/.test(regression.incompleteKey)
         || !/Ctrl.*Alt.*K/.test(regression.completedChord) || !/Option.*K/.test(regression.macChord)) {
       throw new Error(`Packaged shortcut recorder regression: ${JSON.stringify(regression)}`);
     }
+    if (regression.lightTheme.background !== 'rgb(250, 248, 243)' || regression.lightTheme.text !== 'rgb(36, 51, 45)'
+        || regression.darkTheme.background !== 'rgb(16, 24, 21)' || regression.darkTheme.text !== 'rgb(246, 241, 232)') {
+      throw new Error(`Packaged theme regression: ${JSON.stringify(regression)}`);
+    }
     if (!regression.contained || regression.cardsClip || regression.minimumModuleHeight < 34
         || !regression.modulesCentered || regression.minimumControlHeight < 36) {
       throw new Error(`Packaged card layout regression: ${JSON.stringify(regression)}`);
     }
-    console.log('Packaged shortcut recorder and minimum-width card layout passed.');
+    const editor = regression.editorRegression;
+    if (editor.mounted !== 3 || editor.heading !== 'Packaged editor' || editor.strong !== 'Safe preview'
+        || editor.scriptCount !== 0 || !editor.sourceVisible || !editor.previewVisible
+        || !/words · .*characters · .*lines/.test(editor.stats)) {
+      throw new Error(`Packaged Markdown editor regression: ${JSON.stringify(regression)}`);
+    }
+    console.log('Packaged shortcut recorder, themes, card layout, and Markdown editor passed.');
+    await evaluate(target, "window.wisper.saveSettings({theme:'dark'})");
+    await delay(100);
+    const floatingThemeTarget = (await targets()).find((item) => item.type === 'page' && item.url.endsWith('/ui/floating.html'));
+    if (!floatingThemeTarget) throw new Error('Packaged floating overlay target is missing.');
+    const floatingTheme = await evaluate(floatingThemeTarget, 'document.documentElement.dataset.themePreference');
+    if (floatingTheme !== 'dark') throw new Error(`Floating overlay theme did not update: ${floatingTheme}`);
+    await evaluate(target, "window.wisper.saveSettings({theme:'system'})");
     if (process.platform === 'win32') {
       const { uIOhook, UiohookKey } = require('uiohook-napi');
       try {

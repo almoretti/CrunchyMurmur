@@ -28,6 +28,9 @@ function init({ onStatus } = {}) {
   autoUpdater.logger = log;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.allowDowngrade = false;
+  autoUpdater.fullChangelog = false;
 
   autoUpdater.on('checking-for-update', () => setStatus('checking', 'Checking for updates…'));
   autoUpdater.on('update-available', (info) => setStatus('downloading', `Downloading ${info.version}…`, { version: info.version }));

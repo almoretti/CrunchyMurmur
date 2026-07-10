@@ -25,6 +25,13 @@ let captureGeneration = 0;
 let meetingStartedAt = 0;
 let meetingTimerHandle = null;
 
+function applyTheme(theme) {
+  document.documentElement.dataset.themePreference = ['light', 'dark'].includes(theme) ? theme : 'system';
+}
+
+window.wisper.getSettings().then((cfg) => applyTheme(cfg?.theme)).catch(() => applyTheme('system'));
+window.wisper.onTheme(applyTheme);
+
 async function startCapture() {
   const generation = ++captureGeneration;
   let micDeviceId = '';

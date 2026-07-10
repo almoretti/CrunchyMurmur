@@ -12,6 +12,7 @@ function defaultHotkey(platform = process.platform) {
 }
 
 const DEFAULTS = {
+  theme: 'system', // 'system' | 'light' | 'dark'
   engineKind: 'local', // 'local' | 'groq'
   whisperCliPath: '',
   modelPath: '',

@@ -260,7 +260,7 @@ function downloadModel(id, onProgress) {
     fileStream.on('error', onError);
 
     const req = https.get(modelUrl(id), {
-      headers: { 'User-Agent': 'CrunchyMurmur-Windows' },
+      headers: { 'User-Agent': 'CrunchyMurmur' },
     }, (res) => handleResponse(res, 0));
     req.on('error', onError);
 
