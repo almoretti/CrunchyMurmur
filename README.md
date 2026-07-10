@@ -30,6 +30,14 @@
 | <img src="docs/readme-icons/insights.svg" width="38" alt=""> | **Useful progress, locally** | Track dictated words, weighted words per minute, and consecutive active days on your device. |
 | <img src="docs/readme-icons/updates.svg" width="38" alt=""> | **Verified releases and updates** | Signed packages, checksums, SBOMs, provenance attestations, and stable in-app updates from GitHub Releases. |
 
+## A calm, native-feeling workspace
+
+| Appearance and device settings | Local and cloud transcription |
+|---|---|
+| ![CrunchyMurmur General settings in light mode](docs/images/general.png) | ![CrunchyMurmur transcription engine settings](docs/images/engine.png) |
+
+Screenshots use a clean automated test profile with no personal data or credentials.
+
 ## Install
 
 Download the latest signed package from [GitHub Releases](https://github.com/almoretti/CrunchyMurmur/releases/latest), or use the verified terminal installer.
