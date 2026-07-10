@@ -53,6 +53,11 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
       return { left: rect.left, right: rect.right, viewport: window.innerWidth, border: getComputedStyle(workspace).borderTopWidth };
     });
     assert.deepEqual(divider, { left: 0, right: divider.viewport, viewport: divider.viewport, border: '1px' });
+    const titlebarInset = await page.locator('.app-titlebar').evaluate((titlebar) => getComputedStyle(titlebar).paddingLeft);
+    assert.equal(titlebarInset, '14px', 'the macOS traffic-light inset must not leak onto other platforms');
+  } else {
+    const titlebarInset = await page.locator('.app-titlebar').evaluate((titlebar) => getComputedStyle(titlebar).paddingLeft);
+    assert.equal(titlebarInset, '78px', 'the titlebar brand must clear the traffic-light controls');
   }
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
 
