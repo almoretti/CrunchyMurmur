@@ -88,6 +88,7 @@ const settings = require('./settings');
 const history = require('./history');
 const dictationStats = require('./dictation-stats');
 const models = require('./models');
+const whisperCli = require('./whisper-cli');
 const notes = require('./notes-store');
 const templates = require('./templates');
 const aiNotes = require('./notes-generator');
@@ -580,6 +581,14 @@ handle('permissions:open', (_e, kind) => {
 handle('settings:save', (_e, partial) => {
   const changes = { ...(partial || {}) };
   const current = settings.load();
+  const prospective = { ...current, ...changes };
+  if (Object.hasOwn(changes, 'engineKind') && prospective.engineKind === 'local') {
+    const cli = whisperCli.validateWhisperCli(prospective.whisperCliPath);
+    if (!cli.valid) throw new Error(`Local transcription is not ready: ${cli.reason}`);
+    if (!prospective.modelPath || !fs.existsSync(prospective.modelPath)) {
+      throw new Error('Local transcription is not ready: choose a downloaded GGML model or browse to a .bin model file.');
+    }
+  }
   if (Object.hasOwn(changes, 'hotkey')) {
     changes.hotkey = String(changes.hotkey || '').trim() || settings.DEFAULTS.hotkey;
     changes.hotkeyCustomized = 'true';
@@ -603,6 +612,11 @@ handle('settings:pick-file', async (_e, filters) => {
   });
   if (result.canceled || !result.filePaths.length) return null;
   return result.filePaths[0];
+});
+handle('whisper-cli:status', (_e, preferredPath) => {
+  const preferred = whisperCli.validateWhisperCli(String(preferredPath || '').trim());
+  if (preferred.valid) return { ...preferred, discovered: false };
+  return whisperCli.discoverWhisperCli();
 });
 
 handle('history:get', () => history.load());
