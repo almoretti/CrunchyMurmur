@@ -14,7 +14,7 @@
   [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-256351)](docs/platform-support.md)
   [![License: MIT](https://img.shields.io/badge/license-MIT-7EB880)](LICENSE)
 
-  [Download](https://github.com/almoretti/CrunchyMurmur/releases/latest) · [Documentation](docs/README.md) · [Report a bug](https://github.com/almoretti/CrunchyMurmur/issues/new/choose) · [Security](SECURITY.md)
+  [Download](https://github.com/almoretti/CrunchyMurmur/releases/latest) · [Documentation](docs/README.md) · [Report a bug](https://github.com/almoretti/CrunchyMurmur/issues/new/choose) · [Security](.github/SECURITY.md)
 </div>
 
 ---
@@ -75,7 +75,7 @@ Cloud features are optional. Provider failures fall back safely without discardi
 - Release artifacts include SHA-256 checksums, an SPDX SBOM, and GitHub build-provenance attestations.
 - Privileged Electron operations stay in the main process with constrained renderer APIs.
 
-Read the complete [privacy notice](PRIVACY.md), [security policy](SECURITY.md), and [architecture overview](docs/architecture.md).
+Read the complete [privacy notice](docs/legal/privacy.md), [security policy](.github/SECURITY.md), and [architecture overview](docs/architecture.md).
 
 ## Platform support
 
@@ -107,7 +107,7 @@ npm run check
 npm start
 ```
 
-Native release packages must be built on their target platform. See [Contributing](CONTRIBUTING.md) and [Releasing](docs/releasing.md).
+Native release packages must be built on their target platform. See [Contributing](.github/CONTRIBUTING.md) and [Releasing](docs/releasing.md).
 
 ## Documentation
 
@@ -119,11 +119,12 @@ Native release packages must be built on their target platform. See [Contributin
 - [Troubleshooting](docs/troubleshooting.md)
 - [Architecture](docs/architecture.md)
 - [Release process](docs/releasing.md)
-- [Roadmap](ROADMAP.md)
-- [Support](SUPPORT.md)
+- [Roadmap](docs/project/roadmap.md)
+- [Project status](docs/project/status.md)
+- [Support](docs/project/support.md)
 
 ## Contributing
 
-Bug reports, focused pull requests, documentation improvements, and platform testing are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. Never post API keys, private calendar URLs, recordings, transcripts, or notes in a public issue.
+Bug reports, focused pull requests, documentation improvements, and platform testing are welcome. Please read [Contributing](.github/CONTRIBUTING.md) and the [Code of Conduct](.github/CODE_OF_CONDUCT.md) first. Never post API keys, private calendar URLs, recordings, transcripts, or notes in a public issue.
 
-CrunchyMurmur is released under the [MIT License](LICENSE). Use is also subject to the distributed [Terms of Use](TERMS.md).
+CrunchyMurmur is released under the [MIT License](LICENSE). Use is also subject to the distributed [Terms of Use](docs/legal/terms.md).

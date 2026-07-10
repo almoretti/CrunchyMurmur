@@ -25,9 +25,10 @@
     "lint": "npm run build:editor && node scripts/check-js.js",
     "test": "node --test test/*.test.js",
     "test:e2e": "npm run build:editor && node --test test/e2e/electron.test.js",
+    "check:docs": "node scripts/check-doc-links.js",
     "smoke:packaged": "node scripts/smoke-packaged.js",
     "verify:update-manifests": "node scripts/verify-update-manifest.js",
-    "check": "npm run lint && npm test",
+    "check": "npm run lint && npm test && npm run check:docs",
     "release:check": "node scripts/check-release.js",
     "pack:win": "npm run build:editor && electron-builder --dir --win --x64",
     "build:win": "npm run build:editor && electron-builder --win",
@@ -63,18 +64,18 @@
       "assets/brand-mark.png",
       "assets/brand-mark.svg",
       "LICENSE",
-      "PRIVACY.md",
-      "TERMS.md",
+      "docs/legal/privacy.md",
+      "docs/legal/terms.md",
       "README.md",
       "CHANGELOG.md"
     ],
     "extraResources": [
       {
-        "from": "PRIVACY.md",
+        "from": "docs/legal/privacy.md",
         "to": "PRIVACY.md"
       },
       {
-        "from": "TERMS.md",
+        "from": "docs/legal/terms.md",
         "to": "TERMS.md"
       },
       {

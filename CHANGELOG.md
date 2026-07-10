@@ -15,6 +15,7 @@ Versioning and the Keep a Changelog structure.
 
 ### Changed
 
+- Reorganized community, legal, and project documentation into conventional `.github/` and `docs/` sections and removed unused legacy branding exports.
 - Stable automatic updates now explicitly reject prereleases and downgrades.
 - Text-editing surfaces now use one accessible cross-platform editor while preserving the existing Markdown and autosave storage formats.
 - Window chrome, scrollbars, cards, controls, editor surfaces, and the recording overlay now follow the saved appearance preference across Windows, macOS, and Linux.

@@ -43,4 +43,4 @@ Before recording other people, tell them and obtain any consent required by the 
 
 Diagnostic logs remain local unless you choose to share them. The Copy diagnostics action masks configured API-key values, but you should review any material before publishing it in a GitHub issue.
 
-Questions or privacy reports may be filed through the repository's private security-reporting channel or issue tracker described in [SECURITY.md](SECURITY.md).
+Questions or privacy reports may be filed through the repository's private security-reporting channel or issue tracker described in the [security policy](../../.github/SECURITY.md).

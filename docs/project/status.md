@@ -32,14 +32,14 @@ Automated gates include JavaScript syntax validation, store/security unit tests,
 - Cloud and CLI integrations remain subject to their providers' availability, terms, and pricing.
 - Uninstallers preserve app data. Users can export or delete it from General settings before uninstalling.
 
-## Release blockers outside source control
+## Remaining release blockers outside source control
 
 The source and workflow are release-ready, but a public stable release must not be created until all of these external conditions are met:
 
-- the GitHub repository is public;
 - trusted Windows code-signing credentials are configured in GitHub Actions;
 - Apple Developer ID signing and notarization credentials are configured;
-- GitHub private vulnerability reporting and appropriate default-branch/tag protections are enabled; and
-- signed packages pass the clean-device matrix in [docs/releasing.md](docs/releasing.md).
+- signed packages pass the clean-device matrix in the [release guide](../releasing.md).
+
+The repository is public, private vulnerability reporting is enabled, and `main` is protected by cross-platform CI, packaged Windows, and CodeQL checks.
 
 Local developer builds are intentionally unsigned and are not release artifacts.

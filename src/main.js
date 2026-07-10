@@ -348,6 +348,18 @@ function applyThemePreference(value) {
 
 nativeTheme.on('updated', updateWindowThemeChrome);
 
+function legalDocumentPath(documentName) {
+  const documents = {
+    privacy: { packaged: 'PRIVACY.md', source: 'privacy.md' },
+    terms: { packaged: 'TERMS.md', source: 'terms.md' },
+  };
+  const document = documents[documentName];
+  if (!document) throw new Error('Unknown legal document.');
+  return app.isPackaged
+    ? path.join(process.resourcesPath, document.packaged)
+    : path.join(app.getAppPath(), 'docs', 'legal', document.source);
+}
+
 function createApplicationMenu() {
   const template = [
     {
@@ -393,7 +405,7 @@ function createApplicationMenu() {
             detail: 'Cross-platform voice dictation, meeting recording, and AI-assisted notes.',
           }),
         },
-        { label: 'Privacy', click: () => shell.openPath(path.join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'PRIVACY.md')) },
+        { label: 'Privacy', click: () => shell.openPath(legalDocumentPath('privacy')) },
         { label: 'Report an Issue…', click: () => shell.openExternal('https://github.com/almoretti/CrunchyMurmur/issues') },
       ],
     },
@@ -615,10 +627,7 @@ handle('support:diagnostics', () => ({
 handle('data:export', () => exportLocalData());
 handle('data:delete', () => deleteLocalData());
 handle('legal:open', (_e, documentName) => {
-  const allowed = documentName === 'privacy' ? 'PRIVACY.md' : documentName === 'terms' ? 'TERMS.md' : null;
-  if (!allowed) throw new Error('Unknown legal document.');
-  const localPath = path.join(app.isPackaged ? process.resourcesPath : app.getAppPath(), allowed);
-  return shell.openPath(localPath);
+  return shell.openPath(legalDocumentPath(documentName));
 });
 handle('app-menu:open', (_e, menuName) => {
   const allowed = new Set(['file', 'edit', 'view', 'help']);

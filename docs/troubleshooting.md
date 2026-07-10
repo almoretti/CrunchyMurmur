@@ -40,4 +40,4 @@ Some distributions require a FUSE compatibility package. You can also use the De
 
 Open **General** to copy masked diagnostics or open the app log directory. Review the output before sharing it. Never attach API keys, private calendar URLs, recordings, transcripts, notes, or other personal content to a public issue.
 
-If the problem remains, follow [Support](../SUPPORT.md).
+If the problem remains, follow [Support](project/support.md).
