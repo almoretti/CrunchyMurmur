@@ -11,6 +11,7 @@
   [![Downloads](https://img.shields.io/github/downloads/almoretti/CrunchyMurmur/total)](https://github.com/almoretti/CrunchyMurmur/releases)
   [![CI](https://github.com/almoretti/CrunchyMurmur/actions/workflows/ci.yml/badge.svg)](https://github.com/almoretti/CrunchyMurmur/actions/workflows/ci.yml)
   [![CodeQL](https://github.com/almoretti/CrunchyMurmur/actions/workflows/codeql.yml/badge.svg)](https://github.com/almoretti/CrunchyMurmur/actions/workflows/codeql.yml)
+  [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/almoretti/CrunchyMurmur?utm_source=oss&utm_medium=github&utm_campaign=almoretti%2FCrunchyMurmur&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
   [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-256351)](docs/platform-support.md)
   [![License: MIT](https://img.shields.io/badge/license-MIT-7EB880)](LICENSE)
 
@@ -97,7 +98,23 @@ You can also run the same terminal install command again at any time. Debian pac
 
 ## Build from source
 
-Requires Node.js 22.12 or newer and npm.
+Requires Node.js 22.12 or newer and npm. Git is optional: the source bootstrap resolves `main` to an exact commit, downloads its GitHub archive, installs locked dependencies, validates the project, and launches it.
+
+**Windows — PowerShell**
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.ps1)))
+```
+
+**macOS or Linux**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh
+```
+
+The source is kept in a user-owned application-data directory, so running the command again safely rebuilds from the latest protected `main`. The previous working source tree is replaced only after the new commit passes dependency installation and validation. Read the scripts before piping them to a shell; options and manual commands are documented in [Building from source](docs/building-from-source.md).
+
+Manual development setup remains available:
 
 ```sh
 git clone https://github.com/almoretti/CrunchyMurmur.git
@@ -113,6 +130,7 @@ Native release packages must be built on their target platform. See [Contributin
 
 - [Documentation index](docs/README.md)
 - [Getting started](docs/getting-started.md)
+- [Building from source](docs/building-from-source.md)
 - [Features and providers](docs/features.md)
 - [Platform support](docs/platform-support.md)
 - [Updating](docs/updating.md)
