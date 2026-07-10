@@ -45,6 +45,32 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     Menu.getApplicationMenu()?.items.map((item) => item.label) || []
   ));
   for (const label of ['File', 'Edit', 'View', 'Window', 'Help']) assert.ok(menuLabels.includes(label), `${label} menu is missing`);
+
+  // The tray icon's source artwork is intentionally high-resolution; main.js
+  // must constrain it to a conventional 18x18 size before handing it to the
+  // OS. Exercise the same nativeImage calls main.js uses so a regression in
+  // either the resize call or the bundled asset itself is caught.
+  const trayIconSizing = await electronApp.evaluate(({ nativeImage, app }) => {
+    const path = require('path');
+    const iconPath = path.join(app.getAppPath(), 'assets', 'tray-palette.png');
+    const original = nativeImage.createFromPath(iconPath);
+    const resized = original.isEmpty() ? original : original.resize({ width: 18, height: 18, quality: 'best' });
+    const missing = nativeImage.createFromPath(path.join(app.getAppPath(), 'assets', 'does-not-exist.png'));
+    return {
+      sourceEmpty: original.isEmpty(),
+      sourceSize: original.getSize(),
+      resizedSize: resized.getSize(),
+      missingIsEmpty: missing.isEmpty(),
+    };
+  });
+  assert.equal(trayIconSizing.sourceEmpty, false, 'tray source artwork failed to load');
+  assert.ok(
+    trayIconSizing.sourceSize.width > 18 || trayIconSizing.sourceSize.height > 18,
+    'tray source artwork is expected to be higher resolution than the rendered tray icon',
+  );
+  assert.deepEqual(trayIconSizing.resizedSize, { width: 18, height: 18 }, 'tray icon must be constrained to a conventional 18x18 size');
+  assert.equal(trayIconSizing.missingIsEmpty, true, 'a missing tray icon path should yield an empty image rather than throwing');
+
   if (process.platform !== 'darwin') {
     const visibleMenus = await page.locator('.titlebar-menu button').allTextContents();
     assert.deepEqual(visibleMenus, ['File', 'Edit', 'View', 'Help']);
@@ -53,6 +79,11 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
       return { left: rect.left, right: rect.right, viewport: window.innerWidth, border: getComputedStyle(workspace).borderTopWidth };
     });
     assert.deepEqual(divider, { left: 0, right: divider.viewport, viewport: divider.viewport, border: '1px' });
+    const titlebarInset = await page.locator('.app-titlebar').evaluate((titlebar) => getComputedStyle(titlebar).paddingLeft);
+    assert.equal(titlebarInset, '14px', 'non-macOS platforms must keep the default titlebar padding');
+  } else {
+    const titlebarInset = await page.locator('.app-titlebar').evaluate((titlebar) => getComputedStyle(titlebar).paddingLeft);
+    assert.equal(titlebarInset, '78px', 'the titlebar brand must clear the traffic-light controls');
   }
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
 
