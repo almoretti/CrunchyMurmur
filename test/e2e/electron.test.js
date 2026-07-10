@@ -188,7 +188,8 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     key: 'k', code: 'KeyK', ctrlKey: true, altKey: true, bubbles: true, cancelable: true,
   })));
   assert.equal(await page.locator('#hotkey').inputValue(), 'Control+Alt+K');
-  assert.match(await page.locator('#hotkeyDisplay').innerText(), /Ctrl.*Alt.*K/);
+  const displayedAlt = process.platform === 'darwin' ? 'Option' : 'Alt';
+  assert.match(await page.locator('#hotkeyDisplay').innerText(), new RegExp(`Ctrl.*${displayedAlt}.*K`));
   await page.evaluate(() => {
     document.getElementById('updateStatus').textContent = `Unavailable: ${'long-status-token-'.repeat(40)}`;
   });
