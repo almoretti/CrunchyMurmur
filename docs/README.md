@@ -9,6 +9,7 @@ This documentation covers installation, day-to-day use, platform differences, de
 - [Platform support](platform-support.md) — exact Windows, macOS, and Linux differences.
 - [Updating](updating.md) — automatic and manual updates from GitHub Releases.
 - [Troubleshooting](troubleshooting.md) — shortcuts, microphones, paste tools, models, permissions, and logs.
+- [Building from source](building-from-source.md) — one-command GitHub source builds without requiring Git.
 - [Support](project/support.md) — where to ask questions or report a problem safely.
 
 ## Build and maintain CrunchyMurmur

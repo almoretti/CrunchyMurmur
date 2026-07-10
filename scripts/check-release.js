@@ -15,6 +15,8 @@ const required = [
   'docs/legal/README.md', 'docs/project/README.md', 'assets/README.md',
   '.github/CODE_OF_CONDUCT.md', '.github/CONTRIBUTING.md',
   'scripts/check-doc-links.js',
+  'scripts/source/run-from-source.ps1', 'scripts/source/run-from-source.sh',
+  'docs/building-from-source.md',
 ];
 const failures = [];
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));

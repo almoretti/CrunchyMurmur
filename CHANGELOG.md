@@ -7,6 +7,7 @@ Versioning and the Keep a Changelog structure.
 
 ### Added
 
+- Safe one-command Windows, macOS, and Linux source bootstraps that build an exact GitHub commit without requiring Git.
 - Open-source project documentation, branded README feature icons, support policy, roadmap, getting-started guide, and update/troubleshooting guides.
 - Release-time validation that every platform updater manifest references artifacts that were actually built.
 - Shared offline Markdown editor for notes, AI-note templates, and live meeting notes.

@@ -34,6 +34,22 @@ jobs:
       - run: npm run check
       - run: npm audit --audit-level=high
       - run: npm run release:check
+      - name: Validate Unix source bootstrap
+        if: runner.os != 'Windows'
+        run: |
+          bash -n scripts/source/run-from-source.sh
+          sh scripts/source/run-from-source.sh --help >/dev/null
+      - name: Validate Windows source bootstrap
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/source/run-from-source.ps1'),
+            [ref]$null,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count) { $errors | Format-List; exit 1 }
       - name: Electron smoke test (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npm run test:e2e
