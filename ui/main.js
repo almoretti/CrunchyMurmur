@@ -25,6 +25,21 @@ const clearAllBtn = document.getElementById('clearAll');
 let entries = [];
 let filter = '';
 
+function formatCompact(value) {
+  const number = Number(value) || 0;
+  if (number < 1_000) return String(number);
+  if (number < 1_000_000) return `${(number / 1_000).toFixed(1)}K`;
+  return `${(number / 1_000_000).toFixed(1)}M`;
+}
+
+async function renderDashboard() {
+  const stats = await window.wisper.getHistoryStats();
+  document.getElementById('statTotalWords').textContent = formatCompact(stats.totalWords);
+  document.getElementById('statWpm').textContent = stats.wordsPerMinute || '—';
+  document.getElementById('statStreak').textContent = stats.dayStreak;
+  document.getElementById('dashboardEmptyHint').hidden = stats.recordingCount > 0;
+}
+
 function relativeTime(iso) {
   const ts = new Date(iso).getTime();
   const diffSec = Math.max(0, (Date.now() - ts) / 1000);
@@ -58,6 +73,7 @@ async function copyEntry(id, btn) {
 async function deleteEntry(id) {
   entries = await window.wisper.removeHistory(id);
   render();
+  renderDashboard();
 }
 
 function render() {
@@ -77,16 +93,19 @@ function render() {
 
   historyEl.innerHTML = visible.map((e) => `
     <div class="entry" data-id="${e.id}">
-      <div class="meta">
-        <span class="ts">${formatDate(e.createdAt)}</span>
-        <span class="dot-sep">·</span>
-        <span class="ts">${relativeTime(e.createdAt)}</span>
-        ${e.language && e.language !== 'auto' ? `<span class="lang">${escapeHtml(e.language.toUpperCase())}</span>` : ''}
-      </div>
       <div class="text">${escapeHtml(e.text)}</div>
-      <div class="actions">
-        <button class="text-button" data-action="copy">Copy</button>
-        <button class="text-button danger" data-action="delete">Delete</button>
+      <div class="entry-footer">
+        <div class="meta">
+          <span class="ts">${formatDate(e.createdAt)}</span>
+          <span class="dot-sep">·</span>
+          <span class="ts">${relativeTime(e.createdAt)}</span>
+          ${e.language && e.language !== 'auto' ? `<span class="lang">${escapeHtml(e.language.toUpperCase())}</span>` : ''}
+        </div>
+        ${e.text.length > 220 ? '<button class="text-button entry-expand" data-action="expand">Show more</button>' : ''}
+        <div class="actions">
+          <button class="text-button" data-action="copy">Copy</button>
+          <button class="text-button danger" data-action="delete">Delete</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -95,8 +114,13 @@ function render() {
     const id = el.dataset.id;
     const copyBtn = el.querySelector('[data-action="copy"]');
     const deleteBtn = el.querySelector('[data-action="delete"]');
+    const expandBtn = el.querySelector('[data-action="expand"]');
     copyBtn.addEventListener('click', () => copyEntry(id, copyBtn));
     deleteBtn.addEventListener('click', () => deleteEntry(id));
+    expandBtn?.addEventListener('click', () => {
+      const expanded = el.classList.toggle('expanded');
+      expandBtn.textContent = expanded ? 'Show less' : 'Show more';
+    });
 
     // Right-click context menu — Copy / Generate AI note / Delete.
     el.addEventListener('contextmenu', (ev) => {
@@ -162,9 +186,10 @@ clearAllBtn.addEventListener('click', async () => {
   if (!confirm('Clear all recordings?')) return;
   entries = await window.wisper.clearHistory();
   render();
+  renderDashboard();
 });
 
-window.wisper.onHistoryChanged((next) => { entries = next; render(); });
+window.wisper.onHistoryChanged((next) => { entries = next; render(); renderDashboard(); });
 
 // ----- Models tab -----
 const modelsListEl = document.getElementById('modelsList');
@@ -312,6 +337,7 @@ let selectedNote = null; // { folder, filename, ... }
 let notesFilter = '';
 let saveTimer = null;
 let saveDirty = false;
+let noteSelectionVersion = 0;
 
 function snippetOf(content) {
   // Same as Mac NoteRow: skip headings, take first non-empty body line.
@@ -346,7 +372,7 @@ function renderFolders() {
     li.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
       showContextMenu(ev.clientX, ev.clientY, [
-        { label: 'Open in Explorer', action: () => window.wisper.notesRevealFolder(name) },
+        { label: 'Open folder', action: () => window.wisper.notesRevealFolder(name) },
         { label: 'Rename folder', action: () => promptRenameFolder(name) },
         { label: 'Delete folder', danger: true, action: () => promptDeleteFolder(name) },
       ]);
@@ -424,6 +450,7 @@ async function reloadNotes(reselectFirst = false) {
 function openNote(note) {
   // Flush any pending autosave for the note we're leaving before swapping.
   flushPendingSave(true);
+  noteSelectionVersion += 1;
   selectedNote = note ? { ...note } : null;
   renderNotesTab();
 }
@@ -444,6 +471,7 @@ async function flushPendingSave(immediate = false) {
   saveDirty = false;
   const folder = selectedNote.folder;
   const filename = selectedNote.filename;
+  const selectionVersion = noteSelectionVersion;
   const content = noteBodyEl.value;
   const title = noteTitleEl.value.trim();
   const updated = await window.wisper.notesUpdate({ folder, filename, content });
@@ -451,12 +479,12 @@ async function flushPendingSave(immediate = false) {
   if (title && updated && title !== updated.title) {
     const renamed = await window.wisper.notesRename({ folder, filename, newTitle: title });
     if (renamed) {
-      selectedNote = { ...renamed };
+      if (noteSelectionVersion === selectionVersion) selectedNote = { ...renamed };
       // Renamed via in-memory update; broadcastNotes() in main fires a
       // notes:changed which will refresh everything including the list.
     }
   } else if (updated) {
-    selectedNote = { ...updated };
+    if (noteSelectionVersion === selectionVersion) selectedNote = { ...updated };
   }
   noteSaveStatusEl.textContent = 'Saved';
   setTimeout(() => { if (noteSaveStatusEl.textContent === 'Saved') noteSaveStatusEl.textContent = ''; }, 1200);
@@ -470,8 +498,14 @@ noteTitleEl.addEventListener('blur', () => flushPendingSave(true));
 async function promptNewFolder() {
   const name = prompt('Folder name:');
   if (!name) return;
-  await window.wisper.notesCreateFolder(name);
-  selectedFolder = name.trim();
+  const normalized = name.trim().replace(/[\\/:*?"<>|]/g, '_');
+  if (!normalized || normalized === '.' || normalized === '..') {
+    alert('Choose a valid folder name.');
+    return;
+  }
+  try { await window.wisper.notesCreateFolder(name); }
+  catch (e) { alert('Could not create folder: ' + (e.message || e)); return; }
+  selectedFolder = normalized;
   await reloadNotes();
 }
 newFolderBtn.addEventListener('click', promptNewFolder);
@@ -479,8 +513,14 @@ newFolderBtn.addEventListener('click', promptNewFolder);
 async function promptRenameFolder(oldName) {
   const newName = prompt('Rename folder to:', oldName);
   if (!newName || newName === oldName) return;
-  await window.wisper.notesRenameFolder(oldName, newName);
-  if (selectedFolder === oldName) selectedFolder = newName.trim();
+  const normalized = newName.trim().replace(/[\\/:*?"<>|]/g, '_');
+  if (!normalized || normalized === '.' || normalized === '..') {
+    alert('Choose a valid folder name.');
+    return;
+  }
+  try { await window.wisper.notesRenameFolder(oldName, newName); }
+  catch (e) { alert('Could not rename folder: ' + (e.message || e)); return; }
+  if (selectedFolder === oldName) selectedFolder = normalized;
   await reloadNotes();
 }
 
@@ -819,7 +859,12 @@ feedsDialogEl.addEventListener('click', (e) => {
 feedAddBtn.addEventListener('click', async () => {
   const url = feedNewUrlEl.value.trim();
   if (!url) { alert('Paste an ICS URL first.'); return; }
-  await window.wisper.calendarAddFeed({ url, label: feedNewLabelEl.value.trim() });
+  try {
+    await window.wisper.calendarAddFeed({ url, label: feedNewLabelEl.value.trim() });
+  } catch (e) {
+    alert('Could not add calendar feed: ' + (e.message || e));
+    return;
+  }
   feedNewUrlEl.value = '';
   feedNewLabelEl.value = '';
 });
@@ -840,7 +885,7 @@ window.wisper.onCalendarChanged((snap) => {
 // network anyway).
 document.querySelectorAll('.nav-item').forEach((b) => {
   b.addEventListener('click', () => {
-    if (b.dataset.tab === 'meetings' && calendarSnapshot.feeds.length > 0) {
+    if (b.dataset.tab === 'meetings' && (calendarSnapshot.feeds.length > 0 || window.__lastSettings?.platform === 'darwin')) {
       window.wisper.calendarRefresh();
     }
   });
@@ -854,6 +899,7 @@ const meetingTitleEl = document.getElementById('meetingTitle');
 const meetingRecordingStatusEl = document.getElementById('meetingRecordingStatus');
 const stopMeetingBtn = document.getElementById('stopMeetingBtn');
 const transcribeMeetingBtn = document.getElementById('transcribeMeetingBtn');
+const cancelTranscriptionBtn = document.getElementById('cancelTranscriptionBtn');
 const aiNotesMeetingBtn = document.getElementById('aiNotesMeetingBtn');
 const deleteMeetingBtn = document.getElementById('deleteMeetingBtn');
 const meetingUserNotesEl = document.getElementById('meetingUserNotes');
@@ -872,12 +918,16 @@ let activeMeetingId = null; // currently-recording meeting (if any)
 let mtgMediaStream = null;
 let mtgAudioCtx = null;
 let mtgProcessor = null;
-let mtgChunks = [];
 let mtgNativeRate = 48_000;
+let mtgSystemStream = null;
+let mtgSystemAudioCtx = null;
+let mtgSystemProcessor = null;
 let mtgStartedAt = 0;
 let mtgTimerHandle = null;
 let mtgTitleSaveTimer = null;
 let mtgNotesSaveTimer = null;
+let mtgStartPending = false;
+let mtgStopPending = false;
 
 function fmtDuration(sec) {
   const total = Math.max(0, Math.floor(sec));
@@ -906,7 +956,7 @@ function renderMeetingsList() {
     li.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
       showContextMenu(ev.clientX, ev.clientY, [
-        { label: 'Reveal in Explorer', action: () => window.wisper.meetingsReveal(m.id) },
+        { label: 'Reveal in folder', action: () => window.wisper.meetingsReveal(m.id) },
         { label: 'Delete meeting', danger: true, action: () => deleteMeeting(m) },
       ]);
     });
@@ -931,7 +981,8 @@ function renderMeetingDetail() {
 
   const isRecording = activeMeetingId === selectedMeeting.id;
   stopMeetingBtn.hidden = !isRecording;
-  transcribeMeetingBtn.hidden = isRecording || !selectedMeeting.hasMicAudio || Boolean(selectedMeeting.transcript);
+  stopMeetingBtn.disabled = mtgStopPending;
+  transcribeMeetingBtn.hidden = isRecording || (!selectedMeeting.hasMicAudio && !selectedMeeting.hasSystemAudio) || Boolean(selectedMeeting.transcript);
   aiNotesMeetingBtn.hidden = isRecording || !selectedMeeting.transcript;
   deleteMeetingBtn.hidden = isRecording;
 
@@ -966,6 +1017,7 @@ function renderMeetingDetail() {
 }
 
 function renderMeetingsAll() {
+  startMeetingBtn.disabled = Boolean(activeMeetingId || mtgStartPending);
   renderMeetingsList();
   renderMeetingDetail();
 }
@@ -982,6 +1034,14 @@ async function deleteMeeting(m) {
 }
 
 async function startMeeting() {
+  if (activeMeetingId || mtgStartPending) return;
+  const supportsSystemAudio = ['darwin', 'win32'].includes(window.__lastSettings?.platform);
+  const captureDescription = supportsSystemAudio
+    ? 'CrunchyMurmur will record your microphone and system/call audio as separate tracks.'
+    : 'CrunchyMurmur will record your microphone. System audio capture is unavailable on this platform.';
+  if (!confirm(`Start a meeting recording?\n\n${captureDescription}\n\nYou are responsible for telling participants and obtaining any consent required by local law or policy.`)) return;
+  mtgStartPending = true;
+  startMeetingBtn.disabled = true;
   // Get the chosen mic up front so we fail fast if it's misconfigured.
   const cfg = window.__lastSettings || {};
   const constraints = {
@@ -993,33 +1053,102 @@ async function startMeeting() {
   if (cfg.micDeviceId) constraints.deviceId = { exact: cfg.micDeviceId };
 
   let stream;
+  let systemStream = null;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
   } catch (e) {
     alert('Could not open the microphone. ' + (e.message || e));
+    mtgStartPending = false;
+    startMeetingBtn.disabled = false;
     return;
   }
 
-  // Create the meeting record only after getUserMedia succeeds, so we don't
-  // leave empty stubs behind on permission failures.
-  const m = await window.wisper.meetingsCreate({});
+  if (supportsSystemAudio) {
+    try {
+      systemStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      if (!systemStream.getAudioTracks().length) {
+        systemStream.getTracks().forEach((track) => track.stop());
+        systemStream = null;
+        alert('System audio was not available from the selected source. The meeting will continue with microphone audio only.');
+      }
+    } catch (error) {
+      console.warn('System audio capture was not granted:', error);
+    }
+  }
+
+  let m;
+  try {
+    m = await window.wisper.meetingsBeginRecording();
+  } catch (e) {
+    stream.getTracks().forEach((track) => track.stop());
+    systemStream?.getTracks().forEach((track) => track.stop());
+    alert('Could not start the meeting. ' + (e.message || e));
+    mtgStartPending = false;
+    startMeetingBtn.disabled = false;
+    return;
+  }
   activeMeetingId = m.id;
   selectedMeeting = m;
 
-  mtgMediaStream = stream;
-  mtgAudioCtx = new AudioContext();
-  mtgNativeRate = mtgAudioCtx.sampleRate;
-  const source = mtgAudioCtx.createMediaStreamSource(mtgMediaStream);
-  mtgProcessor = mtgAudioCtx.createScriptProcessor(4096, 1, 1);
-  mtgProcessor.onaudioprocess = (ev) => {
-    const ch = ev.inputBuffer.getChannelData(0);
-    mtgChunks.push(new Float32Array(ch));
-  };
-  source.connect(mtgProcessor);
-  mtgProcessor.connect(mtgAudioCtx.destination);
+  try {
+    mtgMediaStream = stream;
+    mtgAudioCtx = new AudioContext();
+    mtgNativeRate = mtgAudioCtx.sampleRate;
+    const source = mtgAudioCtx.createMediaStreamSource(mtgMediaStream);
+    mtgProcessor = mtgAudioCtx.createScriptProcessor(4096, 1, 1);
+    mtgProcessor.onaudioprocess = (ev) => {
+      const ch = ev.inputBuffer.getChannelData(0);
+      const ratio = mtgNativeRate / 16_000;
+      const targetLen = Math.floor(ch.length / ratio);
+      const out = new Float32Array(targetLen);
+      for (let i = 0; i < targetLen; i++) {
+        const srcIdx = i * ratio;
+        const lo = Math.floor(srcIdx);
+        const hi = Math.min(lo + 1, ch.length - 1);
+        const frac = srcIdx - lo;
+        out[i] = ch[lo] * (1 - frac) + ch[hi] * frac;
+      }
+      window.wisper.meetingsAppendAudio(m.id, out);
+    };
+    source.connect(mtgProcessor);
+    mtgProcessor.connect(mtgAudioCtx.destination);
+    if (systemStream) {
+      await window.wisper.meetingsBeginSystemAudio(m.id);
+      mtgSystemStream = systemStream;
+      mtgSystemAudioCtx = new AudioContext();
+      const systemRate = mtgSystemAudioCtx.sampleRate;
+      const systemSource = mtgSystemAudioCtx.createMediaStreamSource(systemStream);
+      mtgSystemProcessor = mtgSystemAudioCtx.createScriptProcessor(4096, 1, 1);
+      mtgSystemProcessor.onaudioprocess = (ev) => {
+        const ch = ev.inputBuffer.getChannelData(0);
+        const ratio = systemRate / 16_000;
+        const targetLen = Math.floor(ch.length / ratio);
+        const out = new Float32Array(targetLen);
+        for (let i = 0; i < targetLen; i++) {
+          const srcIdx = i * ratio;
+          const lo = Math.floor(srcIdx);
+          const hi = Math.min(lo + 1, ch.length - 1);
+          const frac = srcIdx - lo;
+          out[i] = ch[lo] * (1 - frac) + ch[hi] * frac;
+        }
+        window.wisper.meetingsAppendSystemAudio(m.id, out);
+      };
+      systemSource.connect(mtgSystemProcessor);
+      mtgSystemProcessor.connect(mtgSystemAudioCtx.destination);
+    }
+  } catch (e) {
+    stream.getTracks().forEach((track) => track.stop());
+    systemStream?.getTracks().forEach((track) => track.stop());
+    await window.wisper.meetingsAbortRecording(m.id).catch(() => {});
+    activeMeetingId = null;
+    selectedMeeting = null;
+    mtgStartPending = false;
+    startMeetingBtn.disabled = false;
+    alert('Could not initialize audio capture. ' + (e.message || e));
+    return;
+  }
 
   mtgStartedAt = Date.now();
-  mtgChunks = [];
   // Tick once a second so the running timer in the header updates without us
   // having to drive the whole render() loop on rAF.
   if (mtgTimerHandle) clearInterval(mtgTimerHandle);
@@ -1030,49 +1159,44 @@ async function startMeeting() {
   }, 1000);
 
   // Tell main to show the floating pill in meeting state.
-  window.wisper.meetingsPillStart({ id: m.id, startedAt: mtgStartedAt });
+  try { await window.wisper.meetingsPillStart({ id: m.id, startedAt: mtgStartedAt }); }
+  catch (e) { console.warn('Meeting pill could not be shown:', e); }
 
+  mtgStartPending = false;
   renderMeetingsAll();
 }
 
 async function stopMeeting() {
-  if (!activeMeetingId) return;
+  if (!activeMeetingId || mtgStopPending) return;
+  mtgStopPending = true;
   const meetingId = activeMeetingId;
   if (mtgTimerHandle) { clearInterval(mtgTimerHandle); mtgTimerHandle = null; }
   // Tear down the audio graph.
-  if (mtgProcessor) { try { mtgProcessor.disconnect(); } catch {} mtgProcessor = null; }
+  if (mtgProcessor) { mtgProcessor.onaudioprocess = null; try { mtgProcessor.disconnect(); } catch {} mtgProcessor = null; }
   if (mtgAudioCtx)  { try { mtgAudioCtx.close(); }     catch {} mtgAudioCtx = null; }
   if (mtgMediaStream) {
     mtgMediaStream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
     mtgMediaStream = null;
   }
-
-  // Concat and downsample to 16 kHz mono — same pipeline as the dictation
-  // floating window. Whisper gets exactly what it expects.
-  const total = mtgChunks.reduce((n, c) => n + c.length, 0);
-  const flat = new Float32Array(total);
-  let o = 0;
-  for (const c of mtgChunks) { flat.set(c, o); o += c.length; }
-  mtgChunks = [];
-
-  const ratio = mtgNativeRate / 16_000;
-  const targetLen = Math.floor(flat.length / ratio);
-  const out = new Float32Array(targetLen);
-  for (let i = 0; i < targetLen; i++) {
-    const srcIdx = i * ratio;
-    const lo = Math.floor(srcIdx);
-    const hi = Math.min(lo + 1, flat.length - 1);
-    const frac = srcIdx - lo;
-    out[i] = flat[lo] * (1 - frac) + flat[hi] * frac;
+  if (mtgSystemProcessor) { mtgSystemProcessor.onaudioprocess = null; try { mtgSystemProcessor.disconnect(); } catch {} mtgSystemProcessor = null; }
+  if (mtgSystemAudioCtx) { try { mtgSystemAudioCtx.close(); } catch {} mtgSystemAudioCtx = null; }
+  if (mtgSystemStream) {
+    mtgSystemStream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+    mtgSystemStream = null;
   }
 
   meetingRecordingStatusEl.textContent = 'Saving audio…';
   meetingRecordingStatusEl.style.color = '';
-  await window.wisper.meetingsSaveAudio(meetingId, Array.from(out));
-  activeMeetingId = null;
-
-  // Hide the floating pill — meeting is over.
-  window.wisper.meetingsPillStop();
+  try {
+    selectedMeeting = await window.wisper.meetingsFinishRecording(meetingId);
+    activeMeetingId = null;
+  } catch (e) {
+    await window.wisper.meetingsAbortRecording(meetingId).catch(() => {});
+    activeMeetingId = null;
+    alert('Could not finalize the meeting audio. ' + (e.message || e));
+  }
+  startMeetingBtn.disabled = false;
+  mtgStopPending = false;
 
   // The store broadcast already refreshes the list; we just need to keep the
   // selection.
@@ -1084,7 +1208,10 @@ async function stopMeeting() {
 // was recording. Forward to the same stopMeeting() the in-app Stop button
 // uses so the audio save + UI update path is identical.
 window.wisper.onPillRequestStopMeeting(() => {
-  if (activeMeetingId) stopMeeting();
+  if (activeMeetingId && !mtgStopPending) stopMeeting();
+});
+document.querySelectorAll('[data-app-menu]').forEach((button) => {
+  button.addEventListener('click', () => window.wisper.openAppMenu(button.dataset.appMenu));
 });
 
 // AI notes action row — Copy / Re-generate / Send to Notes
@@ -1174,8 +1301,11 @@ async function transcribeMeeting() {
   if (!selectedMeeting) return;
   meetingRecordingStatusEl.textContent = 'Transcribing…';
   transcribeMeetingBtn.disabled = true;
+  cancelTranscriptionBtn.hidden = false;
+  cancelTranscriptionBtn.disabled = false;
   const r = await window.wisper.meetingsTranscribe(selectedMeeting.id);
   transcribeMeetingBtn.disabled = false;
+  cancelTranscriptionBtn.hidden = true;
   if (!r.ok) {
     meetingRecordingStatusEl.textContent = '';
     alert('Transcription failed: ' + r.error);
@@ -1185,6 +1315,19 @@ async function transcribeMeeting() {
   meetingRecordingStatusEl.textContent = '';
   renderMeetingsAll();
 }
+
+cancelTranscriptionBtn.addEventListener('click', async () => {
+  if (!selectedMeeting) return;
+  cancelTranscriptionBtn.disabled = true;
+  meetingRecordingStatusEl.textContent = 'Cancelling…';
+  await window.wisper.meetingsCancelTranscription(selectedMeeting.id);
+});
+
+window.wisper.onMeetingTranscriptionProgress((progress) => {
+  if (!selectedMeeting || progress.id !== selectedMeeting.id) return;
+  const percent = Math.round((Number(progress.progress) || 0) * 100);
+  meetingRecordingStatusEl.textContent = `${progress.stage} · ${percent}%`;
+});
 
 async function generateMeetingAINotes() {
   if (!selectedMeeting) return;
@@ -1273,13 +1416,14 @@ function openAINotePopup(recordingId, x, y) {
   // them to Settings up front.
   const cfg = window.__lastSettings || {};
   const provider = cfg.aiNotesProvider || 'anthropic';
-  // Anthropic / OpenAI need an API key. Claude Code / Codex just need the
+  // Hosted providers need an API key. Claude Code / Codex just need the
   // CLI on disk (validated at generate time — we don't pre-check here, the
   // error path on missing CLI is friendly enough).
-  const needsKey = provider === 'anthropic' || provider === 'openai';
+  const needsKey = ['anthropic', 'openai', 'groq'].includes(provider);
   const keyOk = !needsKey ||
     (provider === 'anthropic' && cfg.anthropicApiKey) ||
-    (provider === 'openai' && cfg.openaiApiKey);
+    (provider === 'openai' && cfg.openaiApiKey) ||
+    (provider === 'groq' && cfg.groqApiKey);
   if (!keyOk) {
     if (confirm('No API key on file for the AI Notes provider. Open the Engine tab to add one?')) {
       switchTab('engine');
@@ -1323,6 +1467,7 @@ function openAINotePopup(recordingId, x, y) {
   const providerLabel = {
     anthropic: `Anthropic · ${cfg.anthropicModel || 'default'}`,
     openai: `OpenAI · ${cfg.openaiModel || 'default'}`,
+    groq: `Groq · ${cfg.groqNotesModel || 'default'}`,
     claudeCode: 'Claude Code (your subscription)',
     codex: 'Codex (your subscription)',
   }[provider] || provider;
@@ -1391,6 +1536,16 @@ const micDeviceEl = document.getElementById('micDeviceId');
 const testMicBtn = document.getElementById('testMic');
 const micTestMeterEl = document.getElementById('micTestMeter');
 const micHintEl = document.getElementById('micHint');
+const hotkeyEl = document.getElementById('hotkey');
+const hotkeyDisplayEl = document.getElementById('hotkeyDisplay');
+const recordHotkeyBtn = document.getElementById('recordHotkey');
+const hotkeyHintEl = document.getElementById('hotkeyHint');
+const useFnHotkeyBtn = document.getElementById('useFnHotkey');
+const autoUpdateEl = document.getElementById('autoUpdate');
+const audioRetentionPolicyEl = document.getElementById('audioRetentionPolicy');
+const aiFormatEnabledEl = document.getElementById('aiFormatEnabled');
+const groqFormatModelEl = document.getElementById('groqFormatModel');
+const updateStatusEl = document.getElementById('updateStatus');
 const saveEngineBtn = document.getElementById('saveEngine');
 const saveGeneralBtn = document.getElementById('saveGeneral');
 const engineSaveStatusEl = document.getElementById('engineSaveStatus');
@@ -1566,7 +1721,9 @@ document.querySelectorAll('input[name="engineKind"]').forEach((r) => {
 });
 
 document.getElementById('pickCli').addEventListener('click', async () => {
-  const p = await window.wisper.pickFile([{ name: 'Executables', extensions: ['exe'] }]);
+  const platform = window.__lastSettings?.platform;
+  const filters = platform === 'win32' ? [{ name: 'Executables', extensions: ['exe'] }] : [{ name: 'Executable', extensions: ['*'] }];
+  const p = await window.wisper.pickFile(filters);
   if (p) whisperCliPathEl.value = p;
 });
 document.getElementById('pickModel').addEventListener('click', async () => {
@@ -1591,18 +1748,21 @@ saveEngineBtn.addEventListener('click', async () => {
 // AI Notes provider config
 const aiAnthropicEl = document.getElementById('aiAnthropic');
 const aiOpenaiEl = document.getElementById('aiOpenai');
+const aiGroqEl = document.getElementById('aiGroq');
 const anthropicApiKeyEl = document.getElementById('anthropicApiKey');
 const anthropicModelEl = document.getElementById('anthropicModel');
 const openaiApiKeyEl = document.getElementById('openaiApiKey');
 const openaiModelEl = document.getElementById('openaiModel');
+const groqNotesModelEl = document.getElementById('groqNotesModel');
 const saveAiNotesBtn = document.getElementById('saveAiNotes');
 const aiNotesSaveStatusEl = document.getElementById('aiNotesSaveStatus');
 
 function applyAiNotesProvider(kind) {
-  const valid = ['anthropic', 'openai', 'claudeCode', 'codex'];
+  const valid = ['anthropic', 'openai', 'groq', 'claudeCode', 'codex'];
   const k = valid.includes(kind) ? kind : 'anthropic';
   aiAnthropicEl.classList.toggle('active', k === 'anthropic');
   aiOpenaiEl.classList.toggle('active', k === 'openai');
+  aiGroqEl.classList.toggle('active', k === 'groq');
   document.getElementById('aiClaudeCode').classList.toggle('active', k === 'claudeCode');
   document.getElementById('aiCodex').classList.toggle('active', k === 'codex');
   document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
@@ -1628,6 +1788,7 @@ async function populateAiNotesModels() {
   };
   fill(anthropicModelEl, 'anthropic');
   fill(openaiModelEl, 'openai');
+  fill(groqNotesModelEl, 'groq');
 
   // CLI provider availability hints
   const cc = providers.find((p) => p.id === 'claudeCode');
@@ -1660,6 +1821,7 @@ saveAiNotesBtn.addEventListener('click', async () => {
     anthropicModel: anthropicModelEl.value,
     openaiApiKey: openaiApiKeyEl.value.trim(),
     openaiModel: openaiModelEl.value,
+    groqNotesModel: groqNotesModelEl.value,
   });
   window.__lastSettings = cfg;
   aiNotesSaveStatusEl.textContent = 'Saved.';
@@ -1667,23 +1829,234 @@ saveAiNotesBtn.addEventListener('click', async () => {
 });
 
 saveGeneralBtn.addEventListener('click', async () => {
-  const cfg = await window.wisper.saveSettings({
-    language: languageEl.value,
-    micDeviceId: micDeviceEl.value,
-  });
-  window.__lastSettings = cfg;
-  generalSaveStatusEl.textContent = 'Saved.';
-  setTimeout(() => { generalSaveStatusEl.textContent = ''; }, 1500);
+  try {
+    const cfg = await window.wisper.saveSettings({
+      language: languageEl.value,
+      micDeviceId: micDeviceEl.value,
+      hotkey: hotkeyEl.value.trim(),
+      autoUpdate: autoUpdateEl.value,
+      audioRetentionPolicy: audioRetentionPolicyEl.value,
+      aiFormatEnabled: aiFormatEnabledEl.value,
+      groqFormatModel: groqFormatModelEl.value,
+    });
+    window.__lastSettings = cfg;
+    generalSaveStatusEl.style.color = '';
+    generalSaveStatusEl.textContent = 'Saved.';
+    setTimeout(() => { generalSaveStatusEl.textContent = ''; }, 1500);
+  } catch (error) {
+    generalSaveStatusEl.style.color = 'var(--danger)';
+    generalSaveStatusEl.textContent = error.message || String(error);
+  }
+});
+
+useFnHotkeyBtn.addEventListener('click', () => {
+  hotkeyEl.value = 'Fn';
+  renderHotkey('Fn');
+  hotkeyHintEl.textContent = 'Hold Fn (🌐) to dictate; release it to transcribe.';
+});
+
+let isCapturingHotkey = false;
+
+function hotkeyLabel(token) {
+  const platform = window.__lastSettings?.platform;
+  const labels = {
+    Control: 'Ctrl', Ctrl: 'Ctrl', CommandOrControl: platform === 'darwin' ? 'Cmd' : 'Ctrl',
+    Super: platform === 'win32' ? 'Win' : platform === 'darwin' ? 'Cmd' : 'Super',
+    Command: 'Cmd', Alt: platform === 'darwin' ? 'Option' : 'Alt', Shift: 'Shift',
+    Space: 'Space', Return: 'Enter', Escape: 'Esc',
+  };
+  return labels[token] || token;
+}
+
+function renderHotkey(value) {
+  hotkeyDisplayEl.replaceChildren();
+  for (const [index, token] of String(value || '').split('+').filter(Boolean).entries()) {
+    if (index) hotkeyDisplayEl.append(document.createTextNode(' + '));
+    const key = document.createElement('kbd');
+    key.textContent = hotkeyLabel(token);
+    hotkeyDisplayEl.append(key);
+  }
+}
+
+function finishHotkeyCapture(value) {
+  isCapturingHotkey = false;
+  recordHotkeyBtn.textContent = 'Record shortcut';
+  hotkeyEl.value = value;
+  renderHotkey(value);
+  hotkeyHintEl.textContent = value === 'Control+Super'
+    ? 'Hold Ctrl + Win to dictate; release either key to transcribe.'
+    : value === 'Fn' ? 'Hold Fn (🌐) to dictate; release it to transcribe.'
+      : 'Press once to start dictation and press again to transcribe.';
+}
+
+function acceleratorKey(event) {
+  if (/^Key[A-Z]$/.test(event.code)) return event.code.slice(3);
+  if (/^Digit[0-9]$/.test(event.code)) return event.code.slice(5);
+  if (/^F([1-9]|1[0-9]|2[0-4])$/.test(event.code)) return event.code;
+  const byCode = {
+    Space: 'Space', Enter: 'Return', NumpadEnter: 'Return', Tab: 'Tab', Backspace: 'Backspace',
+    Delete: 'Delete', Insert: 'Insert', Home: 'Home', End: 'End', PageUp: 'PageUp', PageDown: 'PageDown',
+    ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right',
+    Escape: 'Escape', CapsLock: 'Capslock', NumLock: 'Numlock', ScrollLock: 'Scrolllock',
+    MediaPlayPause: 'MediaPlayPause', MediaTrackNext: 'MediaNextTrack', MediaTrackPrevious: 'MediaPreviousTrack',
+    AudioVolumeUp: 'VolumeUp', AudioVolumeDown: 'VolumeDown', AudioVolumeMute: 'VolumeMute',
+  };
+  return byCode[event.code] || null;
+}
+
+function pressedKeyLabel(event) {
+  const supported = acceleratorKey(event);
+  if (supported) return supported;
+  if (event.key && event.key.length === 1) return event.key.toUpperCase();
+  return event.key && event.key !== 'Unidentified' ? event.key : event.code || 'Unknown';
+}
+
+recordHotkeyBtn.addEventListener('click', () => {
+  if (isCapturingHotkey) {
+    finishHotkeyCapture(hotkeyEl.value);
+    return;
+  }
+  isCapturingHotkey = true;
+  recordHotkeyBtn.textContent = 'Cancel';
+  hotkeyDisplayEl.textContent = 'Press shortcut…';
+  hotkeyHintEl.textContent = 'Press at least one modifier and a key. On Windows, Ctrl + Win is also supported.';
+  recordHotkeyBtn.blur();
+});
+
+window.addEventListener('keydown', (event) => {
+  if (!isCapturingHotkey) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+    finishHotkeyCapture(hotkeyEl.value);
+    return;
+  }
+  const modifiers = [];
+  if (event.ctrlKey) modifiers.push('Control');
+  if (event.altKey) modifiers.push('Alt');
+  if (event.shiftKey) modifiers.push('Shift');
+  if (event.metaKey) modifiers.push('Super');
+  const modifierOnly = ['Control', 'Shift', 'Alt', 'Meta'].includes(event.key);
+  if (modifierOnly) {
+    if (window.__lastSettings?.platform === 'win32' && modifiers.length === 2
+        && modifiers.includes('Control') && modifiers.includes('Super')) {
+      finishHotkeyCapture('Control+Super');
+    } else {
+      renderHotkey(modifiers.join('+'));
+      hotkeyHintEl.textContent = 'Keep holding the modifier, then press the other key.';
+    }
+    return;
+  }
+  const key = acceleratorKey(event);
+  const visibleKey = pressedKeyLabel(event);
+  renderHotkey([...modifiers, visibleKey].join('+'));
+  const standaloneAllowed = Boolean(key) && (/^F([1-9]|1[0-9]|2[0-4])$/.test(key) || /^(Media|Volume)/.test(key));
+  if (!key) {
+    hotkeyHintEl.textContent = `“${visibleKey}” is visible, but Electron cannot register it as a global shortcut.`;
+    return;
+  }
+  if (modifiers.length === 0 && !standaloneAllowed) {
+    hotkeyHintEl.textContent = `Add Ctrl, Alt, Shift, or Super to ${hotkeyLabel(key)}.`;
+    return;
+  }
+  finishHotkeyCapture([...modifiers, key].join('+'));
+}, true);
+
+function renderUpdateStatus(status) {
+  if (status && updateStatusEl) {
+    updateStatusEl.textContent = status.message || status.state;
+    updateStatusEl.dataset.state = status.state || 'idle';
+  }
+}
+window.wisper.onUpdateStatus(renderUpdateStatus);
+document.getElementById('checkUpdates').addEventListener('click', async () => {
+  updateStatusEl.textContent = 'Checking for updates…';
+  try { renderUpdateStatus(await window.wisper.checkForUpdates()); }
+  catch (error) { updateStatusEl.textContent = error.message || String(error); }
+});
+document.getElementById('openLogs').addEventListener('click', () => window.wisper.openLogs());
+document.getElementById('copyDiagnostics').addEventListener('click', async () => {
+  const diagnostics = await window.wisper.diagnostics();
+  await window.wisper.copyText(JSON.stringify(diagnostics, null, 2));
+  generalSaveStatusEl.textContent = 'Diagnostics copied.';
+});
+document.getElementById('exportData').addEventListener('click', async () => {
+  const result = await window.wisper.exportData();
+  if (result?.ok) generalSaveStatusEl.textContent = `Exported to ${result.path}`;
+});
+document.getElementById('deleteData').addEventListener('click', () => window.wisper.deleteData());
+document.getElementById('openPrivacy').addEventListener('click', () => window.wisper.openLegal('privacy'));
+document.getElementById('openTerms').addEventListener('click', () => window.wisper.openLegal('terms'));
+
+async function renderPermissions() {
+  const list = document.getElementById('permissionsList');
+  const statuses = await window.wisper.permissionsStatus();
+  const labels = {
+    microphone: 'Microphone', screen: 'Screen & system audio', accessibility: 'Accessibility',
+    inputMonitoring: 'Input Monitoring', calendar: 'Calendar',
+  };
+  list.innerHTML = '';
+  for (const [kind, label] of Object.entries(labels)) {
+    const row = document.createElement('div');
+    row.className = 'permission-row';
+    const status = String(statuses[kind] || 'unknown');
+    row.innerHTML = `<span>${label}</span><span class="permission-status ${escapeHtml(status)}">${escapeHtml(status.replaceAll('-', ' '))}</span><button class="text-button" type="button">Open settings</button>`;
+    row.querySelector('button').addEventListener('click', () => window.wisper.permissionsOpen(kind));
+    list.appendChild(row);
+  }
+}
+
+async function refreshMeetingAudioUsage() {
+  const bytes = await window.wisper.meetingsAudioUsage();
+  document.getElementById('meetingAudioUsage').textContent = `${formatBytes(bytes)} of meeting audio stored`;
+}
+
+document.getElementById('applyAudioRetention').addEventListener('click', async () => {
+  const result = await window.wisper.meetingsCleanupAudio(audioRetentionPolicyEl.value);
+  generalSaveStatusEl.textContent = result.cleaned
+    ? `Removed audio from ${result.cleaned} meeting${result.cleaned === 1 ? '' : 's'}.`
+    : 'No meeting audio matched this rule.';
+  await refreshMeetingAudioUsage();
+  await renderPermissions();
+});
+document.getElementById('deleteAllMeetingAudio').addEventListener('click', async () => {
+  if (!confirm('Delete all saved meeting audio? Transcripts and notes will be kept.')) return;
+  const result = await window.wisper.meetingsDeleteAllAudio();
+  generalSaveStatusEl.textContent = result.cleaned
+    ? `Deleted audio from ${result.cleaned} meeting${result.cleaned === 1 ? '' : 's'}.`
+    : 'There was no meeting audio to delete.';
+  await refreshMeetingAudioUsage();
 });
 
 (async () => {
   const cfg = await window.wisper.getSettings();
   window.__lastSettings = cfg;
+  document.documentElement.dataset.platform = cfg.platform;
   whisperCliPathEl.value = cfg.whisperCliPath || '';
   modelPathEl.value = cfg.modelPath || '';
   groqApiKeyEl.value = cfg.groqApiKey || '';
   groqModelEl.value = cfg.groqModel || 'whisper-large-v3-turbo';
   languageEl.value = cfg.language || 'auto';
+  const defaultHotkey = cfg.platform === 'win32' ? 'Control+Super' : cfg.platform === 'darwin' ? 'Fn' : 'CommandOrControl+Shift+Space';
+  hotkeyEl.value = cfg.hotkey || defaultHotkey;
+  renderHotkey(hotkeyEl.value);
+  hotkeyHintEl.textContent = hotkeyEl.value === 'Control+Super'
+    ? 'Hold Ctrl + Win to dictate; release either key to transcribe.'
+    : hotkeyEl.value === 'Fn' ? 'Hold Fn (🌐) to dictate; release it to transcribe.'
+      : 'Press once to start dictation and press again to transcribe.';
+  useFnHotkeyBtn.hidden = cfg.platform !== 'darwin';
+  document.getElementById('sidebarHint').innerHTML = hotkeyEl.value === 'Fn'
+    ? 'Hold <kbd>Fn</kbd> anywhere to dictate.'
+    : hotkeyEl.value === 'Control+Super' ? 'Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.'
+      : 'Use your global shortcut anywhere to dictate.';
+  autoUpdateEl.value = cfg.autoUpdate || 'true';
+  audioRetentionPolicyEl.value = cfg.audioRetentionPolicy || 'never';
+  aiFormatEnabledEl.value = cfg.aiFormatEnabled || 'false';
+  groqFormatModelEl.value = cfg.groqFormatModel || 'llama-3.1-8b-instant';
+  await refreshMeetingAudioUsage();
+  await renderPermissions();
+  document.getElementById('appDetails').textContent = `CrunchyMurmur ${cfg.version} · ${cfg.platform} ${cfg.arch}`;
+  renderUpdateStatus(await window.wisper.getUpdateStatus());
   applyEngineKind(cfg.engineKind || 'local');
   await populateMicDevices(cfg.micDeviceId || '');
 
@@ -1694,9 +2067,11 @@ saveGeneralBtn.addEventListener('click', async () => {
   anthropicModelEl.value = cfg.anthropicModel || 'claude-sonnet-4-6';
   openaiApiKeyEl.value = cfg.openaiApiKey || '';
   openaiModelEl.value = cfg.openaiModel || 'gpt-4o';
+  groqNotesModelEl.value = cfg.groqNotesModel || 'llama-3.3-70b-versatile';
 
   entries = await window.wisper.getHistory();
   render();
+  await renderDashboard();
 
   // Models tab data + the path label in the header.
   modelsDirPathEl.textContent = await window.wisper.modelsDir();
@@ -1715,7 +2090,7 @@ saveGeneralBtn.addEventListener('click', async () => {
   // new events show up.
   calendarSnapshot = await window.wisper.calendarSnapshot();
   renderCalendar();
-  if (calendarSnapshot.feeds.length > 0) {
+  if (calendarSnapshot.feeds.length > 0 || cfg.platform === 'darwin') {
     window.wisper.calendarRefresh();
   }
 
@@ -1729,4 +2104,5 @@ saveGeneralBtn.addEventListener('click', async () => {
   if (needsSetup) {
     switchTab('engine');
   }
+  document.documentElement.dataset.ready = 'true';
 })();

@@ -25,7 +25,12 @@ async function generate({ prompt }) {
   }
   // `codex exec` is the non-interactive mode; reads instructions from stdin
   // when no positional prompt is given.
-  const result = await sub.run({ executable: exe, args: ['exec'], stdinText: prompt });
+  const result = await sub.run({
+    executable: exe,
+    args: ['exec', '--sandbox', 'read-only', '--skip-git-repo-check'],
+    stdinText: prompt,
+    isolated: true,
+  });
   if (result.exitCode !== 0) {
     const raw = result.stderr || result.stdout || '(no output)';
     const snippet = raw.length > 280 ? raw.slice(0, 280) + '…' : raw;

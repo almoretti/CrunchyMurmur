@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('wisper', {
 
   // Renderer → main: read settings (used to pick the right mic device).
   getSettings: () => ipcRenderer.invoke('settings:get'),
+  captureFailed: (message) => ipcRenderer.send('floating:capture-failed', String(message || '')),
 
   // Renderer → main: pill clicked while in meeting state. Main forwards to
   // the main window which actually owns the meeting recording.

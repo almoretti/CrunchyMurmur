@@ -8,7 +8,7 @@ const ENDPOINT = 'https://api.groq.com/openai/v1/audio/transcriptions';
  * transcribed text. Uses Node's built-in fetch + FormData (Electron 32 ships
  * Node ≥ 20, both globals available).
  */
-async function transcribeWithGroq(wavPath, { groqApiKey, groqModel, language }) {
+async function transcribeWithGroq(wavPath, { groqApiKey, groqModel, language }, { signal } = {}) {
   if (!groqApiKey) {
     throw new Error('Groq API key is not set (Settings → Engine).');
   }
@@ -24,14 +24,24 @@ async function transcribeWithGroq(wavPath, { groqApiKey, groqModel, language }) 
   }
 
   let resp;
+  const controller = new AbortController();
+  const relayAbort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener('abort', relayAbort, { once: true });
+  const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
     resp = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Bearer ${groqApiKey}` },
       body: form,
+      signal: controller.signal,
     });
   } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Groq transcription timed out after 120 seconds.');
     throw new Error(`Network error reaching Groq: ${e.message}`);
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', relayAbort);
   }
 
   if (!resp.ok) {

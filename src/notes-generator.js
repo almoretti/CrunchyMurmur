@@ -5,14 +5,16 @@ const anthropic = require('./providers/anthropic');
 const openai = require('./providers/openai');
 const claudeCode = require('./providers/claude-code');
 const codex = require('./providers/codex');
+const groq = require('./providers/groq');
 
-const PROVIDERS = { anthropic, openai, claudeCode, codex };
+const PROVIDERS = { anthropic, openai, claudeCode, codex, groq };
 
 function listProviders() {
   // The order here is also the order shown in the UI radio.
   return [
     { id: 'anthropic',  displayName: 'Anthropic API', models: anthropic.MODELS, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http' },
     { id: 'openai',     displayName: 'OpenAI API',    models: openai.MODELS,    defaultModel: openai.DEFAULT_MODEL,    kind: 'http' },
+    { id: 'groq',       displayName: 'Groq API (free tier)', models: groq.MODELS, defaultModel: groq.DEFAULT_MODEL, kind: 'http' },
     { id: 'claudeCode', displayName: 'Claude Code (your subscription)', kind: 'cli',
       available: claudeCode.isAvailable(), executable: claudeCode.executable() },
     { id: 'codex',      displayName: 'Codex (your subscription)', kind: 'cli',
@@ -71,8 +73,11 @@ async function generateFromRecording({ recording, templateId, provider, model })
     return { text, providerId, modelId: null, templateId };
   }
 
-  const apiKey = providerId === 'anthropic' ? cfg.anthropicApiKey : cfg.openaiApiKey;
-  const modelId = model || (providerId === 'anthropic' ? cfg.anthropicModel : cfg.openaiModel) || mod.DEFAULT_MODEL;
+  const apiKey = providerId === 'anthropic' ? cfg.anthropicApiKey
+    : providerId === 'openai' ? cfg.openaiApiKey : cfg.groqApiKey;
+  const configuredModel = providerId === 'anthropic' ? cfg.anthropicModel
+    : providerId === 'openai' ? cfg.openaiModel : cfg.groqNotesModel;
+  const modelId = model || configuredModel || mod.DEFAULT_MODEL;
   const text = await mod.generate({ apiKey, model: modelId, prompt });
   return { text, providerId, modelId, templateId };
 }

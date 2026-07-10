@@ -2,15 +2,16 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const crypto = require('crypto');
 
 /**
- * Spawn whisper-cli.exe (or main.exe) against a 16 kHz mono WAV file.
+ * Spawn whisper.cpp's CLI against a 16 kHz mono WAV file.
  * Returns the trimmed transcript on stdout.
  */
-function transcribeWav(wavPath, { whisperCliPath, modelPath, language }) {
+function transcribeWav(wavPath, { whisperCliPath, modelPath, language }, { signal } = {}) {
   return new Promise((resolve, reject) => {
     if (!whisperCliPath || !fs.existsSync(whisperCliPath)) {
-      return reject(new Error('whisper-cli.exe path is not set or invalid (Settings → Engine).'));
+      return reject(new Error('Whisper CLI path is not set or invalid (Settings → Engine).'));
     }
     if (!modelPath || !fs.existsSync(modelPath)) {
       return reject(new Error('Whisper model path is not set or invalid (Settings → Engine).'));
@@ -27,13 +28,28 @@ function transcribeWav(wavPath, { whisperCliPath, modelPath, language }) {
     ];
 
     const proc = spawn(whisperCliPath, args, { windowsHide: true });
+    let settled = false;
+    const abort = () => {
+      if (settled) return;
+      try { proc.kill(); } catch {}
+    };
+    if (signal?.aborted) abort();
+    signal?.addEventListener('abort', abort, { once: true });
+    const timeout = setTimeout(() => {
+      try { proc.kill(); } catch {}
+      if (!settled) reject(new Error('Local transcription timed out after 10 minutes.'));
+    }, 10 * 60 * 1000);
 
     let out = '';
     let err = '';
     proc.stdout.on('data', (d) => { out += d.toString(); });
     proc.stderr.on('data', (d) => { err += d.toString(); });
-    proc.on('error', reject);
+    proc.on('error', (err) => { clearTimeout(timeout); settled = true; signal?.removeEventListener('abort', abort); reject(err); });
     proc.on('close', (code) => {
+      clearTimeout(timeout);
+      settled = true;
+      signal?.removeEventListener('abort', abort);
+      if (signal?.aborted) return reject(new Error('Transcription cancelled.'));
       if (code === 0) {
         resolve(out.trim());
       } else {
@@ -48,7 +64,7 @@ function transcribeWav(wavPath, { whisperCliPath, modelPath, language }) {
  * Returns the file path.
  */
 function writeTempWav(float32Samples) {
-  const tmp = path.join(os.tmpdir(), `crunchymurmur-${Date.now()}.wav`);
+  const tmp = path.join(os.tmpdir(), `crunchymurmur-${crypto.randomUUID()}.wav`);
   const buffer = encodeWav(float32Samples, 16000);
   fs.writeFileSync(tmp, buffer);
   return tmp;

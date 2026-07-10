@@ -1,34 +1,180 @@
 {
-  "name": "crunchymurmur-windows",
+  "name": "crunchymurmur",
   "productName": "CrunchyMurmur",
-  "version": "0.1.0",
-  "description": "CrunchyMurmur — local-Whisper dictation, meetings, and AI notes for Windows. Hold Ctrl+Win, speak, release.",
+  "desktopName": "CrunchyMurmur",
+  "version": "1.0.0",
+  "description": "Cross-platform Whisper dictation, meeting transcription, activity statistics, and AI notes for Windows, macOS, and Linux.",
+  "author": "almoretti and contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/almoretti/CrunchyMurmur-Windows#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/almoretti/CrunchyMurmur-Windows.git"
+  },
+  "bugs": {
+    "url": "https://github.com/almoretti/CrunchyMurmur-Windows/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "main": "src/main.js",
   "private": true,
   "scripts": {
-    "start": "electron .",
-    "build:win": "electron-builder --win --x64"
+    "start": "node scripts/ensure-macos-native.js && electron .",
+    "lint": "node scripts/check-js.js",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "node --test test/e2e/electron.test.js",
+    "smoke:packaged": "node scripts/smoke-packaged.js",
+    "check": "npm run lint && npm test",
+    "release:check": "node scripts/check-release.js",
+    "pack:win": "electron-builder --dir --win --x64",
+    "build:win": "electron-builder --win",
+    "build:mac": "bash scripts/prepare-macos-icon.sh && bash scripts/build-macos-native.sh && electron-builder --mac",
+    "build:linux": "bash scripts/prepare-linux-icons.sh && electron-builder --linux --publish never && node scripts/normalize-linux-artifacts.js"
   },
   "dependencies": {
-    "@nut-tree-fork/nut-js": "^4.2.2",
-    "node-global-key-listener": "^0.3.0",
-    "node-ical": "^0.26.1"
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.9",
+    "node-ical": "^0.26.1",
+    "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
-    "electron": "^32.0.0",
-    "electron-builder": "^25.0.0"
+    "@electron/fuses": "^1.8.0",
+    "@playwright/test": "^1.61.1",
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
-    "appId": "cc.moretti.crunchymurmur.windows",
+    "appId": "cc.moretti.crunchymurmur.desktop",
     "productName": "CrunchyMurmur",
     "files": [
       "src/**/*",
       "ui/**/*",
-      "assets/**/*"
+      "assets/icon.ico",
+      "assets/tray.png",
+      "LICENSE",
+      "PRIVACY.md",
+      "TERMS.md",
+      "README.md",
+      "CHANGELOG.md"
     ],
+    "extraResources": [
+      {
+        "from": "PRIVACY.md",
+        "to": "PRIVACY.md"
+      },
+      {
+        "from": "TERMS.md",
+        "to": "TERMS.md"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      }
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "afterPack": "scripts/after-pack.js",
+    "artifactName": "${productName}-${os}-${arch}.${ext}",
+    "publish": {
+      "provider": "github",
+      "owner": "almoretti",
+      "repo": "CrunchyMurmur-Windows",
+      "releaseType": "release"
+    },
     "win": {
-      "target": "nsis",
-      "icon": "assets/icon.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "signExts": [
+        ".exe",
+        ".dll",
+        ".node"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "CrunchyMurmur"
+    },
+    "mac": {
+      "minimumSystemVersion": "13.0",
+      "extraResources": [
+        {
+          "from": "build/native/CrunchyMurmurNative",
+          "to": "native/CrunchyMurmurNative"
+        }
+      ],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "notarize": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "CrunchyMurmur uses the microphone only while you explicitly record dictation or a meeting.",
+        "NSAudioCaptureUsageDescription": "CrunchyMurmur captures system audio only when you explicitly start a meeting recording, so other participants can be transcribed.",
+        "NSCalendarsFullAccessUsageDescription": "CrunchyMurmur reads upcoming calendar events so you can start and name meeting recordings from your schedule.",
+        "NSAppleEventsUsageDescription": "CrunchyMurmur uses System Events only to paste your completed transcription into the focused application."
+      }
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icons",
+      "category": "Utility",
+      "synopsis": "Private voice dictation and AI notes",
+      "description": "Cross-platform Whisper dictation, meeting transcription, activity statistics, and AI-generated notes.",
+      "maintainer": "almoretti",
+      "vendor": "CrunchyMurmur",
+      "desktop": {
+        "entry": {
+          "Name": "CrunchyMurmur",
+          "Comment": "Voice dictation and AI notes",
+          "Categories": "Utility;AudioVideo;",
+          "Keywords": "dictation;whisper;transcription;notes;",
+          "StartupWMClass": "CrunchyMurmur"
+        }
+      }
     }
   }
 }

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { app } = require('electron');
+const { atomicWriteFileSync } = require('./file-utils');
 
 // Curated subset of whisper.cpp ggml models on HuggingFace. Sizes are bytes
 // of the .bin file as published on the LFS endpoint, used for the progress
@@ -75,7 +76,17 @@ function modelsDir() {
 }
 
 function modelFilePath(id) {
+  validateModelId(id);
   return path.join(modelsDir(), `ggml-${id}.bin`);
+}
+
+function validateModelId(id) {
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(id)) throw new Error('Invalid model id.');
+  return id;
+}
+
+function metadataPath(id) {
+  return modelFilePath(id) + '.metadata.json';
 }
 
 function modelUrl(id) {
@@ -88,7 +99,16 @@ const active = new Map();
 
 function isInstalled(id) {
   try {
-    return fs.statSync(modelFilePath(id)).size > 0;
+    const bytes = fs.statSync(modelFilePath(id)).size;
+    if (bytes < 1024 * 1024) return false;
+    try {
+      const metadata = JSON.parse(fs.readFileSync(metadataPath(id), 'utf8'));
+      if (Number.isFinite(metadata.expectedBytes) && metadata.expectedBytes > 0) {
+        return bytes === metadata.expectedBytes;
+      }
+    } catch {}
+    const catalogEntry = CATALOG.find((m) => m.id === id);
+    return !catalogEntry || (bytes >= catalogEntry.size * 0.8 && bytes <= catalogEntry.size * 1.2);
   } catch {
     return false;
   }
@@ -102,6 +122,7 @@ function listInstalled() {
   const out = [];
   for (const f of files) {
     const id = f.slice('ggml-'.length, -'.bin'.length);
+    if (!isInstalled(id)) continue;
     const stat = fs.statSync(path.join(dir, f));
     const meta = CATALOG.find((m) => m.id === id);
     out.push({
@@ -124,6 +145,7 @@ function getCatalog() {
 }
 
 function removeModel(id) {
+  validateModelId(id);
   // Cancel an active download too (in case the user hits delete while the
   // download is running).
   cancelDownload(id);
@@ -131,10 +153,13 @@ function removeModel(id) {
   if (fs.existsSync(p)) fs.unlinkSync(p);
   const partial = p + '.partial';
   if (fs.existsSync(partial)) fs.unlinkSync(partial);
+  const metadata = metadataPath(id);
+  if (fs.existsSync(metadata)) fs.unlinkSync(metadata);
   return true;
 }
 
 function cancelDownload(id) {
+  validateModelId(id);
   const a = active.get(id);
   if (!a) return false;
   a.canceled = true;
@@ -166,12 +191,15 @@ function downloadModel(id, onProgress) {
     const fileStream = fs.createWriteStream(partialPath);
     let bytesDone = 0;
     let bytesTotal = meta.size; // updated from Content-Length when available
+    let expectedDownloadBytes = null;
 
-    const handleResponse = (res) => {
-      // HuggingFace serves an HTTPS redirect to the LFS CDN. Follow once.
+    const handleResponse = (res, redirects = 0) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
-        const next = https.get(res.headers.location, handleResponse);
+        if (redirects >= 5) return onError(new Error('Too many model download redirects.'));
+        const nextUrl = new URL(res.headers.location, modelUrl(id));
+        if (nextUrl.protocol !== 'https:') return onError(new Error('Model download redirected to an insecure URL.'));
+        const next = https.get(nextUrl, (nextRes) => handleResponse(nextRes, redirects + 1));
         next.on('error', onError);
         const entry = active.get(id);
         if (entry) entry.req = next;
@@ -181,7 +209,10 @@ function downloadModel(id, onProgress) {
         return onError(new Error(`HTTP ${res.statusCode} from HuggingFace`));
       }
       const total = Number(res.headers['content-length']);
-      if (Number.isFinite(total) && total > 0) bytesTotal = total;
+      if (Number.isFinite(total) && total > 0) {
+        bytesTotal = total;
+        expectedDownloadBytes = total;
+      }
 
       res.on('data', (chunk) => {
         bytesDone += chunk.length;
@@ -193,10 +224,11 @@ function downloadModel(id, onProgress) {
 
     const onError = (err) => {
       if (!active.has(id)) return; // already cleaned up
+      const entry = active.get(id);
       active.delete(id);
       try { fileStream.destroy(); } catch {}
       try { if (fs.existsSync(partialPath)) fs.unlinkSync(partialPath); } catch {}
-      reject(err);
+      reject(entry?.canceled ? new Error('Download canceled') : err);
     };
 
     fileStream.on('finish', () => {
@@ -208,8 +240,19 @@ function downloadModel(id, onProgress) {
         return reject(new Error('Download canceled'));
       }
       try {
+        const actualBytes = fs.statSync(partialPath).size;
+        if (actualBytes !== bytesDone || (expectedDownloadBytes && actualBytes !== expectedDownloadBytes)) {
+          throw new Error(`Incomplete model download: expected ${expectedDownloadBytes || bytesDone} bytes, received ${actualBytes}.`);
+        }
         fs.renameSync(partialPath, finalPath);
+        atomicWriteFileSync(metadataPath(id), JSON.stringify({
+          id,
+          expectedBytes: actualBytes,
+          source: modelUrl(id),
+          downloadedAt: new Date().toISOString(),
+        }, null, 2), 'utf8');
       } catch (e) {
+        try { if (fs.existsSync(partialPath)) fs.unlinkSync(partialPath); } catch {}
         return reject(e);
       }
       resolve({ id, path: finalPath });
@@ -218,7 +261,7 @@ function downloadModel(id, onProgress) {
 
     const req = https.get(modelUrl(id), {
       headers: { 'User-Agent': 'CrunchyMurmur-Windows' },
-    }, handleResponse);
+    }, (res) => handleResponse(res, 0));
     req.on('error', onError);
 
     active.set(id, { req, canceled: false });

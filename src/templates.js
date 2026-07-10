@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
+const { atomicWriteFileSync } = require('./file-utils');
 
 // Bundled note-templates ported verbatim from Mac NoteTemplates.swift —
 // these are the source of truth. User edits live as JSON overrides at
@@ -254,11 +255,11 @@ function save(template) {
   if (!bundled) throw new Error('save: unknown template id ' + template.id);
   const payload = {
     id: template.id,
-    name: template.name,
-    description: template.description,
-    instructions: template.instructions,
+    name: String(template.name || '').slice(0, 200),
+    description: String(template.description || '').slice(0, 1_000),
+    instructions: String(template.instructions || '').slice(0, 100_000),
   };
-  fs.writeFileSync(fileFor(template.id), JSON.stringify(payload, null, 2), 'utf8');
+  atomicWriteFileSync(fileFor(template.id), JSON.stringify(payload, null, 2), 'utf8');
   return find(template.id);
 }
 

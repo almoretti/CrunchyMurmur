@@ -1,6 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 const { app, safeStorage } = require('electron');
+const { atomicWriteFileSync } = require('./file-utils');
+
+const SECRET_MASK = '••••••••';
+
+function defaultHotkey(platform = process.platform) {
+  if (platform === 'win32') return 'Control+Super';
+  if (platform === 'darwin') return 'Fn';
+  return 'CommandOrControl+Shift+Space';
+}
 
 const DEFAULTS = {
   engineKind: 'local', // 'local' | 'groq'
@@ -10,6 +19,12 @@ const DEFAULTS = {
   groqApiKey: '',
   groqModel: 'whisper-large-v3-turbo',
   micDeviceId: '', // '' = OS default mic
+  hotkey: defaultHotkey(),
+  hotkeyCustomized: 'false',
+  autoUpdate: 'true',
+  audioRetentionPolicy: 'never', // never | after_transcription | 1 | 7 | 30
+  aiFormatEnabled: 'false',
+  groqFormatModel: 'llama-3.1-8b-instant',
 
   // AI Notes
   aiNotesProvider: 'anthropic',  // 'anthropic' | 'openai' (claudeCode/codex coming later)
@@ -17,6 +32,7 @@ const DEFAULTS = {
   anthropicModel: 'claude-sonnet-4-6',
   openaiApiKey: '',
   openaiModel: 'gpt-4o',
+  groqNotesModel: 'llama-3.3-70b-versatile',
 };
 
 function configPath() {
@@ -32,15 +48,11 @@ function readRaw() {
 }
 
 function writeRaw(obj) {
-  fs.mkdirSync(path.dirname(configPath()), { recursive: true });
-  fs.writeFileSync(configPath(), JSON.stringify(obj, null, 2), 'utf8');
+  atomicWriteFileSync(configPath(), JSON.stringify(obj, null, 2), 'utf8');
 }
 
-// API key handling
-//   On Windows, safeStorage.encryptString uses DPAPI under the hood, so the
-//   encrypted blob can only be decrypted by the same Windows user account.
-//   If encryption isn't available (rare; dev edge cases) we fall back to
-//   plaintext so the app still works — flagged with a console warning.
+// API key handling uses Electron safeStorage (DPAPI, Keychain, or a Linux
+// desktop secret store). If it is unavailable, plaintext fallback is logged.
 
 // Maps cleartext field name → on-disk pair name. Each cleartext key is
 // stripped before persistence and rehydrated on load.
@@ -78,6 +90,17 @@ function encryptKey(plain) {
 function load() {
   const raw = readRaw();
   const cfg = { ...DEFAULTS, ...raw };
+  if (!raw.audioRetentionPolicy && raw.meetingRetentionDays) {
+    cfg.audioRetentionPolicy = raw.meetingRetentionDays === '0' ? 'never' : raw.meetingRetentionDays;
+  }
+  if (process.platform === 'win32' && raw.hotkeyCustomized !== 'true'
+      && (!raw.hotkey || raw.hotkey === 'CommandOrControl+Shift+Space')) {
+    cfg.hotkey = 'Control+Super';
+  }
+  if (process.platform === 'darwin' && raw.hotkeyCustomized !== 'true'
+      && (!raw.hotkey || raw.hotkey === 'CommandOrControl+Shift+Space')) {
+    cfg.hotkey = 'Fn';
+  }
   // Rehydrate each cleartext API-key field from its on-disk encrypted pair.
   for (const k of ENCRYPTED_KEYS) {
     cfg[k.plain] = decryptKey(raw, k.encName, k.plainName);
@@ -92,13 +115,16 @@ function save(partial) {
   const stored = { ...raw };
 
   for (const k of Object.keys(partial || {})) {
+    if (!Object.hasOwn(DEFAULTS, k)) continue;
     if (ENCRYPTED_KEYS.some((e) => e.plain === k)) continue; // handled below
-    stored[k] = partial[k];
+    stored[k] = String(partial[k] ?? '').slice(0, 10_000);
   }
 
   for (const k of ENCRYPTED_KEYS) {
     if (partial && k.plain in partial) {
-      const { encrypted, cleartext } = encryptKey(partial[k.plain] || '');
+      if (partial[k.plain] === SECRET_MASK) continue;
+      const value = String(partial[k.plain] || '').slice(0, 10_000);
+      const { encrypted, cleartext } = encryptKey(value);
       stored[k.encName] = encrypted;
       stored[k.plainName] = cleartext;
       delete stored[k.plain]; // never persist cleartext field with this name
@@ -109,4 +135,10 @@ function save(partial) {
   return load();
 }
 
-module.exports = { load, save, configPath, DEFAULTS };
+function publicView(cfg = load()) {
+  const out = { ...cfg };
+  for (const k of ENCRYPTED_KEYS) out[k.plain] = cfg[k.plain] ? SECRET_MASK : '';
+  return out;
+}
+
+module.exports = { load, save, publicView, configPath, DEFAULTS, SECRET_MASK, defaultHotkey };

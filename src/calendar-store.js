@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const http = require('http');
 const ical = require('node-ical');
 const { app } = require('electron');
+const { atomicWriteFileSync } = require('./file-utils');
+const macNative = require('./mac-native');
 
 // Persistent on-disk feed list lives next to settings.json. Each feed has
 // a stable id (so users can rename/delete), the URL, an optional label
@@ -22,8 +23,7 @@ function loadFeeds() {
 }
 
 function writeFeeds(list) {
-  fs.mkdirSync(path.dirname(feedsPath()), { recursive: true });
-  fs.writeFileSync(feedsPath(), JSON.stringify(list, null, 2), 'utf8');
+  atomicWriteFileSync(feedsPath(), JSON.stringify(list, null, 2), 'utf8');
 }
 
 function nextId() {
@@ -33,24 +33,41 @@ function nextId() {
 // In-memory cache of fetched events per feed, refreshed on demand.
 const cache = new Map(); // feedId → { events, fetchedAt, error }
 
-function fetchText(url) {
+let nativeCache = { events: [], fetchedAt: null, error: null };
+
+function normalizeFeedUrl(url) {
+  const value = String(url || '').trim().replace(/^webcal:\/\//i, 'https://');
+  let parsed;
+  try { parsed = new URL(value); } catch { throw new Error('Calendar feed URL is invalid.'); }
+  if (parsed.protocol !== 'https:') throw new Error('Calendar feeds must use HTTPS.');
+  if (parsed.username || parsed.password) throw new Error('Calendar feed URLs cannot contain embedded credentials.');
+  return parsed.toString();
+}
+
+function fetchText(url, redirects = 0) {
   return new Promise((resolve, reject) => {
-    const proto = url.startsWith('https:') ? https : http;
-    // webcal:// is the legacy scheme — promote to https.
-    const finalUrl = url.startsWith('webcal://') ? 'https://' + url.slice('webcal://'.length) : url;
-    const lib = finalUrl.startsWith('https:') ? https : http;
-    const req = lib.get(finalUrl, { headers: { 'User-Agent': 'CrunchyMurmur-Windows' } }, (res) => {
-      // Follow one redirect — most calendar feeds use them.
+    const finalUrl = normalizeFeedUrl(url);
+    const req = https.get(finalUrl, { headers: { 'User-Agent': 'CrunchyMurmur-Windows' } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
-        return fetchText(res.headers.location).then(resolve, reject);
+        if (redirects >= 5) return reject(new Error('Too many calendar feed redirects.'));
+        const nextUrl = new URL(res.headers.location, finalUrl).toString();
+        return fetchText(nextUrl, redirects + 1).then(resolve, reject);
       }
       if (res.statusCode !== 200) {
         res.resume();
         return reject(new Error(`HTTP ${res.statusCode} fetching ICS feed`));
       }
       const chunks = [];
-      res.on('data', (c) => chunks.push(c));
+      let bytes = 0;
+      res.on('data', (c) => {
+        bytes += c.length;
+        if (bytes > 10 * 1024 * 1024) {
+          req.destroy(new Error('Calendar feed exceeds the 10 MB limit.'));
+          return;
+        }
+        chunks.push(c);
+      });
       res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
       res.on('error', reject);
     });
@@ -127,7 +144,17 @@ async function refresh(feedId) {
 
 async function refreshAll() {
   const feeds = loadFeeds();
-  const results = await Promise.all(feeds.map((f) => refresh(f.id).catch((e) => ({ ok: false, error: e.message }))));
+  const tasks = feeds.map((f) => refresh(f.id).catch((e) => ({ ok: false, error: e.message })));
+  if (process.platform === 'darwin') {
+    tasks.push(macNative.calendarEvents().then((events) => {
+      nativeCache = { events, fetchedAt: Date.now(), error: null };
+      return { ok: true, count: events.length, source: 'EventKit' };
+    }).catch((error) => {
+      nativeCache = { ...nativeCache, error: error.message };
+      return { ok: false, error: error.message, source: 'EventKit' };
+    }));
+  }
+  const results = await Promise.all(tasks);
   return results;
 }
 
@@ -139,6 +166,7 @@ function snapshot() {
     const events = (c && c.events ? c.events : []).map((e) => ({ ...e, feedId: f.id, color: f.color || '#0a84ff' }));
     all.push(...events);
   }
+  all.push(...nativeCache.events);
   // De-duplicate by uid (some feeds export the same event multiple times).
   const seen = new Set();
   const dedup = [];
@@ -156,13 +184,16 @@ function snapshot() {
       lastFetchedAt: cache.get(f.id)?.fetchedAt || null,
     })),
     events: dedup,
+    nativeCalendar: process.platform === 'darwin'
+      ? { available: true, lastError: nativeCache.error, lastFetchedAt: nativeCache.fetchedAt }
+      : { available: false },
   };
 }
 
 function addFeed({ url, label, color }) {
   const feeds = loadFeeds();
   const id = nextId();
-  feeds.push({ id, url: (url || '').trim(), label: (label || '').trim(), color: color || '#0a84ff' });
+  feeds.push({ id, url: normalizeFeedUrl(url), label: (label || '').trim().slice(0, 200), color: color || '#0a84ff' });
   writeFeeds(feeds);
   return id;
 }
@@ -171,7 +202,7 @@ function updateFeed({ id, url, label, color }) {
   const feeds = loadFeeds();
   const i = feeds.findIndex((f) => f.id === id);
   if (i === -1) throw new Error('Unknown feed: ' + id);
-  if (url !== undefined)   feeds[i].url = (url || '').trim();
+  if (url !== undefined)   feeds[i].url = normalizeFeedUrl(url);
   if (label !== undefined) feeds[i].label = (label || '').trim();
   if (color !== undefined) feeds[i].color = color || '#0a84ff';
   writeFeeds(feeds);

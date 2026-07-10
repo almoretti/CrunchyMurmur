@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const crypto = require('crypto');
+const { atomicWriteFileSync } = require('./file-utils');
 
 function historyPath() {
   return path.join(app.getPath('userData'), 'history.json');
@@ -26,19 +27,18 @@ function add({ text, language, durationSec }) {
     durationSec: Number(durationSec) || 0,
     createdAt: new Date().toISOString(),
   });
-  fs.mkdirSync(path.dirname(historyPath()), { recursive: true });
-  fs.writeFileSync(historyPath(), JSON.stringify(entries, null, 2), 'utf8');
+  atomicWriteFileSync(historyPath(), JSON.stringify(entries, null, 2), 'utf8');
   return entries;
 }
 
 function remove(id) {
   const entries = load().filter((e) => e.id !== id);
-  fs.writeFileSync(historyPath(), JSON.stringify(entries, null, 2), 'utf8');
+  atomicWriteFileSync(historyPath(), JSON.stringify(entries, null, 2), 'utf8');
   return entries;
 }
 
 function clear() {
-  fs.writeFileSync(historyPath(), '[]', 'utf8');
+  atomicWriteFileSync(historyPath(), '[]', 'utf8');
   return [];
 }
 

@@ -28,7 +28,12 @@ async function generate({ prompt }) {
   // -p / --print: one-shot mode, prints response and exits.
   // Prompt over stdin to avoid ARG_MAX and to keep transcripts off the
   // process command-line listing.
-  const result = await sub.run({ executable: exe, args: ['-p'], stdinText: prompt });
+  const result = await sub.run({
+    executable: exe,
+    args: ['-p', '--safe-mode', '--disable-slash-commands', '--no-session-persistence', '--tools='],
+    stdinText: prompt,
+    isolated: true,
+  });
   if (result.exitCode !== 0) {
     const raw = result.stderr || result.stdout || '(no output)';
     const snippet = raw.length > 280 ? raw.slice(0, 280) + '…' : raw;

@@ -3,6 +3,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { app, shell } = require('electron');
+const { atomicWriteFileSync, safePathSegment, safeChildPath } = require('./file-utils');
 
 // Markdown notebook backed by real .md files on disk:
 //   %USERPROFILE%\Documents\CrunchyMurmur Notes\
@@ -25,6 +26,14 @@ function rootDir() {
   const dir = path.join(docs, 'CrunchyMurmur Notes');
   fs.mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+function folderPath(name) {
+  return safeChildPath(rootDir(), safePathSegment(name, 'Folder name'));
+}
+
+function notePath(folder, filename) {
+  return safeChildPath(rootDir(), safePathSegment(folder, 'Folder name'), safePathSegment(filename, 'Filename'));
 }
 
 function ensureSeedFolders() {
@@ -80,7 +89,8 @@ function defaultTitle() {
 }
 
 function readNote(folder, filename) {
-  const absPath = path.join(rootDir(), folder, filename);
+  let absPath;
+  try { absPath = notePath(folder, filename); } catch { return null; }
   let content = '';
   try {
     content = fs.readFileSync(absPath, 'utf8');
@@ -112,7 +122,8 @@ function listFolders() {
 }
 
 function listNotes(folder) {
-  const dir = path.join(rootDir(), folder);
+  let dir;
+  try { dir = folderPath(folder); } catch { return []; }
   if (!fs.existsSync(dir)) return [];
   const files = fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.md'));
   const notes = [];
@@ -143,13 +154,15 @@ function createFolder(name) {
   if (!trimmed) throw new Error('Folder name is empty.');
   // Strip path separators just in case.
   const safe = trimmed.replace(/[\\/:*?"<>|]/g, '_');
-  fs.mkdirSync(path.join(rootDir(), safe), { recursive: true });
+  if (safe.length > 120) throw new Error('Folder name is too long.');
+  safePathSegment(safe, 'Folder name');
+  fs.mkdirSync(folderPath(safe), { recursive: true });
   return snapshot();
 }
 
 function deleteFolder(name) {
   if (!name) throw new Error('Folder name is empty.');
-  const dir = path.join(rootDir(), name);
+  const dir = folderPath(name);
   if (!fs.existsSync(dir)) return snapshot();
   fs.rmSync(dir, { recursive: true, force: true });
   return snapshot();
@@ -157,15 +170,17 @@ function deleteFolder(name) {
 
 function renameFolder(oldName, newName) {
   const trimmed = (newName || '').trim().replace(/[\\/:*?"<>|]/g, '_');
+  if (trimmed.length > 120) throw new Error('Folder name is too long.');
   if (!trimmed || trimmed === oldName) return snapshot();
-  const oldPath = path.join(rootDir(), oldName);
-  const newPath = path.join(rootDir(), trimmed);
+  safePathSegment(trimmed, 'Folder name');
+  const oldPath = folderPath(oldName);
+  const newPath = folderPath(trimmed);
   fs.renameSync(oldPath, newPath);
   return snapshot();
 }
 
 function revealFolder(name) {
-  return shell.openPath(path.join(rootDir(), name));
+  return shell.openPath(folderPath(name));
 }
 
 // Note operations
@@ -175,27 +190,30 @@ function createNote({ title, content, folder }) {
   const folderName = folder && folders.includes(folder)
     ? folder
     : (folders[0] || 'Inbox');
-  const folderPath = path.join(rootDir(), folderName);
-  fs.mkdirSync(folderPath, { recursive: true });
+  const targetFolderPath = folderPath(folderName);
+  fs.mkdirSync(targetFolderPath, { recursive: true });
 
-  const baseTitle = (title || '').trim() || defaultTitle();
+  const baseTitle = ((title || '').trim() || defaultTitle()).slice(0, 500);
   const baseSlug = slugify(baseTitle);
-  const filename = uniqueFilename(baseSlug, folderPath);
-  const initial = content && content.length ? content : `# ${baseTitle}\n\n`;
-  fs.writeFileSync(path.join(folderPath, filename), initial, 'utf8');
+  const filename = uniqueFilename(baseSlug, targetFolderPath);
+  const initial = content && content.length ? String(content).slice(0, 5_000_000) : `# ${baseTitle}\n\n`;
+  atomicWriteFileSync(notePath(folderName, filename), initial, 'utf8');
 
   const note = readNote(folderName, filename);
   return { note, snapshot: snapshot() };
 }
 
 function updateNote({ folder, filename, content }) {
-  const target = path.join(rootDir(), folder, filename);
-  fs.writeFileSync(target, content, 'utf8');
+  const target = notePath(folder, filename);
+  if (!fs.existsSync(target)) throw new Error('Note not found.');
+  const nextContent = String(content ?? '');
+  if (nextContent.length > 5_000_000) throw new Error('Note exceeds the 5 MB limit.');
+  atomicWriteFileSync(target, nextContent, 'utf8');
   return readNote(folder, filename);
 }
 
 function deleteNote({ folder, filename }) {
-  const target = path.join(rootDir(), folder, filename);
+  const target = notePath(folder, filename);
   if (fs.existsSync(target)) fs.unlinkSync(target);
   return snapshot();
 }
@@ -206,21 +224,21 @@ function renameNote({ folder, filename, newTitle }) {
   const baseSlug = slugify(trimmed);
   const oldBase = filename.replace(/\.md$/i, '');
   if (baseSlug === oldBase) return readNote(folder, filename);
-  const folderPath = path.join(rootDir(), folder);
-  const newFilename = uniqueFilename(baseSlug, folderPath);
-  const oldUrl = path.join(folderPath, filename);
-  const newUrl = path.join(folderPath, newFilename);
+  const targetFolderPath = folderPath(folder);
+  const newFilename = uniqueFilename(baseSlug, targetFolderPath);
+  const oldUrl = notePath(folder, filename);
+  const newUrl = notePath(folder, newFilename);
   fs.renameSync(oldUrl, newUrl);
   return readNote(folder, newFilename);
 }
 
 function moveNote({ folder, filename, toFolder }) {
   if (folder === toFolder) return readNote(folder, filename);
-  const dest = path.join(rootDir(), toFolder);
-  fs.mkdirSync(dest, { recursive: true });
+  if (!listFolders().includes(toFolder)) throw new Error('Destination folder not found.');
+  const dest = folderPath(toFolder);
   const baseSlug = filename.replace(/\.md$/i, '');
   const newFilename = uniqueFilename(baseSlug, dest);
-  fs.renameSync(path.join(rootDir(), folder, filename), path.join(dest, newFilename));
+  fs.renameSync(notePath(folder, filename), notePath(toFolder, newFilename));
   return readNote(toFolder, newFilename);
 }
 

@@ -2,18 +2,27 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
     <title>CrunchyMurmur</title>
     <link rel="stylesheet" href="main.css" />
   </head>
   <body>
+    <header class="app-titlebar">
+      <div class="titlebar-mark" aria-hidden="true">∿</div>
+      <span class="titlebar-product">CrunchyMurmur</span>
+      <nav class="titlebar-menu" aria-label="Application menu">
+        <button type="button" data-app-menu="file">File</button>
+        <button type="button" data-app-menu="edit">Edit</button>
+        <button type="button" data-app-menu="view">View</button>
+        <button type="button" data-app-menu="help">Help</button>
+      </nav>
+    </header>
+    <div class="app-workspace">
     <aside class="sidebar">
-      <div class="brand">
-        <span class="dot"></span>
-        CrunchyMurmur
-      </div>
       <nav>
         <div class="nav-section-title">Library</div>
-        <button class="nav-item active" data-tab="history">Recordings</button>
+        <button class="nav-item active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-item"        data-tab="history">Recordings</button>
         <button class="nav-item"        data-tab="meetings">Meetings</button>
         <button class="nav-item"        data-tab="notes">Notes</button>
 
@@ -23,14 +32,30 @@
         <button class="nav-item" data-tab="engine">Engine</button>
         <button class="nav-item" data-tab="general">General</button>
       </nav>
-      <div class="hint">
+      <div class="hint" id="sidebarHint">
         Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.
       </div>
     </aside>
 
     <main class="content">
+      <!-- Dashboard -->
+      <section id="tab-dashboard" class="tab active dashboard-tab">
+        <div class="dashboard-pane">
+          <header class="page-heading">
+            <h2>Dashboard</h2>
+            <p>Your dictation activity at a glance.</p>
+          </header>
+          <div class="dashboard-stats" aria-live="polite">
+            <div class="dashboard-stat"><strong id="statTotalWords">0</strong><span>total words</span></div>
+            <div class="dashboard-stat"><strong id="statWpm">—</strong><span>wpm</span></div>
+            <div class="dashboard-stat"><strong id="statStreak">0</strong><span>days in a row</span></div>
+          </div>
+          <p id="dashboardEmptyHint" class="dashboard-hint">Use your dictation shortcut anywhere. Your words, speed, and streak will appear here.</p>
+        </div>
+      </section>
+
       <!-- Recordings -->
-      <section id="tab-history" class="tab active">
+      <section id="tab-history" class="tab">
         <header class="toolbar">
           <input id="search" type="text" placeholder="Search recordings" />
           <span class="spacer"></span>
@@ -41,7 +66,7 @@
         <div id="empty" class="empty">
           <div class="symbol">∿</div>
           <div class="title">No recordings yet</div>
-          <div class="subtitle">Hold Ctrl+Win anywhere on Windows to dictate. Results appear here.</div>
+          <div class="subtitle">Press your global shortcut once to record and again to transcribe. Results appear here.</div>
         </div>
       </section>
 
@@ -64,7 +89,7 @@
           </header>
           <ul id="meetingsList" class="meetings-list"></ul>
           <div id="meetingsEmpty" class="muted small calendar-empty">
-            No meetings yet. Click <strong>Start</strong> for a long-form recording — mic only for now (system audio capture lands when WASAPI loopback is wired up).
+            No meetings yet. Click <strong>Start</strong> for a long-form microphone recording. Tell participants and obtain any consent required where you are.
           </div>
         </aside>
 
@@ -86,6 +111,7 @@
               <div class="meeting-section-head">
                 <h3>Transcript</h3>
                 <button id="transcribeMeetingBtn" class="text-button" hidden>Transcribe</button>
+                <button id="cancelTranscriptionBtn" class="text-button danger" hidden>Cancel</button>
               </div>
               <div id="meetingTranscriptBox" class="meeting-transcript-box">
                 <div id="meetingTranscriptEmpty" class="muted small">No transcript yet. Stop the recording first, then click <strong>Transcribe</strong>.</div>
@@ -148,7 +174,7 @@
           </header>
           <ul id="foldersList" class="folders-list"></ul>
           <footer class="notes-pane-footer">
-            <button id="openNotesRoot" class="text-button">Open in Explorer</button>
+            <button id="openNotesRoot" class="text-button">Open Notes folder</button>
           </footer>
         </aside>
         <aside class="notes-list-pane">
@@ -252,7 +278,7 @@
           <h2>Transcription</h2>
           <p class="muted">
             Choose where transcription runs. <strong>Local</strong> uses
-            <code>whisper-cli.exe</code> on this machine — fully offline, no API key.
+            <code>whisper-cli</code> on this machine — fully offline, no API key.
             <strong>Groq</strong> sends each clip to Groq's Whisper API — no model
             download, faster on most laptops, requires an account at
             <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>.
@@ -273,9 +299,9 @@
 
             <!-- Local engine fields -->
             <div id="engineLocal" class="engine-section">
-              <label>whisper-cli.exe path</label>
+              <label>whisper-cli path</label>
               <div class="row">
-                <input id="whisperCliPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\whisper-cli.exe" />
+                <input id="whisperCliPath" type="text" placeholder="Path to whisper-cli" />
                 <button id="pickCli" class="text-button">Browse…</button>
               </div>
 
@@ -289,7 +315,7 @@
 
               <label>Or specify a custom .bin path</label>
               <div class="row">
-                <input id="modelPath" type="text" placeholder="C:\\Tools\\whisper.cpp\\models\\ggml-large-v3-turbo-q5_0.bin" />
+                <input id="modelPath" type="text" placeholder="Path to a GGML .bin model" />
                 <button id="pickModel" class="text-button">Browse…</button>
               </div>
             </div>
@@ -299,7 +325,7 @@
               <label>Groq API key</label>
               <input id="groqApiKey" type="password" placeholder="gsk_..." autocomplete="off" />
               <p class="muted small">
-                Stored encrypted via Windows DPAPI (only this Windows user account can decrypt it).
+                Protected with the operating system credential store when available.
                 Get a free key at
                 <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
               </p>
@@ -338,6 +364,10 @@
                 <span>OpenAI</span>
               </label>
               <label class="radio">
+                <input type="radio" name="aiNotesProvider" value="groq" />
+                <span>Groq</span>
+              </label>
+              <label class="radio">
                 <input type="radio" name="aiNotesProvider" value="claudeCode" />
                 <span>Claude Code <span id="claudeCodeStatus" class="muted small"></span></span>
               </label>
@@ -351,7 +381,7 @@
               <label>Anthropic API key</label>
               <input id="anthropicApiKey" type="password" placeholder="sk-ant-..." autocomplete="off" />
               <p class="muted small">
-                Stored encrypted via Windows DPAPI. Get a key at
+                Protected with the operating system credential store when available. Get a key at
                 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
               </p>
 
@@ -363,12 +393,18 @@
               <label>OpenAI API key</label>
               <input id="openaiApiKey" type="password" placeholder="sk-..." autocomplete="off" />
               <p class="muted small">
-                Stored encrypted via Windows DPAPI. Get a key at
+                Protected with the operating system credential store when available. Get a key at
                 <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>.
               </p>
 
               <label>Model</label>
               <select id="openaiModel"></select>
+            </div>
+
+            <div id="aiGroq" class="engine-section">
+              <p class="muted small">Uses the Groq key configured above. No additional key is required.</p>
+              <label>Model</label>
+              <select id="groqNotesModel"></select>
             </div>
 
             <div id="aiClaudeCode" class="engine-section">
@@ -442,20 +478,94 @@
           </div>
 
           <div class="card" style="margin-top:12px">
-            <label>Hotkey</label>
-            <div class="hotkey-display"><kbd>Ctrl</kbd> + <kbd>Win</kbd></div>
-            <p class="muted small">
-              Hold to dictate; release to transcribe. The hotkey is currently fixed — customisation lands later.
+            <label for="aiFormatEnabled">AI formatting</label>
+            <select id="aiFormatEnabled">
+              <option value="false">Off — paste the raw transcript</option>
+              <option value="true">On — remove fillers and clean formatting</option>
+            </select>
+            <label for="groqFormatModel" style="margin-top:12px">Formatting model</label>
+            <select id="groqFormatModel">
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B (fastest)</option>
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B (better quality)</option>
+              <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
+              <option value="qwen/qwen3-32b">Qwen 3 32B</option>
+            </select>
+            <p class="muted small">Uses Groq when its key is available, otherwise Anthropic. If formatting fails, the original transcript is pasted.</p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <label>Dictation shortcut</label>
+            <input id="hotkey" type="hidden">
+            <div class="row">
+              <div id="hotkeyDisplay" class="hotkey-display" aria-live="polite"></div>
+              <button id="recordHotkey" class="text-button" type="button">Record shortcut</button>
+              <button id="useFnHotkey" class="text-button" type="button" hidden>Use Fn</button>
+            </div>
+            <p id="hotkeyHint" class="muted small">
+              Click Record shortcut, then press the keys you want to use.
             </p>
           </div>
 
-          <div class="row end" style="max-width:720px">
+          <div class="card" style="margin-top:12px">
+            <label for="autoUpdate">Automatic updates</label>
+            <select id="autoUpdate">
+              <option value="true">Check and download stable GitHub releases</option>
+              <option value="false">Manual checks only</option>
+            </select>
+            <div id="updateStatus" class="update-status" data-state="idle">Updates have not been checked yet.</div>
+            <div class="row update-actions">
+              <button id="checkUpdates" class="text-button" type="button">Check now</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <label>Permissions</label>
+            <div id="permissionsList" class="permissions-list"></div>
+            <p class="muted small">macOS uses Microphone for recording, Audio Capture for call audio, Accessibility and Input Monitoring for Fn push-to-talk, and Calendar for upcoming meetings.</p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <label for="audioRetentionPolicy">Meeting audio retention</label>
+            <select id="audioRetentionPolicy">
+              <option value="never">Keep audio until I delete it</option>
+              <option value="after_transcription">Delete audio after transcription</option>
+              <option value="1">Delete audio after 1 day</option>
+              <option value="7">Delete after 7 days</option>
+              <option value="30">Delete after 30 days</option>
+            </select>
+            <p class="muted small">Only WAV files are removed. Transcripts, live notes, and AI notes are always preserved.</p>
+            <div class="row" style="flex-wrap:wrap">
+              <span id="meetingAudioUsage" class="muted small"></span>
+              <span style="flex:1"></span>
+              <button id="applyAudioRetention" class="text-button" type="button">Apply now</button>
+              <button id="deleteAllMeetingAudio" class="text-button danger" type="button">Delete all meeting audio</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <label>Support and local data</label>
+            <p id="appDetails" class="muted small"></p>
+            <div class="row" style="flex-wrap:wrap">
+              <button id="openLogs" class="text-button" type="button">Open logs</button>
+              <button id="copyDiagnostics" class="text-button" type="button">Copy diagnostics</button>
+              <button id="exportData" class="text-button" type="button">Export local data</button>
+              <button id="deleteData" class="text-button danger" type="button">Delete all local data</button>
+            </div>
+            <p class="muted small">API keys are masked in diagnostics. Exports can contain recordings, transcripts, notes, and encrypted credentials—store them securely.</p>
+            <div class="row">
+              <button id="openPrivacy" class="text-button" type="button">Privacy</button>
+              <button id="openTerms" class="text-button" type="button">Terms</button>
+            </div>
+          </div>
+
+          <div class="row end">
             <span id="generalSaveStatus" class="muted small"></span>
             <button id="saveGeneral" class="primary-button">Save</button>
           </div>
         </div>
       </section>
     </main>
+    </div>
 
     <script src="main.js"></script>
   </body>

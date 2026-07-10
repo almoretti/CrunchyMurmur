@@ -6,10 +6,22 @@ contextBridge.exposeInMainWorld('wisper', {
   pickFile:       (filters) => ipcRenderer.invoke('settings:pick-file', filters),
 
   getHistory:     () => ipcRenderer.invoke('history:get'),
+  getHistoryStats:() => ipcRenderer.invoke('history:stats'),
   removeHistory:  (id) => ipcRenderer.invoke('history:remove', id),
   clearHistory:   () => ipcRenderer.invoke('history:clear'),
 
   copyText:       (text) => ipcRenderer.invoke('clipboard:write', text),
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  getUpdateStatus: () => ipcRenderer.invoke('update:status'),
+  onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, status) => cb(status)),
+  openLogs:       () => ipcRenderer.invoke('support:open-logs'),
+  diagnostics:    () => ipcRenderer.invoke('support:diagnostics'),
+  exportData:     () => ipcRenderer.invoke('data:export'),
+  deleteData:     () => ipcRenderer.invoke('data:delete'),
+  openLegal:      (name) => ipcRenderer.invoke('legal:open', name),
+  openAppMenu:    (name) => ipcRenderer.invoke('app-menu:open', name),
+  permissionsStatus: () => ipcRenderer.invoke('permissions:status'),
+  permissionsOpen:   (kind) => ipcRenderer.invoke('permissions:open', kind),
 
   // Models
   modelsCatalog:   () => ipcRenderer.invoke('models:catalog'),
@@ -69,18 +81,28 @@ contextBridge.exposeInMainWorld('wisper', {
   // Meetings
   meetingsList:           () => ipcRenderer.invoke('meetings:list'),
   meetingsGet:            (id) => ipcRenderer.invoke('meetings:get', id),
-  meetingsCreate:         (payload) => ipcRenderer.invoke('meetings:create', payload),
+  meetingsBeginRecording: () => ipcRenderer.invoke('meetings:begin-recording'),
   meetingsUpdate:         (id, partial) => ipcRenderer.invoke('meetings:update', { id, partial }),
   meetingsDelete:         (id) => ipcRenderer.invoke('meetings:delete', id),
   meetingsReveal:         (id) => ipcRenderer.invoke('meetings:reveal', id),
-  meetingsSaveAudio:      (id, samples) => ipcRenderer.invoke('meetings:save-audio', { id, samples }),
+  meetingsAudioUsage:     () => ipcRenderer.invoke('meetings:audio-usage'),
+  meetingsCleanupAudio:   (policy) => ipcRenderer.invoke('meetings:cleanup-audio', policy),
+  meetingsDeleteAllAudio: () => ipcRenderer.invoke('meetings:delete-all-audio'),
+  meetingsAppendAudio:    (id, samples) => ipcRenderer.send('meetings:audio-chunk', { id, samples }),
+  meetingsBeginSystemAudio:(id) => ipcRenderer.invoke('meetings:begin-system-audio', id),
+  meetingsAppendSystemAudio:(id, samples) => ipcRenderer.send('meetings:system-audio-chunk', { id, samples }),
+  meetingsFinishRecording:(id) => ipcRenderer.invoke('meetings:finish-recording', id),
+  meetingsAbortRecording: (id) => ipcRenderer.invoke('meetings:abort-recording', id),
   meetingsTranscribe:     (id) => ipcRenderer.invoke('meetings:transcribe', id),
+  meetingsCancelTranscription:(id) => ipcRenderer.invoke('meetings:cancel-transcription', id),
   meetingsGenerateAINotes:(id, templateId) => ipcRenderer.invoke('meetings:generate-ai-notes', { id, templateId }),
   meetingsSendToNotes:    (id, folder) => ipcRenderer.invoke('meetings:send-to-notes', { id, folder }),
   meetingsPillStart:      (payload) => ipcRenderer.invoke('meetings:pill-start', payload),
-  meetingsPillStop:       () => ipcRenderer.invoke('meetings:pill-stop'),
   onMeetingsChanged: (cb) => {
     ipcRenderer.on('meetings:changed', (_e, list) => cb(list));
+  },
+  onMeetingTranscriptionProgress: (cb) => {
+    ipcRenderer.on('meetings:transcription-progress', (_e, progress) => cb(progress));
   },
   onPillRequestStopMeeting: (cb) => {
     ipcRenderer.on('main:request-stop-meeting', () => cb());

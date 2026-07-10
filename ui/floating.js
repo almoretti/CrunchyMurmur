@@ -17,6 +17,7 @@ let analyser = null;
 let chunks = []; // Float32Array[] at native sample rate
 let nativeSampleRate = 48000;
 let rafHandle = null;
+let captureGeneration = 0;
 
 // Meeting timer state — when in 'meeting' state, we tick a 1 s timer based
 // on the startedAt timestamp passed from main. Independent of the dictation
@@ -25,6 +26,7 @@ let meetingStartedAt = 0;
 let meetingTimerHandle = null;
 
 async function startCapture() {
+  const generation = ++captureGeneration;
   let micDeviceId = '';
   try {
     const cfg = await window.wisper.getSettings();
@@ -43,10 +45,17 @@ async function startCapture() {
   if (micDeviceId) audioConstraints.deviceId = { exact: micDeviceId };
 
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+    if (generation !== captureGeneration) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    mediaStream = stream;
   } catch (e) {
+    if (generation !== captureGeneration) return;
     console.error('[floating] getUserMedia failed:', e);
     setLabel(micDeviceId ? 'Mic unavailable' : 'Mic blocked');
+    window.wisper.captureFailed(e && e.message ? e.message : String(e));
     return;
   }
 
@@ -93,6 +102,7 @@ function drawMeter() {
 }
 
 function stopCapture() {
+  captureGeneration += 1;
   if (rafHandle) cancelAnimationFrame(rafHandle);
   rafHandle = null;
   if (processorNode) { try { processorNode.disconnect(); } catch {} processorNode = null; }
