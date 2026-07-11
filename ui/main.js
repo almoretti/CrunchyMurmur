@@ -1494,6 +1494,7 @@ const autoUpdateEl = document.getElementById('autoUpdate');
 const audioRetentionPolicyEl = document.getElementById('audioRetentionPolicy');
 const aiFormatEnabledEl = document.getElementById('aiFormatEnabled');
 const groqFormatModelEl = document.getElementById('groqFormatModel');
+const aiFormatFallbackEl = document.getElementById('aiFormatFallback');
 const updateStatusEl = document.getElementById('updateStatus');
 const saveEngineBtn = document.getElementById('saveEngine');
 const saveGeneralBtn = document.getElementById('saveGeneral');
@@ -1886,6 +1887,7 @@ saveGeneralBtn.addEventListener('click', async () => {
       audioRetentionPolicy: audioRetentionPolicyEl.value,
       aiFormatEnabled: aiFormatEnabledEl.value,
       groqFormatModel: groqFormatModelEl.value,
+      aiFormatFallback: aiFormatFallbackEl.value,
     });
     window.__lastSettings = cfg;
     generalSaveStatusEl.style.color = '';
@@ -2117,6 +2119,7 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   audioRetentionPolicyEl.value = cfg.audioRetentionPolicy || 'never';
   aiFormatEnabledEl.value = cfg.aiFormatEnabled || 'false';
   groqFormatModelEl.value = cfg.groqFormatModel || 'llama-3.1-8b-instant';
+  aiFormatFallbackEl.value = cfg.aiFormatFallback || 'raw';
   await refreshMeetingAudioUsage();
   await renderPermissions();
   document.getElementById('appDetails').textContent = `CrunchyMurmur ${cfg.version} · ${cfg.platform} ${cfg.arch}`;

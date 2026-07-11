@@ -519,18 +519,26 @@
 
           <div class="card" style="margin-top:12px">
             <label for="aiFormatEnabled">AI formatting</label>
+            <p class="muted small" data-i18n="AI formatting removes filler words and false starts, fixes punctuation and capitalization, and turns spoken lists into bullets. It does not change the intended meaning.">AI formatting removes filler words and false starts, fixes punctuation and capitalization, and turns spoken lists into bullets. It does not change the intended meaning.</p>
             <select id="aiFormatEnabled">
               <option value="false">Off — paste the raw transcript</option>
               <option value="true">On — remove fillers and clean formatting</option>
             </select>
             <label for="groqFormatModel" style="margin-top:12px">Formatting model</label>
             <select id="groqFormatModel">
-              <option value="llama-3.1-8b-instant">Llama 3.1 8B (fastest)</option>
-              <option value="llama-3.3-70b-versatile">Llama 3.3 70B (better quality)</option>
-              <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
-              <option value="qwen/qwen3-32b">Qwen 3 32B</option>
+              <option value="llama-3.1-8b-instant" data-i18n="Llama 3.1 8B — Cloud, Groq (fastest)">Llama 3.1 8B — Cloud, Groq (fastest)</option>
+              <option value="llama-3.3-70b-versatile" data-i18n="Llama 3.3 70B — Cloud, Groq (better quality)">Llama 3.3 70B — Cloud, Groq (better quality)</option>
+              <option value="meta-llama/llama-4-scout-17b-16e-instruct" data-i18n="Llama 4 Scout 17B — Cloud, Groq">Llama 4 Scout 17B — Cloud, Groq</option>
+              <option value="qwen/qwen3-32b" data-i18n="Qwen 3 32B — Cloud, Groq">Qwen 3 32B — Cloud, Groq</option>
             </select>
-            <p class="muted small">Uses Groq when its key is available, otherwise Anthropic. If formatting fails, the original transcript is pasted.</p>
+            <p class="muted small" data-i18n="Cloud processing sends transcript text, but not audio, to Groq. It requires a Groq account and API key; no model download or local storage is needed. Provider charges may apply.">Cloud processing sends transcript text, but not audio, to Groq. It requires a Groq account and API key; no model download or local storage is needed. Provider charges may apply.</p>
+            <label for="aiFormatFallback" data-i18n="When Groq is unavailable">When Groq is unavailable</label>
+            <select id="aiFormatFallback">
+              <option value="raw" data-i18n="Paste the raw transcript (no other provider)">Paste the raw transcript (no other provider)</option>
+              <option value="anthropic" data-i18n="Use Anthropic Claude Haiku if its API key is configured">Use Anthropic Claude Haiku if its API key is configured</option>
+            </select>
+            <p class="muted small" data-i18n="Anthropic fallback sends transcript text, but not audio, to Anthropic. It requires an Anthropic account and API key. Provider charges may apply.">Anthropic fallback sends transcript text, but not audio, to Anthropic. It requires an Anthropic account and API key. Provider charges may apply.</p>
+            <p class="muted small" data-i18n="Formatting errors always fall back to the raw transcript so dictation is not lost.">Formatting errors always fall back to the raw transcript so dictation is not lost.</p>
           </div>
 
           <div class="card" style="margin-top:12px">

@@ -24,7 +24,7 @@ async function format(text, settings) {
         maxTokens: 1024,
       });
     }
-    if (settings.anthropicApiKey) {
+    if (settings.aiFormatFallback === 'anthropic' && settings.anthropicApiKey) {
       return await anthropic.generate({
         apiKey: settings.anthropicApiKey,
         model: 'claude-haiku-4-5',
