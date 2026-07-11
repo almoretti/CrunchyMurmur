@@ -21,6 +21,8 @@ test('meeting AI prompt includes live notes as labelled context', () => {
   assert.match(prompt, /meeting transcript and may contain multiple speakers/);
   assert.doesNotMatch(prompt, /There are no other speakers/);
   assert.match(prompt, /# Transcript\n\[YOU\] Welcome/);
+  assert.match(prompt, /Do not invent details that aren't in the supplied material/);
+  assert.doesNotMatch(prompt, /aren't in the transcript/);
 });
 
 test('dictation AI prompt does not add a live-notes section', () => {

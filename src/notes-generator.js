@@ -85,7 +85,7 @@ ${recording.text}
 # Your task
 ${template.instructions}
 
-Output in clean Markdown. Use headings (##) for sections. Be concise — avoid filler words and repetition. Do not invent details that aren't in the transcript. If a section has nothing to fill, write "_None._" rather than padding.`;
+Output in clean Markdown. Use headings (##) for sections. Be concise — avoid filler words and repetition. Do not invent details that aren't in the supplied material. If a section has nothing to fill, write "_None._" rather than padding.`;
 }
 
 async function generateFromRecording({ recording, templateId, provider, model }) {

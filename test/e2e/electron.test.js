@@ -41,6 +41,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     env: {
       ...process.env,
       ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+      CRUNCHYMURMUR_E2E: '1',
       CRUNCHYMURMUR_E2E_NOTES_DIR: notesDir,
     },
   });
@@ -214,7 +215,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   });
   assert.equal(liveNotesEditor.engine, 'muya');
   assert.equal(liveNotesEditor.compact, false, 'live meeting notes use the reduced compact editor');
-  assert.ok(liveNotesEditor.height >= 220, `live meeting notes editor is only ${liveNotesEditor.height}px tall`);
+  assert.ok(liveNotesEditor.height >= 240, `live meeting notes editor is only ${liveNotesEditor.height}px tall`);
   assert.equal(liveNotesEditor.padding, '24px 32px 72px', 'live meeting notes do not use the full Notes canvas');
   if (process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) {
     await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) });
