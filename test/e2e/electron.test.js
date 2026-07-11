@@ -120,17 +120,22 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     const textarea = document.getElementById('templateInstructions');
     const editor = textarea.__crunchyEditor;
     const original = editor.getValue();
-    editor.setValue('# Agenda\n\n**Decision**\n\n<script>window.editorXss = true</script>');
+    window.editorXss = false;
+    editor.setValue('# Agenda\n\n**Decision**\n\n<script>window.editorXss = true</script>\n\n<img src="x" onerror="window.editorXss = true">\n\n[unsafe](javascript:window.editorXss=true)');
     const heading = editor.shell.querySelector('h1')?.textContent;
     const strong = editor.shell.querySelector('strong')?.textContent;
     const scriptCount = editor.shell.querySelectorAll('script').length;
+    const imageCount = editor.shell.querySelectorAll('img').length;
+    const unsafeHref = editor.shell.querySelector('a')?.getAttribute('href') || '';
+    const xssExecuted = window.editorXss;
     const contenteditable = editor.shell.querySelector('[contenteditable="true"]')?.getAttribute('contenteditable');
     const markdown = editor.getValue();
     const stats = document.getElementById('templateEditorStats').textContent;
     const editorFontSize = getComputedStyle(editor.shell.querySelector('.mu-editor')).fontSize;
     editor.setValue(original);
     return {
-      heading, strong, scriptCount, contenteditable, markdown, stats, editorFontSize,
+      heading, strong, scriptCount, imageCount, unsafeHref, xssExecuted,
+      contenteditable, markdown, stats, editorFontSize,
       mountedEditors: document.querySelectorAll('.text-editor-shell').length,
       legacyModeButtons: document.querySelectorAll('[data-editor-mode]').length,
     };
@@ -139,6 +144,9 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.equal(editorRegression.strong, 'Decision');
   assert.equal(editorRegression.contenteditable, 'true');
   assert.equal(editorRegression.scriptCount, 0, 'Markdown editor rendered executable HTML');
+  assert.equal(editorRegression.imageCount, 0, 'Markdown editor rendered a raw HTML event-handler vector');
+  assert.doesNotMatch(editorRegression.unsafeHref, /^javascript:/i, 'Markdown editor retained a javascript URL');
+  assert.equal(editorRegression.xssExecuted, false, 'Markdown editor executed an XSS payload');
   assert.equal(editorRegression.editorFontSize, '13px', 'the editor ignored CrunchyMurmur typography');
   assert.match(editorRegression.markdown, /<script>window\.editorXss = true<\/script>/);
   assert.match(editorRegression.stats, /words · .*characters · .*lines/);
