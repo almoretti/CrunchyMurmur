@@ -16,8 +16,14 @@ scripts, and `docs/platform-support.md`.
   download link with the latest GitHub release via the public API. Without
   JavaScript (or before the first release exists) all links fall back to the
   GitHub Releases page.
+- `docs.html` + `docs.js` — hosted documentation viewer at `/docs`. Fetches the
+  Markdown under `docs/` from raw.githubusercontent.com (branch `main`) at page
+  load and renders it client-side, so GitHub stays the single source of truth.
+  The `DOCS` manifest in `docs.js` must mirror the files under `docs/`.
+- `vendor/markdown-it.min.js` — Markdown renderer, vendored from the repository's
+  `node_modules` (no CDN dependency).
 - `server.js` + `package.json` — zero-dependency static server so Railway's Node
-  builder can run `npm start`.
+  builder can run `npm start` (serves `/docs` as `docs.html`).
 - `assets/` — brand mark and screenshots copied from `assets/` and `docs/images/`.
 
 ## Local preview

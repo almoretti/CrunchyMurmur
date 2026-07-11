@@ -29,6 +29,10 @@ const server = http.createServer((req, res) => {
   if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
     filePath = path.join(filePath, 'index.html');
   }
+  // Extensionless page routes: /docs -> docs.html
+  if (!path.extname(filePath) && fs.existsSync(filePath + '.html')) {
+    filePath += '.html';
+  }
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
