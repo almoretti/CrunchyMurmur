@@ -4,6 +4,8 @@
   "private": true,
   "description": "Landing page for CrunchyMurmur, deployed to Railway from this subfolder.",
   "scripts": {
+    "prestart": "node generate-i18n.js",
+    "build": "node generate-i18n.js",
     "start": "node server.js"
   },
   "engines": {
