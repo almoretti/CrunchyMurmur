@@ -18,6 +18,8 @@
   [Download](https://github.com/almoretti/CrunchyMurmur/releases/latest) · [Documentation](docs/README.md) · [Report a bug](https://github.com/almoretti/CrunchyMurmur/issues/new/choose) · [Security](.github/SECURITY.md)
 </div>
 
+![CrunchyMurmur dashboard with live dictation active](docs/images/hero.png)
+
 ---
 
 ## What it does
@@ -40,6 +42,14 @@ The interface is available in 12 languages — English, Italiano, Español, Port
 | ![CrunchyMurmur General settings in light mode](docs/images/general.png) | ![CrunchyMurmur transcription engine settings](docs/images/engine.png) |
 
 Screenshots use a clean automated test profile with no personal data or credentials.
+
+## Notes that stay yours
+
+| Markdown notes workspace | Focused note editing |
+|---|---|
+| ![CrunchyMurmur Notes workspace](docs/images/notes.png) | ![CrunchyMurmur Markdown note editor](docs/images/note-editor.png) |
+
+Notes are ordinary Markdown files in your Documents folder, so they remain portable, searchable, and usable with other editors.
 
 ## Install
 

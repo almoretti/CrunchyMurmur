@@ -904,16 +904,12 @@ kbd {
   user-select: text; -webkit-user-select: text;
 }
 .meeting-notes:focus { outline: none; border-color: var(--accent); }
-.meeting-section .text-editor-shell.compact {
-  height: 170px;
-  min-height: 170px;
+.meeting-section .text-editor-shell {
+  height: clamp(240px, 38vh, 360px);
+  min-height: 240px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-tint);
-}
-.text-editor-shell.compact .mu-container {
-  max-width: none;
-  padding: 12px 16px 30px;
 }
 
 .meeting-transcript-box, .meeting-ai-box {

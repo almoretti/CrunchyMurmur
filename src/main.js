@@ -978,7 +978,9 @@ handle('meetings:generate-ai-notes', async (_e, payload) => {
     // backbone so this works without a separate codepath.
     const result = await aiNotes.generateFromRecording({
       recording: {
+        kind: 'meeting',
         text: m.transcript,
+        userNotes: m.userNotes || '',
         createdAt: m.createdAt,
         durationSec: m.durationSec || 0,
         language: settings.load().language,

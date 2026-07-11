@@ -7,6 +7,22 @@ const { _electron: electron } = require('@playwright/test');
 
 test('desktop shell opens and exposes stable settings controls', { timeout: 30_000 }, async (t) => {
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-e2e-'));
+  const notesDir = path.join(userData, 'notes');
+  fs.mkdirSync(path.join(notesDir, 'Inbox'), { recursive: true });
+  fs.mkdirSync(path.join(notesDir, 'Meetings'), { recursive: true });
+  const noteFixtures = [
+    ['Inbox', 'launch-plan.md', '# Launch plan\n\nA focused checklist for the first public release.\n\n## This week\n\n- Finish platform smoke tests\n- Verify signed release assets\n- Publish the getting-started guide\n\n## Decision\n\nShip through GitHub Releases first, with website downloads pointing to the verified artifacts.'],
+    ['Inbox', 'voice-workflow.md', '# Voice workflow ideas\n\nCapture thoughts without leaving the current app.\n\n- Hold the shortcut while speaking\n- Release to transcribe\n- Keep the original meaning when formatting'],
+    ['Inbox', 'weekly-review.md', '# Weekly review\n\n## Wins\n\n- Cross-platform builds are green\n- Notes editing feels calm and focused'],
+    ['Meetings', 'product-sync.md', '# Product sync · 11 July\n\n> Recorded locally and turned into structured notes.\n\n## TL;DR\n\nThe team agreed to keep the first release simple: private dictation, dependable transcription, and a polished Markdown notes workflow.\n\n## Key points\n\n- GitHub Releases remains the source of truth\n- Windows, macOS, and Linux stay at feature parity\n- Documentation should lead with the real workflow\n\n## Action items\n\n- [x] Validate the release pipeline\n- [ ] Capture product screenshots\n- [ ] Publish the launch page'],
+    ['Meetings', 'research-notes.md', '# Research notes\n\nLocal-first tools earn trust by making data flow visible and optional cloud features explicit.'],
+  ];
+  noteFixtures.forEach(([folder, filename, content], index) => {
+    const file = path.join(notesDir, folder, filename);
+    fs.writeFileSync(file, content);
+    const modified = new Date(Date.now() - index * 60_000);
+    fs.utimesSync(file, modified, modified);
+  });
   fs.writeFileSync(path.join(userData, 'history.json'), JSON.stringify(Array.from({ length: 120 }, (_, index) => ({
     id: `fixture-${index}`,
     text: `Recording ${index + 1}: this transcript preview must remain readable even when the history contains many entries. `.repeat(4),
@@ -22,7 +38,12 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
 
   electronApp = await electron.launch({
     args: [path.resolve(__dirname, '..', '..'), `--user-data-dir=${userData}`, '--show'],
-    env: { ...process.env, ELECTRON_DISABLE_SECURITY_WARNINGS: 'true' },
+    env: {
+      ...process.env,
+      ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+      CRUNCHYMURMUR_E2E: '1',
+      CRUNCHYMURMUR_E2E_NOTES_DIR: notesDir,
+    },
   });
 
   const deadline = Date.now() + 20_000;
@@ -182,6 +203,20 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.match(editorRegression.stats, /words · .*characters · .*lines/);
   assert.equal(editorRegression.mountedEditors, 3, 'not every editable Markdown surface uses the shared editor');
   assert.equal(editorRegression.legacyModeButtons, 0, 'obsolete source/preview controls remain visible');
+  const liveNotesEditor = await page.locator('#meetingUserNotes').evaluate((textarea) => {
+    const shell = textarea.__crunchyEditor.shell;
+    const container = shell.querySelector('.mu-container');
+    return {
+      engine: shell.dataset.editorEngine,
+      compact: shell.classList.contains('compact'),
+      height: Number.parseFloat(getComputedStyle(shell).height),
+      padding: getComputedStyle(container).padding,
+    };
+  });
+  assert.equal(liveNotesEditor.engine, 'muya');
+  assert.equal(liveNotesEditor.compact, false, 'live meeting notes use the reduced compact editor');
+  assert.ok(liveNotesEditor.height >= 240, `live meeting notes editor is only ${liveNotesEditor.height}px tall`);
+  assert.equal(liveNotesEditor.padding, '24px 32px 72px', 'live meeting notes do not use the full Notes canvas');
   if (process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) {
     await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) });
   }
@@ -192,6 +227,45 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.equal(await page.locator('#statStreak').textContent(), '1');
   if (process.env.CRUNCHYMURMUR_SCREENSHOT_DASHBOARD) {
     await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_DASHBOARD) });
+  }
+  if (process.env.CRUNCHYMURMUR_SCREENSHOT_HERO) {
+    const overlay = await page.evaluate(() => new Promise((resolve) => {
+      const frame = document.createElement('iframe');
+      frame.id = 'screenshotDictationOverlay';
+      frame.src = './floating.html';
+      Object.assign(frame.style, {
+        position: 'fixed', left: '50%', bottom: '30px', width: '300px', height: '60px',
+        transform: 'translateX(-50%)', border: '0', background: 'transparent', zIndex: '9999',
+      });
+      frame.addEventListener('load', () => {
+        const doc = frame.contentDocument;
+        doc.body.className = 'state-recording';
+        doc.getElementById('label').textContent = 'Recording';
+        doc.getElementById('timer').textContent = '0:18';
+        [...doc.querySelectorAll('.waveform span')].forEach((bar, index) => {
+          bar.style.height = `${[8, 15, 21, 12, 18, 23, 14, 19, 9][index]}px`;
+          bar.style.opacity = '0.85';
+        });
+        resolve(true);
+      }, { once: true });
+      document.body.appendChild(frame);
+    }));
+    assert.equal(overlay, true);
+    await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_HERO) });
+    await page.locator('#screenshotDictationOverlay').evaluate((frame) => frame.remove());
+  }
+
+  if (process.env.CRUNCHYMURMUR_SCREENSHOT_NOTES || process.env.CRUNCHYMURMUR_SCREENSHOT_NOTE_EDITOR) {
+    await page.locator('[data-tab="notes"]').click();
+    await page.locator('#noteEditor:not(.hidden)').waitFor({ state: 'visible' });
+    if (process.env.CRUNCHYMURMUR_SCREENSHOT_NOTES) {
+      await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_NOTES) });
+    }
+    if (process.env.CRUNCHYMURMUR_SCREENSHOT_NOTE_EDITOR) {
+      await page.locator('#foldersList li').filter({ hasText: 'Meetings' }).click();
+      await page.locator('#noteTitle').waitFor({ state: 'visible' });
+      await page.locator('.notes-editor-pane').screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_NOTE_EDITOR) });
+    }
   }
   await page.locator('[data-tab="history"]').click();
   await page.locator('.entry').first().waitFor({ state: 'attached' });
