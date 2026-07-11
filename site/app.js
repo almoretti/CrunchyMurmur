@@ -69,8 +69,12 @@
   };
 
   // --- Language picker navigates to the selected page. ---
+  // Only same-origin language paths ("/" or "/xx/") are accepted, so a tampered
+  // option value can never become a javascript: or cross-origin navigation.
   const langPicker = document.getElementById('lang-picker');
-  if (langPicker) langPicker.addEventListener('change', () => { window.location.href = langPicker.value; });
+  if (langPicker) langPicker.addEventListener('change', () => {
+    if (/^\/([a-z]{2}\/)?$/.test(langPicker.value)) window.location.assign(langPicker.value);
+  });
 
   const OS_PRIMARY_ASSET = {
     windows: detectWindowsArm() ? 'win-arm64' : 'win-x64',
