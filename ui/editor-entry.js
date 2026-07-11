@@ -44,7 +44,6 @@ function mount(textarea, options = {}) {
   const surface = shell.querySelector('.text-editor-surface');
   const stats = options.stats ? document.querySelector(options.stats) : null;
   let suppressInput = false;
-  let allSelected = false;
   const readMarkdown = () => muya.getMarkdown().replace(/\n$/, '');
 
   const updateMirror = (dispatchInput = true) => {
@@ -69,13 +68,6 @@ function mount(textarea, options = {}) {
   muya.init();
   muya.on('json-change', () => updateMirror(true));
 
-  const inlineFormats = {
-    bold: 'strong',
-    italic: 'em',
-    strike: 'del',
-    code: 'inline_code',
-  };
-
   const api = {
     getValue: readMarkdown,
     setValue(value) {
@@ -84,34 +76,12 @@ function mount(textarea, options = {}) {
       suppressInput = true;
       muya.setContent(next);
       suppressInput = false;
-      allSelected = false;
       updateMirror(false);
     },
     hasFocus: () => shell.contains(document.activeElement),
     focus: () => muya.focus(),
-    selectAll() {
-      muya.focus();
-      muya.selectAll();
-      allSelected = true;
-    },
     setMode() {
       // Muya is an always-live Markdown WYSIWYG surface; preview modes are obsolete.
-    },
-    format(action) {
-      const type = inlineFormats[action];
-      if (!type) return;
-      if (allSelected) {
-        const markers = type === 'strong' ? ['**', '**']
-          : type === 'em' ? ['*', '*']
-            : type === 'del' ? ['~~', '~~'] : ['`', '`'];
-        api.setValue(`${markers[0]}${readMarkdown()}${markers[1]}`);
-        muya.selectAll();
-      } else {
-        muya.editor.activeContentBlock?.format(type);
-        updateMirror(true);
-      }
-      allSelected = false;
-      muya.focus();
     },
     destroy() {
       muya.destroy();

@@ -59,6 +59,13 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   }
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
 
+  const applicationDensity = await page.evaluate(() => ({
+    bodyFontSize: getComputedStyle(document.body).fontSize,
+    sidebarWidth: document.querySelector('.sidebar').getBoundingClientRect().width,
+  }));
+  assert.equal(applicationDensity.bodyFontSize, '13px', 'the editor stylesheet changed application typography');
+  assert.equal(applicationDensity.sidebarWidth, 212, 'the editor stylesheet changed application layout density');
+
   await page.locator('[data-tab="general"]').click();
   assert.equal(await page.locator('input[name="theme"]').count(), 3);
   assert.equal(await page.locator('input[name="theme"][value="system"]').isChecked(), true);
@@ -113,10 +120,6 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     const textarea = document.getElementById('templateInstructions');
     const editor = textarea.__crunchyEditor;
     const original = editor.getValue();
-    editor.setValue('format me');
-    editor.selectAll();
-    editor.format('bold');
-    const formatted = editor.getValue();
     editor.setValue('# Agenda\n\n**Decision**\n\n<script>window.editorXss = true</script>');
     const heading = editor.shell.querySelector('h1')?.textContent;
     const strong = editor.shell.querySelector('strong')?.textContent;
@@ -124,18 +127,19 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     const contenteditable = editor.shell.querySelector('[contenteditable="true"]')?.getAttribute('contenteditable');
     const markdown = editor.getValue();
     const stats = document.getElementById('templateEditorStats').textContent;
+    const editorFontSize = getComputedStyle(editor.shell.querySelector('.mu-editor')).fontSize;
     editor.setValue(original);
     return {
-      formatted, heading, strong, scriptCount, contenteditable, markdown, stats,
+      heading, strong, scriptCount, contenteditable, markdown, stats, editorFontSize,
       mountedEditors: document.querySelectorAll('.text-editor-shell').length,
       legacyModeButtons: document.querySelectorAll('[data-editor-mode]').length,
     };
   });
-  assert.equal(editorRegression.formatted, '**format me**');
   assert.match(editorRegression.heading, /Agenda$/);
   assert.equal(editorRegression.strong, 'Decision');
   assert.equal(editorRegression.contenteditable, 'true');
   assert.equal(editorRegression.scriptCount, 0, 'Markdown editor rendered executable HTML');
+  assert.equal(editorRegression.editorFontSize, '13px', 'the editor ignored CrunchyMurmur typography');
   assert.match(editorRegression.markdown, /<script>window\.editorXss = true<\/script>/);
   assert.match(editorRegression.stats, /words · .*characters · .*lines/);
   assert.equal(editorRegression.mountedEditors, 3, 'not every editable Markdown surface uses the shared editor');
