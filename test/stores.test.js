@@ -27,23 +27,23 @@ function loadWithElectronMock(modulePath, appPaths) {
   finally { Module._load = originalLoad; }
 }
 
-test('whisper-cli discovery includes Homebrew and validates a compatible executable', () => {
+test('whisper-cli discovery includes Homebrew and validates a compatible executable', async () => {
   const cli = require('../src/whisper-cli');
   const candidates = cli.standardPaths('darwin', { HOME: '/Users/test', PATH: '/custom/bin' });
   assert.ok(candidates.includes('/opt/homebrew/bin/whisper-cli'));
   assert.ok(candidates.includes('/usr/local/bin/whisper-cli'));
   assert.ok(candidates.includes('/custom/bin/whisper-cli'));
 
-  const valid = cli.validateWhisperCli('/opt/homebrew/bin/whisper-cli', {
+  const valid = await cli.validateWhisperCli('/opt/homebrew/bin/whisper-cli', {
     platform: 'darwin',
-    statSync: () => ({ isFile: () => true, mode: 0o755 }),
+    stat: async () => ({ isFile: () => true, mode: 0o755 }),
     run: () => ({ status: 0, stdout: 'whisper-cli 1.7.4\n' }),
   });
   assert.deepEqual(valid, { valid: true, path: '/opt/homebrew/bin/whisper-cli', version: 'whisper-cli 1.7.4' });
 
-  const discovered = cli.discoverWhisperCli({
+  const discovered = await cli.discoverWhisperCli({
     platform: 'darwin', env: { HOME: '/Users/test', PATH: '' },
-    validate: (candidate) => candidate === '/usr/local/bin/whisper-cli'
+    validate: async (candidate) => candidate === '/usr/local/bin/whisper-cli'
       ? { valid: true, path: candidate, version: 'whisper-cli 1.7.4' }
       : { valid: false },
   });

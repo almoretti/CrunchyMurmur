@@ -1712,18 +1712,33 @@ function setReadiness(el, ready, message) {
   el.classList.toggle('incomplete', !ready);
 }
 
+let localReadinessRequest = 0;
+let modelReadinessRequest = 0;
+
+async function refreshModelReadiness() {
+  const request = ++modelReadinessRequest;
+  const result = await window.wisper.localModelStatus(modelPathEl.value.trim());
+  if (request !== modelReadinessRequest) return result;
+  setReadiness(modelReadinessEl, result.valid, result.valid ? 'GGML model is ready.' : result.reason);
+  return result;
+}
+
 async function refreshLocalReadiness({ discover = true } = {}) {
+  const request = ++localReadinessRequest;
+  const preferredPath = whisperCliPathEl.value.trim();
   setReadiness(cliReadinessEl, false, 'Checking whisper-cli…');
-  const result = await window.wisper.whisperCliStatus(discover ? whisperCliPathEl.value.trim() : '');
+  const [result, model] = await Promise.all([
+    window.wisper.whisperCliStatus(discover ? preferredPath : ''),
+    refreshModelReadiness(),
+  ]);
+  if (request !== localReadinessRequest) return { cli: result, model };
   if (result.valid) {
     if (result.discovered) whisperCliPathEl.value = result.path;
     setReadiness(cliReadinessEl, true, `${result.discovered ? 'Found' : 'Ready'}: ${result.path}${result.version ? ` (${result.version})` : ''}`);
   } else {
     setReadiness(cliReadinessEl, false, 'whisper-cli is required before local transcription can run.');
   }
-  const hasModel = Boolean(modelPathEl.value.trim());
-  setReadiness(modelReadinessEl, hasModel, hasModel ? 'GGML model selected.' : 'Choose or download a GGML model.');
-  return result;
+  return { cli: result, model };
 }
 
 document.getElementById('showCliSetup').addEventListener('click', () => {
@@ -1735,7 +1750,7 @@ document.getElementById('showCliSetup').addEventListener('click', () => {
   cliSetupGuideEl.textContent = `Install whisper.cpp: ${command} Browse is available if it is already installed somewhere else. After installation, select Local or Refresh this page to detect and validate it.`;
 });
 document.getElementById('refreshCli').addEventListener('click', () => void refreshLocalReadiness());
-modelPathEl.addEventListener('input', () => void refreshLocalReadiness());
+modelPathEl.addEventListener('input', () => void refreshModelReadiness());
 
 document.querySelectorAll('input[name="engineKind"]').forEach((r) => {
   r.addEventListener('change', (e) => applyEngineKind(e.target.value));
@@ -1754,7 +1769,7 @@ document.getElementById('pickModel').addEventListener('click', async () => {
   const p = await window.wisper.pickFile([{ name: 'GGML model', extensions: ['bin'] }]);
   if (p) {
     modelPathEl.value = p;
-    await refreshLocalReadiness();
+    await refreshModelReadiness();
   }
 });
 
