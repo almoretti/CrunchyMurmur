@@ -1834,8 +1834,8 @@ function renderAiNotesEffectiveConfig() {
     anthropic: `Anthropic · ${anthropicModelEl.value}`,
     openai: `OpenAI · ${openaiModelEl.value}`,
     groq: `Groq · ${groqNotesModelEl.value}`,
-    claudeCode: `Claude Code · ${claudeCodeModelEl.value.trim() || window.i18n.t('CLI default')} · ${claudeCodeEffortEl.selectedOptions[0]?.textContent}`,
-    codex: `Codex · ${codexModelEl.value.trim() || window.i18n.t('CLI default')} · ${codexReasoningEffortEl.selectedOptions[0]?.textContent}`,
+    claudeCode: `Claude Code · ${claudeCodeModelEl.selectedOptions[0]?.textContent} · ${claudeCodeEffortEl.selectedOptions[0]?.textContent}`,
+    codex: `Codex · ${codexModelEl.selectedOptions[0]?.textContent} · ${codexReasoningEffortEl.selectedOptions[0]?.textContent}`,
   };
   aiNotesEffectiveConfigEl.textContent = window.i18n.t('Effective configuration: {0}', { 0: configs[provider] });
 }

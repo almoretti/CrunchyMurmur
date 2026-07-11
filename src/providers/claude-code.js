@@ -19,6 +19,12 @@ function isAvailable() {
 }
 
 const EFFORTS = ['low', 'medium', 'high'];
+const MODELS = [
+  { id: '', label: 'CLI default (recommended)' },
+  { id: 'sonnet', label: 'Claude Sonnet (balanced)' },
+  { id: 'haiku', label: 'Claude Haiku (fastest)' },
+  { id: 'opus', label: 'Claude Opus (highest quality)' },
+];
 
 async function generate({ prompt, model, effort = 'medium' }) {
   const exe = executable();
@@ -49,4 +55,4 @@ async function generate({ prompt, model, effort = 'medium' }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Claude Code', EFFORTS };
+module.exports = { generate, isAvailable, executable, displayName: 'Claude Code', EFFORTS, MODELS };

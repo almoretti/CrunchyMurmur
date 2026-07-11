@@ -406,8 +406,13 @@
               <p class="muted small" id="claudeCodeDetail">
                 Uses your installed <code>claude</code> CLI. Status checked at app launch.
               </p>
-              <label for="claudeCodeModel">Model override</label>
-              <input id="claudeCodeModel" type="text" placeholder="Leave blank to use the CLI default" autocomplete="off" />
+              <label for="claudeCodeModel">Model</label>
+              <select id="claudeCodeModel">
+                <option value="">CLI default (recommended)</option>
+                <option value="sonnet">Claude Sonnet (balanced)</option>
+                <option value="haiku">Claude Haiku (fastest)</option>
+                <option value="opus">Claude Opus (highest quality)</option>
+              </select>
               <label for="claudeCodeEffort">Effort</label>
               <select id="claudeCodeEffort">
                 <option value="low">Low — fastest, lowest subscription usage</option>
@@ -420,8 +425,13 @@
               <p class="muted small" id="codexDetail">
                 Uses your installed <code>codex</code> CLI. Status checked at app launch.
               </p>
-              <label for="codexModel">Model override</label>
-              <input id="codexModel" type="text" placeholder="Leave blank to use the CLI default" autocomplete="off" />
+              <label for="codexModel">Model</label>
+              <select id="codexModel">
+                <option value="">CLI default (recommended)</option>
+                <option value="gpt-5.3-codex">GPT-5.3-Codex (agentic coding)</option>
+                <option value="gpt-5.4">GPT-5.4 (balanced)</option>
+                <option value="gpt-5.4-mini">GPT-5.4 mini (faster, lower usage)</option>
+              </select>
               <label for="codexReasoningEffort">Reasoning effort</label>
               <select id="codexReasoningEffort">
                 <option value="low">Low — fastest, lowest subscription usage</option>

@@ -16,9 +16,9 @@ function listProviders() {
     { id: 'openai', displayName: 'OpenAI API', models: openai.MODELS, defaultModel: openai.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
     { id: 'groq', displayName: 'Groq API (free tier)', models: groq.MODELS, defaultModel: groq.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
     { id: 'claudeCode', displayName: 'Claude Code (your subscription)', kind: 'cli',
-      available: claudeCode.isAvailable(), executable: claudeCode.executable(), controls: ['model', 'effort'], efforts: claudeCode.EFFORTS },
+      available: claudeCode.isAvailable(), executable: claudeCode.executable(), controls: ['model', 'effort'], models: claudeCode.MODELS, defaultModel: '', efforts: claudeCode.EFFORTS },
     { id: 'codex',      displayName: 'Codex (your subscription)', kind: 'cli',
-      available: codex.isAvailable(), executable: codex.executable(), controls: ['model', 'reasoningEffort'], efforts: codex.REASONING_EFFORTS },
+      available: codex.isAvailable(), executable: codex.executable(), controls: ['model', 'reasoningEffort'], models: codex.MODELS, defaultModel: '', efforts: codex.REASONING_EFFORTS },
   ];
 }
 

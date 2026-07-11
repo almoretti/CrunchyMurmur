@@ -17,6 +17,12 @@ function isAvailable() {
 }
 
 const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
+const MODELS = [
+  { id: '', label: 'CLI default (recommended)' },
+  { id: 'gpt-5.3-codex', label: 'GPT-5.3-Codex (agentic coding)' },
+  { id: 'gpt-5.4', label: 'GPT-5.4 (balanced)' },
+  { id: 'gpt-5.4-mini', label: 'GPT-5.4 mini (faster, lower usage)' },
+];
 
 async function generate({ prompt, model, reasoningEffort = 'medium' }) {
   const exe = executable();
@@ -46,4 +52,4 @@ async function generate({ prompt, model, reasoningEffort = 'medium' }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS };
+module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS, MODELS };

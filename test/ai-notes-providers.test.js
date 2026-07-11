@@ -5,6 +5,13 @@ const subprocess = require('../src/providers/subprocess');
 const claudeCode = require('../src/providers/claude-code');
 const codex = require('../src/providers/codex');
 
+test('CLI providers expose curated model choices with a safe default', () => {
+  assert.equal(claudeCode.MODELS[0].id, '');
+  assert.equal(codex.MODELS[0].id, '');
+  assert.ok(claudeCode.MODELS.some(model => model.id === 'sonnet'));
+  assert.ok(codex.MODELS.some(model => model.id === 'gpt-5.3-codex'));
+});
+
 test('Claude Code receives explicit model and effort settings', async (t) => {
   t.mock.method(subprocess, 'locate', () => 'claude');
   t.mock.method(subprocess, 'run', async options => {
