@@ -32,11 +32,15 @@ function applyTheme(theme) {
   document.documentElement.dataset.themePreference = ['light', 'dark'].includes(theme) ? theme : 'system';
 }
 
+stopLabelEl.textContent = window.i18n.t('Stop');
 window.wisper.getSettings().then((cfg) => {
   applyTheme(cfg?.theme);
   window.i18n.setLocale(cfg?.uiLocale || 'system');
   stopLabelEl.textContent = window.i18n.t('Stop');
-}).catch(() => applyTheme('system'));
+}).catch(() => {
+  applyTheme('system');
+  stopLabelEl.textContent = window.i18n.t('Stop');
+});
 window.wisper.onTheme(applyTheme);
 
 async function startCapture() {
@@ -195,6 +199,7 @@ function stopRecordingTimer() {
   if (recordingTimerHandle) clearInterval(recordingTimerHandle);
   recordingTimerHandle = null;
   recordingStartedAt = 0;
+  timerEl.textContent = '';
 }
 
 function setState(state) {

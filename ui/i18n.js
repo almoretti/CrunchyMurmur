@@ -4,7 +4,7 @@
     it: { Recording: 'Registrazione', Finishing: 'Completamento', Transcribing: 'Trascrizione', 'Meeting recording': 'Riunione in registrazione', Stop: 'Interrompi' },
     es: { Recording: 'Grabando', Finishing: 'Finalizando', Transcribing: 'Transcribiendo', 'Meeting recording': 'Grabando reunión', Stop: 'Detener' },
     pt: { Recording: 'A gravar', Finishing: 'A concluir', Transcribing: 'A transcrever', 'Meeting recording': 'Reunião a ser gravada', Stop: 'Parar' },
-    fr: { Recording: 'Enregistrement', Finishing: 'Finalisation', Transcribing: 'Transcription', 'Meeting recording': 'Réunion enregistrée', Stop: 'Arrêter' },
+    fr: { Recording: 'Enregistrement', Finishing: 'Finalisation', Transcribing: 'Transcription', 'Meeting recording': 'Enregistrement de la réunion', Stop: 'Arrêter' },
     de: { Recording: 'Aufnahme', Finishing: 'Abschluss', Transcribing: 'Transkription', 'Meeting recording': 'Meeting wird aufgenommen', Stop: 'Stoppen' },
     da: { Recording: 'Optager', Finishing: 'Afslutter', Transcribing: 'Transskriberer', 'Meeting recording': 'Møde optages', Stop: 'Stop' },
     no: { Recording: 'Tar opp', Finishing: 'Fullfører', Transcribing: 'Transkriberer', 'Meeting recording': 'Møtet tas opp', Stop: 'Stopp' },

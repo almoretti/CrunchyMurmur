@@ -131,7 +131,7 @@ html, body {
 
 .stop:hover { filter: brightness(0.94); }
 .stop:active { transform: scale(0.97); }
-.stop-icon { width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.stop-icon { width: 8px; height: 8px; border-radius: 2px; background: currentcolor; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -164,5 +164,7 @@ body.state-meeting .waveform { display: none; }
 body:not(.state-meeting) .stop { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .status-mark span, body.state-transcribing .waveform span { animation: none; }
+  .status-mark span,
+  body.state-transcribing .status-mark span,
+  body.state-transcribing .waveform span { animation: none; }
 }

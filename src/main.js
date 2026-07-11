@@ -278,7 +278,7 @@ function createFloatingWindow() {
   });
   floatingWindow.setAlwaysOnTop(true, 'screen-saver');
   let persistPositionTimer = null;
-  floatingWindow.on('moved', () => {
+  floatingWindow.on('move', () => {
     clearTimeout(persistPositionTimer);
     persistPositionTimer = setTimeout(() => {
       if (!floatingWindow || floatingWindow.isDestroyed()) return;
