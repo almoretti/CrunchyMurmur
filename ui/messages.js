@@ -258,7 +258,6 @@ window.__CRUNCHY_I18N_CATALOGS__ = {
     "Quote": "Quote",
     "Qwen 3 32B": "Qwen 3 32B",
     "Record shortcut": "Record shortcut",
-    "Recording": "Recording",
     "Recording · {0}": "Recording · {0}",
     "Recordings": "Recordings",
     "Refresh": "Refresh",
