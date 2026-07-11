@@ -12,13 +12,13 @@ const PROVIDERS = { anthropic, openai, claudeCode, codex, groq };
 function listProviders() {
   // The order here is also the order shown in the UI radio.
   return [
-    { id: 'anthropic',  displayName: 'Anthropic API', models: anthropic.MODELS, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http' },
-    { id: 'openai',     displayName: 'OpenAI API',    models: openai.MODELS,    defaultModel: openai.DEFAULT_MODEL,    kind: 'http' },
-    { id: 'groq',       displayName: 'Groq API (free tier)', models: groq.MODELS, defaultModel: groq.DEFAULT_MODEL, kind: 'http' },
+    { id: 'anthropic', displayName: 'Anthropic API', models: anthropic.MODELS, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'openai', displayName: 'OpenAI API', models: openai.MODELS, defaultModel: openai.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'groq', displayName: 'Groq API (free tier)', models: groq.MODELS, defaultModel: groq.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
     { id: 'claudeCode', displayName: 'Claude Code (your subscription)', kind: 'cli',
-      available: claudeCode.isAvailable(), executable: claudeCode.executable() },
+      available: claudeCode.isAvailable(), executable: claudeCode.executable(), controls: ['model', 'effort'], efforts: claudeCode.EFFORTS },
     { id: 'codex',      displayName: 'Codex (your subscription)', kind: 'cli',
-      available: codex.isAvailable(), executable: codex.executable() },
+      available: codex.isAvailable(), executable: codex.executable(), controls: ['model', 'reasoningEffort'], efforts: codex.REASONING_EFFORTS },
   ];
 }
 
@@ -66,11 +66,17 @@ async function generateFromRecording({ recording, templateId, provider, model })
 
   const prompt = makeRecordingPrompt({ template: tpl, recording });
 
-  // CLI providers don't need an API key or model — they shell out to the
-  // user's installed CLI which uses their existing subscription.
-  if (providerId === 'claudeCode' || providerId === 'codex') {
-    const text = await mod.generate({ prompt });
-    return { text, providerId, modelId: null, templateId };
+  // CLI providers use the installed subscription and accept optional model
+  // and effort overrides. Empty model values preserve the CLI configuration.
+  if (providerId === 'claudeCode') {
+    const modelId = model || cfg.claudeCodeModel || '';
+    const text = await mod.generate({ prompt, model: modelId, effort: cfg.claudeCodeEffort || 'medium' });
+    return { text, providerId, modelId: modelId || 'CLI default', templateId };
+  }
+  if (providerId === 'codex') {
+    const modelId = model || cfg.codexModel || '';
+    const text = await mod.generate({ prompt, model: modelId, reasoningEffort: cfg.codexReasoningEffort || 'medium' });
+    return { text, providerId, modelId: modelId || 'CLI default', templateId };
   }
 
   const apiKey = providerId === 'anthropic' ? cfg.anthropicApiKey

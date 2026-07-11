@@ -406,13 +406,32 @@
               <p class="muted small" id="claudeCodeDetail">
                 Uses your installed <code>claude</code> CLI. Status checked at app launch.
               </p>
+              <label for="claudeCodeModel">Model override</label>
+              <input id="claudeCodeModel" type="text" placeholder="Leave blank to use the CLI default" autocomplete="off" />
+              <label for="claudeCodeEffort">Effort</label>
+              <select id="claudeCodeEffort">
+                <option value="low">Low — fastest, lowest subscription usage</option>
+                <option value="medium">Medium — recommended for summaries</option>
+                <option value="high">High — better for complex transcripts</option>
+              </select>
             </div>
 
             <div id="aiCodex" class="engine-section">
               <p class="muted small" id="codexDetail">
                 Uses your installed <code>codex</code> CLI. Status checked at app launch.
               </p>
+              <label for="codexModel">Model override</label>
+              <input id="codexModel" type="text" placeholder="Leave blank to use the CLI default" autocomplete="off" />
+              <label for="codexReasoningEffort">Reasoning effort</label>
+              <select id="codexReasoningEffort">
+                <option value="low">Low — fastest, lowest subscription usage</option>
+                <option value="medium">Medium — recommended for summaries</option>
+                <option value="high">High — better for complex transcripts</option>
+                <option value="xhigh">Extra high — slowest, highest subscription usage</option>
+              </select>
             </div>
+
+            <p id="aiNotesEffectiveConfig" class="muted small" aria-live="polite"></p>
 
             <div class="row end">
               <span id="aiNotesSaveStatus" class="muted small"></span>

@@ -1806,6 +1806,11 @@ const anthropicModelEl = document.getElementById('anthropicModel');
 const openaiApiKeyEl = document.getElementById('openaiApiKey');
 const openaiModelEl = document.getElementById('openaiModel');
 const groqNotesModelEl = document.getElementById('groqNotesModel');
+const claudeCodeModelEl = document.getElementById('claudeCodeModel');
+const claudeCodeEffortEl = document.getElementById('claudeCodeEffort');
+const codexModelEl = document.getElementById('codexModel');
+const codexReasoningEffortEl = document.getElementById('codexReasoningEffort');
+const aiNotesEffectiveConfigEl = document.getElementById('aiNotesEffectiveConfig');
 const saveAiNotesBtn = document.getElementById('saveAiNotes');
 const aiNotesSaveStatusEl = document.getElementById('aiNotesSaveStatus');
 
@@ -1820,10 +1825,25 @@ function applyAiNotesProvider(kind) {
   document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
     r.checked = r.value === k;
   });
+  renderAiNotesEffectiveConfig();
+}
+
+function renderAiNotesEffectiveConfig() {
+  const provider = document.querySelector('input[name="aiNotesProvider"]:checked')?.value || 'anthropic';
+  const configs = {
+    anthropic: `Anthropic · ${anthropicModelEl.value}`,
+    openai: `OpenAI · ${openaiModelEl.value}`,
+    groq: `Groq · ${groqNotesModelEl.value}`,
+    claudeCode: `Claude Code · ${claudeCodeModelEl.value.trim() || window.i18n.t('CLI default')} · ${claudeCodeEffortEl.selectedOptions[0]?.textContent}`,
+    codex: `Codex · ${codexModelEl.value.trim() || window.i18n.t('CLI default')} · ${codexReasoningEffortEl.selectedOptions[0]?.textContent}`,
+  };
+  aiNotesEffectiveConfigEl.textContent = window.i18n.t('Effective configuration: {0}', { 0: configs[provider] });
 }
 document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
   r.addEventListener('change', (e) => applyAiNotesProvider(e.target.value));
 });
+[anthropicModelEl, openaiModelEl, groqNotesModelEl, claudeCodeModelEl, claudeCodeEffortEl, codexModelEl, codexReasoningEffortEl]
+  .forEach((el) => el.addEventListener('input', renderAiNotesEffectiveConfig));
 
 async function populateAiNotesModels() {
   const providers = await window.wisper.aiNotesProviders();
@@ -1874,6 +1894,10 @@ saveAiNotesBtn.addEventListener('click', async () => {
     openaiApiKey: openaiApiKeyEl.value.trim(),
     openaiModel: openaiModelEl.value,
     groqNotesModel: groqNotesModelEl.value,
+    claudeCodeModel: claudeCodeModelEl.value.trim(),
+    claudeCodeEffort: claudeCodeEffortEl.value,
+    codexModel: codexModelEl.value.trim(),
+    codexReasoningEffort: codexReasoningEffortEl.value,
   });
   window.__lastSettings = cfg;
   aiNotesSaveStatusEl.textContent = 'Saved.';
@@ -2140,6 +2164,11 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   openaiApiKeyEl.value = cfg.openaiApiKey || '';
   openaiModelEl.value = cfg.openaiModel || 'gpt-4o';
   groqNotesModelEl.value = cfg.groqNotesModel || 'llama-3.3-70b-versatile';
+  claudeCodeModelEl.value = cfg.claudeCodeModel || '';
+  claudeCodeEffortEl.value = cfg.claudeCodeEffort || 'medium';
+  codexModelEl.value = cfg.codexModel || '';
+  codexReasoningEffortEl.value = cfg.codexReasoningEffort || 'medium';
+  renderAiNotesEffectiveConfig();
 
   entries = await window.wisper.getHistory();
   render();

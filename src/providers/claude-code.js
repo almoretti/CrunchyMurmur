@@ -18,7 +18,9 @@ function isAvailable() {
   return Boolean(executable());
 }
 
-async function generate({ prompt }) {
+const EFFORTS = ['low', 'medium', 'high'];
+
+async function generate({ prompt, model, effort = 'medium' }) {
   const exe = executable();
   if (!exe) {
     const err = new Error('claude CLI not found on PATH. Install Claude Code and re-launch CrunchyMurmur.');
@@ -28,9 +30,12 @@ async function generate({ prompt }) {
   // -p / --print: one-shot mode, prints response and exits.
   // Prompt over stdin to avoid ARG_MAX and to keep transcripts off the
   // process command-line listing.
+  const args = ['-p', '--safe-mode', '--disable-slash-commands', '--no-session-persistence', '--tools='];
+  if (model) args.push('--model', model);
+  if (EFFORTS.includes(effort)) args.push('--effort', effort);
   const result = await sub.run({
     executable: exe,
-    args: ['-p', '--safe-mode', '--disable-slash-commands', '--no-session-persistence', '--tools='],
+    args,
     stdinText: prompt,
     isolated: true,
   });
@@ -44,4 +49,4 @@ async function generate({ prompt }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Claude Code' };
+module.exports = { generate, isAvailable, executable, displayName: 'Claude Code', EFFORTS };

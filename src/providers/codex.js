@@ -16,7 +16,9 @@ function isAvailable() {
   return Boolean(executable());
 }
 
-async function generate({ prompt }) {
+const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
+
+async function generate({ prompt, model, reasoningEffort = 'medium' }) {
   const exe = executable();
   if (!exe) {
     const err = new Error('codex CLI not found on PATH. Install OpenAI Codex and re-launch CrunchyMurmur.');
@@ -25,9 +27,12 @@ async function generate({ prompt }) {
   }
   // `codex exec` is the non-interactive mode; reads instructions from stdin
   // when no positional prompt is given.
+  const args = ['exec', '--sandbox', 'read-only', '--skip-git-repo-check'];
+  if (model) args.push('--model', model);
+  if (REASONING_EFFORTS.includes(reasoningEffort)) args.push('--config', `model_reasoning_effort="${reasoningEffort}"`);
   const result = await sub.run({
     executable: exe,
-    args: ['exec', '--sandbox', 'read-only', '--skip-git-repo-check'],
+    args,
     stdinText: prompt,
     isolated: true,
   });
@@ -41,4 +46,4 @@ async function generate({ prompt }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Codex' };
+module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS };
