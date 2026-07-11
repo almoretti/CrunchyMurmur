@@ -6,15 +6,22 @@
     <link rel="stylesheet" href="floating.css" />
   </head>
   <body>
-    <div class="pill" id="pill">
-      <div class="dot" id="dot"></div>
-      <div class="label" id="label">Recording</div>
-      <div class="timer" id="timer"></div>
-      <div class="meter" id="meter">
-        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        <div class="bar"></div><div class="bar"></div>
+    <main class="overlay">
+      <div class="status-mark" aria-hidden="true"><span></span></div>
+      <div class="copy">
+        <div class="label" id="label"></div>
+        <div class="timer" id="timer">0:00</div>
       </div>
-    </div>
+      <div class="waveform" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <button class="stop" id="stop" type="button" hidden>
+        <span class="stop-icon" aria-hidden="true"></span>
+        <span id="stopLabel"></span>
+      </button>
+    </main>
+    <script src="i18n.js"></script>
     <script src="floating.js"></script>
   </body>
 </html>

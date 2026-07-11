@@ -7,8 +7,9 @@
 
 const labelEl = document.getElementById('label');
 const timerEl = document.getElementById('timer');
-const pillEl = document.getElementById('pill');
-const meterBars = Array.from(document.querySelectorAll('.meter .bar'));
+const stopEl = document.getElementById('stop');
+const stopLabelEl = document.getElementById('stopLabel');
+const meterBars = Array.from(document.querySelectorAll('.waveform span'));
 
 let mediaStream = null;
 let audioCtx = null;
@@ -18,6 +19,8 @@ let chunks = []; // Float32Array[] at native sample rate
 let nativeSampleRate = 48000;
 let rafHandle = null;
 let captureGeneration = 0;
+let recordingStartedAt = 0;
+let recordingTimerHandle = null;
 
 // Meeting timer state — when in 'meeting' state, we tick a 1 s timer based
 // on the startedAt timestamp passed from main. Independent of the dictation
@@ -29,7 +32,11 @@ function applyTheme(theme) {
   document.documentElement.dataset.themePreference = ['light', 'dark'].includes(theme) ? theme : 'system';
 }
 
-window.wisper.getSettings().then((cfg) => applyTheme(cfg?.theme)).catch(() => applyTheme('system'));
+window.wisper.getSettings().then((cfg) => {
+  applyTheme(cfg?.theme);
+  window.i18n.setLocale(cfg?.uiLocale || 'system');
+  stopLabelEl.textContent = window.i18n.t('Stop');
+}).catch(() => applyTheme('system'));
 window.wisper.onTheme(applyTheme);
 
 async function startCapture() {
@@ -96,11 +103,11 @@ function drawMeter() {
       const v = Math.abs(buf[i] - 128) / 128;
       if (v > peak) peak = v;
     }
-    // Map peak (0..1) to 5 bars of varying height.
+    // Give the waveform a quiet centre-weighted silhouette at low volume.
     meterBars.forEach((bar, i) => {
-      const threshold = (i + 1) / meterBars.length;
-      const intensity = Math.max(0, Math.min(1, peak / threshold));
-      bar.style.height = (4 + intensity * 10) + 'px';
+      const centre = 1 - Math.abs(i - (meterBars.length - 1) / 2) / (meterBars.length / 2);
+      const intensity = Math.max(0, Math.min(1, peak * 3.2 * (0.55 + centre * 0.45)));
+      bar.style.height = (4 + intensity * 18) + 'px';
       bar.style.opacity = 0.4 + intensity * 0.6;
     });
     rafHandle = requestAnimationFrame(tick);
@@ -174,28 +181,49 @@ function stopMeetingTimer() {
   timerEl.textContent = '';
 }
 
+function tickRecordingTimer() {
+  if (recordingStartedAt) timerEl.textContent = fmtElapsed(Date.now() - recordingStartedAt);
+}
+
+function startRecordingTimer() {
+  recordingStartedAt = Date.now();
+  tickRecordingTimer();
+  recordingTimerHandle = setInterval(tickRecordingTimer, 1000);
+}
+
+function stopRecordingTimer() {
+  if (recordingTimerHandle) clearInterval(recordingTimerHandle);
+  recordingTimerHandle = null;
+  recordingStartedAt = 0;
+}
+
 function setState(state) {
   document.body.classList.remove('state-recording', 'state-flushing', 'state-transcribing', 'state-meeting');
   document.body.classList.add('state-' + state);
+  stopEl.hidden = state !== 'meeting';
 
   if (state === 'recording') {
-    setLabel('Recording');
+    setLabel(window.i18n.t('Recording'));
     stopMeetingTimer();
+    startRecordingTimer();
     startCapture();
   } else if (state === 'flushing') {
-    setLabel('…');
+    setLabel(window.i18n.t('Finishing'));
+    stopRecordingTimer();
     stopCapture();
     flushAndSubmit();
   } else if (state === 'transcribing') {
-    setLabel('Transcribing');
+    setLabel(window.i18n.t('Transcribing'));
   } else if (state === 'meeting') {
-    setLabel('Recording meeting · click to stop');
+    setLabel(window.i18n.t('Meeting recording'));
+    stopRecordingTimer();
     stopCapture();
     chunks = [];
     // Timer is started once we receive the startedAt from main (see below).
   } else if (state === 'idle') {
     setLabel('');
     stopCapture();
+    stopRecordingTimer();
     stopMeetingTimer();
     chunks = [];
   }
@@ -208,10 +236,9 @@ window.wisper.onMeetingState(({ startedAt }) => {
   startMeetingTimer();
 });
 
-// Click anywhere on the pill while in meeting state → ask main to stop
-// the meeting. Main forwards to the main window's renderer which actually
-// owns the audio capture.
-pillEl.addEventListener('click', () => {
+// The dedicated meeting control asks main to stop. The rest of the overlay
+// remains a drag region so moving it cannot accidentally end a recording.
+stopEl.addEventListener('click', () => {
   if (document.body.classList.contains('state-meeting')) {
     window.wisper.requestStopMeeting();
   }

@@ -134,6 +134,9 @@ test('settings public view masks persisted API keys', (t) => {
   settings.save({ groqApiKey: 'secret-value', language: 'en', theme: 'light' });
   assert.equal(settings.load().groqApiKey, 'secret-value');
   assert.equal(settings.load().theme, 'light');
+  settings.save({ overlayX: -420, overlayY: 175 });
+  assert.equal(settings.load().overlayX, '-420');
+  assert.equal(settings.load().overlayY, '175');
   assert.equal(settings.publicView().groqApiKey, settings.SECRET_MASK);
   assert.equal(settings.save({ groqApiKey: settings.SECRET_MASK }).groqApiKey, 'secret-value');
   assert.doesNotMatch(fs.readFileSync(settings.configPath(), 'utf8'), /"groqApiKey"\s*:/);

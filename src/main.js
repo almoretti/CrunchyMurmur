@@ -233,12 +233,23 @@ function hardenWindow(win) {
 function createFloatingWindow() {
   const display = screen.getPrimaryDisplay();
   const { x: waX, y: waY, width: waW, height: waH } = display.workArea;
-  const W = 220, H = 44;
+  const W = 300, H = 60;
   // workArea is in screen-DIP coordinates. Earlier code ignored x/y, which
   // put the window off-screen on multi-monitor setups where the primary
   // display isn't anchored at (0,0). Compute relative to the work area.
-  const x = Math.round(waX + (waW - W) / 2);
-  const y = Math.round(waY + waH - H - 20);
+  const saved = settings.load();
+  const hasSavedPosition = saved.overlayX !== '' && saved.overlayY !== '';
+  const savedX = Number(saved.overlayX);
+  const savedY = Number(saved.overlayY);
+  const savedPoint = hasSavedPosition && Number.isFinite(savedX) && Number.isFinite(savedY)
+    ? screen.getDisplayNearestPoint({ x: savedX, y: savedY })
+    : null;
+  const savedIsVisible = savedPoint && savedX >= savedPoint.workArea.x - W + 48
+    && savedX <= savedPoint.workArea.x + savedPoint.workArea.width - 48
+    && savedY >= savedPoint.workArea.y
+    && savedY <= savedPoint.workArea.y + savedPoint.workArea.height - 24;
+  const x = savedIsVisible ? savedX : Math.round(waX + (waW - W) / 2);
+  const y = savedIsVisible ? savedY : Math.round(waY + waH - H - 20);
   console.log('[main] floating window position:', { x, y, workArea: display.workArea, scale: display.scaleFactor });
 
   // Real transparent BrowserWindow now that the app forced software
@@ -266,6 +277,15 @@ function createFloatingWindow() {
     },
   });
   floatingWindow.setAlwaysOnTop(true, 'screen-saver');
+  let persistPositionTimer = null;
+  floatingWindow.on('moved', () => {
+    clearTimeout(persistPositionTimer);
+    persistPositionTimer = setTimeout(() => {
+      if (!floatingWindow || floatingWindow.isDestroyed()) return;
+      const [overlayX, overlayY] = floatingWindow.getPosition();
+      settings.save({ overlayX, overlayY });
+    }, 250);
+  });
   hardenWindow(floatingWindow);
   floatingWindow.loadFile(path.join(__dirname, '..', 'ui', 'floating.html'));
   floatingWindow.webContents.once('did-finish-load', () => {
