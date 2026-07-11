@@ -59,6 +59,36 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   }
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
 
+  // Navigation labels must retain their semantic source when switching away
+  // from a locale where templates and models share the same translated word.
+  const restoredNavigationLabels = await page.evaluate(() => {
+    window.i18n.setLocale('it');
+    window.i18n.setLocale('en');
+    return {
+      templates: document.querySelector('[data-tab="templates"]').textContent.trim(),
+      models: document.getElementById('engineModels').textContent.trim(),
+    };
+  });
+  assert.deepEqual(restoredNavigationLabels, { templates: 'Templates', models: 'Whisper models' });
+
+  const engineNav = page.locator('.nav-item[data-tab="engine"]');
+  assert.equal(await page.locator('#engineSubmenu').count(), 0);
+  assert.equal(await page.locator('.sidebar [data-tab="models"]').count(), 0);
+  await engineNav.click();
+  assert.equal(await page.locator('#engineModels').isVisible(), true);
+  assert.equal(await engineNav.evaluate((button) => button.classList.contains('active')), true);
+  const italianEngineLabels = await page.evaluate(() => {
+    window.i18n.setLocale('it');
+    const labels = [
+      document.getElementById('engineTranscription').textContent.trim(),
+      document.getElementById('engineModels').textContent.trim(),
+      document.getElementById('engineAiNotes').textContent.trim(),
+    ];
+    window.i18n.setLocale('en');
+    return labels;
+  });
+  assert.deepEqual(italianEngineLabels, ['Trascrizione', 'Modelli Whisper', 'Note IA']);
+
   const applicationDensity = await page.evaluate(() => ({
     bodyFontSize: getComputedStyle(document.body).fontSize,
     sidebarWidth: document.querySelector('.sidebar').getBoundingClientRect().width,
@@ -225,7 +255,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.equal(await page.locator('#audioRetentionPolicy option').count(), 5);
   assert.equal(await page.locator('#permissionsList .permission-row').count(), 5);
 
-  await page.locator('[data-tab="engine"]').click();
+  await page.locator('.nav-item[data-tab="engine"]').click();
   await electronApp.evaluate(({ BrowserWindow }) => {
     const main = BrowserWindow.getAllWindows().find((window) => window.webContents.getURL().endsWith('/ui/main.html'));
     main?.setSize(720, 560);
