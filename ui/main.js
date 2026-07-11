@@ -1561,7 +1561,7 @@ async function populateInstalledPicker() {
 installedModelPickerEl?.addEventListener('change', () => {
   if (installedModelPickerEl.value) {
     modelPathEl.value = installedModelPickerEl.value;
-    void refreshLocalReadiness();
+    void refreshModelReadiness();
   }
 });
 
