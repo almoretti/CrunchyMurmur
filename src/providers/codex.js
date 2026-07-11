@@ -19,7 +19,7 @@ function isAvailable() {
   return Boolean(executable());
 }
 
-const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
+const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
 
 function modelsCachePath(home = os.homedir()) {
   return path.join(home, '.codex', 'models_cache.json');
@@ -45,7 +45,15 @@ function models(home = os.homedir()) {
   }
 }
 
-async function generate({ prompt, model, reasoningEffort = 'medium' }) {
+function resolveReasoningEffort(modelId, requested, home = os.homedir()) {
+  const model = models(home).find(value => value.id === modelId);
+  const supported = model?.efforts?.length ? model.efforts : REASONING_EFFORTS;
+  if (supported.includes(requested)) return requested;
+  if (model?.defaultEffort && supported.includes(model.defaultEffort)) return model.defaultEffort;
+  return supported.includes('medium') ? 'medium' : supported[0];
+}
+
+async function generate({ prompt, model, effort = 'medium' }) {
   const exe = executable();
   if (!exe) {
     const err = new Error('codex CLI not found on PATH. Install OpenAI Codex and re-launch CrunchyMurmur.');
@@ -56,7 +64,7 @@ async function generate({ prompt, model, reasoningEffort = 'medium' }) {
   // when no positional prompt is given.
   const args = ['exec', '--sandbox', 'read-only', '--skip-git-repo-check'];
   if (model) args.push('--model', model);
-  if (REASONING_EFFORTS.includes(reasoningEffort)) args.push('--config', `model_reasoning_effort="${reasoningEffort}"`);
+  if (REASONING_EFFORTS.includes(effort)) args.push('--config', `model_reasoning_effort="${effort}"`);
   const result = await sub.run({
     executable: exe,
     args,
@@ -73,4 +81,4 @@ async function generate({ prompt, model, reasoningEffort = 'medium' }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS, models, modelsCachePath };
+module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS, models, modelsCachePath, resolveReasoningEffort };

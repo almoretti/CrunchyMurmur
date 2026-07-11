@@ -406,13 +406,15 @@
               <p class="muted small" id="claudeCodeDetail">
                 Uses your installed <code>claude</code> CLI. Status checked at app launch.
               </p>
-              <label for="claudeCodeModel">Model</label>
+              <label for="claudeCodeModel" data-i18n="Model">Model</label>
               <select id="claudeCodeModel"></select>
-              <label for="claudeCodeEffort">Effort</label>
+              <label for="claudeCodeEffort" data-i18n="Effort">Effort</label>
               <select id="claudeCodeEffort">
-                <option value="low">Low — fastest, lowest subscription usage</option>
-                <option value="medium">Medium — recommended for summaries</option>
-                <option value="high">High — better for complex transcripts</option>
+                <option value="low" data-i18n="Low — fastest, lowest subscription usage">Low — fastest, lowest subscription usage</option>
+                <option value="medium" data-i18n="Medium — recommended for summaries">Medium — recommended for summaries</option>
+                <option value="high" data-i18n="High — better for complex transcripts">High — better for complex transcripts</option>
+                <option value="xhigh" data-i18n="Extra high — slowest, highest subscription usage">Extra high — slowest, highest subscription usage</option>
+                <option value="max" data-i18n="Maximum — highest reasoning depth">Maximum — highest reasoning depth</option>
               </select>
             </div>
 
@@ -420,9 +422,9 @@
               <p class="muted small" id="codexDetail">
                 Uses your installed <code>codex</code> CLI. Status checked at app launch.
               </p>
-              <label for="codexModel">Model</label>
+              <label for="codexModel" data-i18n="Model">Model</label>
               <select id="codexModel"></select>
-              <label for="codexReasoningEffort">Reasoning effort</label>
+              <label for="codexReasoningEffort" data-i18n="Reasoning effort">Reasoning effort</label>
               <select id="codexReasoningEffort"></select>
             </div>
 

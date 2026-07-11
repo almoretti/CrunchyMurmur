@@ -21,19 +21,18 @@ function isAvailable() {
   return Boolean(executable());
 }
 
-const EFFORTS = ['low', 'medium', 'high'];
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 const FAMILY_ALIASES = ['fable', 'opus', 'sonnet', 'haiku'];
 
 function readSettings(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
 }
 
-function models(home = os.homedir()) {
+function models(home = os.homedir(), projectDir = process.cwd()) {
   const claudeDir = path.join(home, '.claude');
-  const settings = [
-    readSettings(path.join(claudeDir, 'settings.json')),
-    readSettings(path.join(claudeDir, 'settings.local.json')),
-  ];
+  const globalSettings = readSettings(path.join(claudeDir, 'settings.json'));
+  const localSettings = readSettings(path.join(projectDir, '.claude', 'settings.local.json'));
+  const settings = [localSettings, globalSettings];
   const allowlist = settings.flatMap(value => Array.isArray(value.availableModels) ? value.availableModels : []);
   const configured = settings.map(value => value.model).find(Boolean);
   const ids = allowlist.length ? allowlist : FAMILY_ALIASES;

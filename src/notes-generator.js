@@ -8,6 +8,21 @@ const codex = require('./providers/codex');
 const groq = require('./providers/groq');
 
 const PROVIDERS = { anthropic, openai, claudeCode, codex, groq };
+const CLI_PROVIDERS = {
+  claudeCode: {
+    module: claudeCode,
+    modelKey: 'claudeCodeModel',
+    effortKey: 'claudeCodeEffort',
+    efforts: claudeCode.EFFORTS,
+  },
+  codex: {
+    module: codex,
+    modelKey: 'codexModel',
+    effortKey: 'codexReasoningEffort',
+    efforts: codex.REASONING_EFFORTS,
+    resolveEffort: (modelId, effort) => codex.resolveReasoningEffort(modelId, effort),
+  },
+};
 
 async function listProviders() {
   const cfg = settings.load();
@@ -24,7 +39,7 @@ async function listProviders() {
     { id: 'claudeCode', displayName: 'Claude Code (your subscription)', kind: 'cli',
       available: claudeCode.isAvailable(), executable: claudeCode.executable(), controls: ['model', 'effort'], models: claudeCode.models(), defaultModel: '', efforts: claudeCode.EFFORTS },
     { id: 'codex',      displayName: 'Codex (your subscription)', kind: 'cli',
-      available: codex.isAvailable(), executable: codex.executable(), controls: ['model', 'reasoningEffort'], models: codex.models(), defaultModel: '', efforts: codex.REASONING_EFFORTS },
+      available: codex.isAvailable(), executable: codex.executable(), controls: ['model', 'effort'], models: codex.models(), defaultModel: '', efforts: codex.REASONING_EFFORTS },
   ];
 }
 
@@ -74,14 +89,12 @@ async function generateFromRecording({ recording, templateId, provider, model })
 
   // CLI providers use the installed subscription and accept optional model
   // and effort overrides. Empty model values preserve the CLI configuration.
-  if (providerId === 'claudeCode') {
-    const modelId = model || cfg.claudeCodeModel || '';
-    const text = await mod.generate({ prompt, model: modelId, effort: cfg.claudeCodeEffort || 'medium' });
-    return { text, providerId, modelId: modelId || 'CLI default', templateId };
-  }
-  if (providerId === 'codex') {
-    const modelId = model || cfg.codexModel || '';
-    const text = await mod.generate({ prompt, model: modelId, reasoningEffort: cfg.codexReasoningEffort || 'medium' });
+  const cli = CLI_PROVIDERS[providerId];
+  if (cli) {
+    const modelId = model || cfg[cli.modelKey] || '';
+    const requestedEffort = cfg[cli.effortKey] || 'medium';
+    const effort = cli.resolveEffort ? cli.resolveEffort(modelId, requestedEffort) : requestedEffort;
+    const text = await cli.module.generate({ prompt, model: modelId, effort });
     return { text, providerId, modelId: modelId || 'CLI default', templateId };
   }
 
