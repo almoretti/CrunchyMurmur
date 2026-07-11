@@ -12,8 +12,8 @@ function defaultHotkey(platform = process.platform) {
 }
 
 const DEFAULTS = {
+  uiLocale: 'system', // system | supported BCP 47 language code
   theme: 'system', // 'system' | 'light' | 'dark'
-  uiLocale: 'system',
   overlayX: '',
   overlayY: '',
   engineKind: 'local', // 'local' | 'groq'

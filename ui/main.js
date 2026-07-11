@@ -27,9 +27,7 @@ let filter = '';
 
 function formatCompact(value) {
   const number = Number(value) || 0;
-  if (number < 1_000) return String(number);
-  if (number < 1_000_000) return `${(number / 1_000).toFixed(1)}K`;
-  return `${(number / 1_000_000).toFixed(1)}M`;
+  return new Intl.NumberFormat(window.i18n.locale, { notation: 'compact', maximumFractionDigits: 1 }).format(number);
 }
 
 async function renderDashboard() {
@@ -43,15 +41,16 @@ async function renderDashboard() {
 function relativeTime(iso) {
   const ts = new Date(iso).getTime();
   const diffSec = Math.max(0, (Date.now() - ts) / 1000);
-  if (diffSec < 60)   return 'just now';
-  if (diffSec < 3600) return Math.floor(diffSec / 60) + ' min ago';
-  if (diffSec < 86400) return Math.floor(diffSec / 3600) + ' h ago';
-  return Math.floor(diffSec / 86400) + ' d ago';
+  const formatter = new Intl.RelativeTimeFormat(window.i18n.locale, { numeric: 'auto', style: 'short' });
+  if (diffSec < 60) return formatter.format(0, 'second');
+  if (diffSec < 3600) return formatter.format(-Math.floor(diffSec / 60), 'minute');
+  if (diffSec < 86400) return formatter.format(-Math.floor(diffSec / 3600), 'hour');
+  return formatter.format(-Math.floor(diffSec / 86400), 'day');
 }
 
 function formatDate(iso) {
   const d = new Date(iso);
-  return d.toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(window.i18n.locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 function escapeHtml(s) {
@@ -1479,6 +1478,7 @@ const installedModelPickerEl = document.getElementById('installedModelPicker');
 const groqApiKeyEl = document.getElementById('groqApiKey');
 const groqModelEl = document.getElementById('groqModel');
 const languageEl = document.getElementById('language');
+const uiLocaleEl = document.getElementById('uiLocale');
 const micDeviceEl = document.getElementById('micDeviceId');
 const testMicBtn = document.getElementById('testMic');
 const micTestMeterEl = document.getElementById('micTestMeter');
@@ -1878,6 +1878,7 @@ saveGeneralBtn.addEventListener('click', async () => {
   try {
     const cfg = await window.wisper.saveSettings({
       theme: selectedTheme(),
+      uiLocale: uiLocaleEl.value,
       language: languageEl.value,
       micDeviceId: micDeviceEl.value,
       hotkey: hotkeyEl.value.trim(),
@@ -1894,6 +1895,16 @@ saveGeneralBtn.addEventListener('click', async () => {
     generalSaveStatusEl.style.color = 'var(--danger)';
     generalSaveStatusEl.textContent = error.message || String(error);
   }
+});
+
+uiLocaleEl.addEventListener('change', async () => {
+  window.i18n.setLocale(uiLocaleEl.value, window.__lastSettings?.systemLocale);
+  const cfg = await window.wisper.saveSettings({ uiLocale: uiLocaleEl.value });
+  window.__lastSettings = cfg;
+});
+window.addEventListener('localechange', () => {
+  render();
+  void renderDashboard();
 });
 
 useFnHotkeyBtn.addEventListener('click', () => {
@@ -2078,6 +2089,8 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
 (async () => {
   const cfg = await window.wisper.getSettings();
   window.__lastSettings = cfg;
+  uiLocaleEl.value = cfg.uiLocale || 'system';
+  window.i18n.setLocale(uiLocaleEl.value, cfg.systemLocale);
   document.documentElement.dataset.platform = cfg.platform;
   whisperCliPathEl.value = cfg.whisperCliPath || '';
   modelPathEl.value = cfg.modelPath || '';

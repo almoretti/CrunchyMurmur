@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('wisper', {
   onTheme: (cb) => {
     ipcRenderer.on('theme:changed', (_e, theme) => cb(theme));
   },
+  onLocale: (cb) => {
+    ipcRenderer.on('locale:changed', (_e, locale) => cb(locale));
+  },
 
   // Main → renderer: meeting started — gives the pill the timestamp it
   // needs to drive its own elapsed timer locally.

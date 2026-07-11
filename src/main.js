@@ -494,11 +494,17 @@ function toggleDictation() {
 }
 
 function shortcutMetadata(cfg = settings.load()) {
+  // getSystemLocale reads the user's OS regional/language preference on all
+  // three desktop platforms. getLocale is retained for older Electron builds.
+  const systemLocale = (typeof app.getSystemLocale === 'function' && app.getSystemLocale())
+    || app.getLocale()
+    || 'en';
   return {
     ...settings.publicView(cfg),
     platform: process.platform,
     arch: process.arch,
     version: app.getVersion(),
+    systemLocale,
     accessibilityTrusted: process.platform !== 'darwin' || systemPreferences.isTrustedAccessibilityClient(false),
   };
 }
@@ -641,6 +647,9 @@ handle('settings:save', async (_e, partial) => {
   if (Object.hasOwn(changes, 'theme')) changes.theme = normalizedTheme(changes.theme);
   const saved = settings.save(changes);
   if (Object.hasOwn(changes, 'theme')) applyThemePreference(saved.theme);
+  if (Object.hasOwn(changes, 'uiLocale') && floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send('locale:changed', { uiLocale: saved.uiLocale, systemLocale: shortcutMetadata(saved).systemLocale });
+  }
   return shortcutMetadata(saved);
 });
 
