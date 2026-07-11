@@ -2,6 +2,7 @@
 window.__CRUNCHY_I18N_CATALOGS__ = {
   "en": {
     "CLI default (recommended)": "CLI default (recommended)",
+    "Minimal — fastest supported reasoning": "Minimal — fastest supported reasoning",
     "Maximum — highest reasoning depth": "Maximum — highest reasoning depth",
     "Ultra — maximum reasoning with delegation": "Ultra — maximum reasoning with delegation",
     "Finishing": "Finishing",

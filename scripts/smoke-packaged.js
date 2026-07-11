@@ -92,6 +92,10 @@ async function evaluate(target, expression) {
     });
     await delay(150);
     const regression = await evaluate(target, `(async () => {
+      for (let attempt = 0; attempt < 50 && !window.__lastSettings; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (!window.__lastSettings) throw new Error('Renderer settings did not finish loading.');
       const keyText = () => document.getElementById('hotkeyDisplay').innerText;
       const painted = () => new Promise((resolve) => setTimeout(resolve, 75));
       document.querySelector('[data-tab="general"]').click();

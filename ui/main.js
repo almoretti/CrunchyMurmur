@@ -1816,6 +1816,7 @@ let aiNotesProviderCatalog = [];
 
 function effortLabel(effort) {
   const labels = {
+    minimal: window.i18n.t('Minimal — fastest supported reasoning'),
     low: window.i18n.t('Low — fastest, lowest subscription usage'),
     medium: window.i18n.t('Medium — recommended for summaries'),
     high: window.i18n.t('High — better for complex transcripts'),
