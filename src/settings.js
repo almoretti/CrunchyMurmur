@@ -13,6 +13,9 @@ function defaultHotkey(platform = process.platform) {
 
 const DEFAULTS = {
   theme: 'system', // 'system' | 'light' | 'dark'
+  uiLocale: 'system',
+  overlayX: '',
+  overlayY: '',
   engineKind: 'local', // 'local' | 'groq'
   whisperCliPath: '',
   modelPath: '',
