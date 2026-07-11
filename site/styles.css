@@ -234,6 +234,22 @@ td.dim { color: var(--text-muted); }
   font-weight: 700;
 }
 
+/* Documentation */
+.docs { padding-top: 0; }
+.docs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.doc-card {
+  display: block;
+  background: var(--bg-control);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 18px 20px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.doc-card:hover { border-color: var(--accent); box-shadow: 0 6px 18px var(--shadow); }
+.doc-card h3 { font-size: 0.98rem; color: var(--text); margin-bottom: 6px; }
+.doc-card p { margin: 0; color: var(--text-muted); font-size: 0.86rem; line-height: 1.45; }
+
 /* Downloads */
 .downloads { background: var(--bg-elevated); border-top: 1px solid var(--border-subtle); }
 .download-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
@@ -269,13 +285,14 @@ td.dim { color: var(--text-muted); }
 /* Responsive */
 @media (max-width: 820px) {
   .feature-grid, .download-grid { grid-template-columns: 1fr 1fr; }
+  .docs-grid { grid-template-columns: 1fr 1fr; }
   .shots-grid { grid-template-columns: 1fr; }
   .trust-list { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   section { padding: 44px 0; }
   .hero { padding-top: 56px; }
-  .feature-grid, .download-grid { grid-template-columns: 1fr; }
+  .feature-grid, .download-grid, .docs-grid { grid-template-columns: 1fr; }
   .nav-links { gap: 14px; }
   .nav-links a:not(.nav-github) { display: none; }
   .terminal-body { padding: 18px; }

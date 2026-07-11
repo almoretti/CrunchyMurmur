@@ -25,6 +25,7 @@ The marketing website in `site/` is a separate English-only surface and is not p
 - **Terminal installers**: the site shows the same commands as the README Install section (`install.ps1`, `install.sh` fetched raw from `main`). Moving or renaming those scripts breaks the copy-paste commands on the site.
 - **Platform support table**: the table in `site/index.html` mirrors `docs/platform-support.md`. Keep them in sync when platform capabilities change.
 - **Feature and trust copy**: sourced from `README.md` and `docs/features.md`. Material product changes (providers, privacy posture, packages) should be reflected on the site.
+- **Documentation links**: the Documentation section in `site/index.html` links to individual files under `docs/` on GitHub (`getting-started.md`, `features.md`, `platform-support.md`, `updating.md`, `troubleshooting.md`, `building-from-source.md`, `architecture.md`). Renaming or removing a doc breaks those links.
 - **Theme**: `site/styles.css` design tokens mirror the light `:root` palette in `ui/main.css`. If the app palette changes, update the site tokens.
 
 The site never hardcodes a release version: `site/app.js` fetches `releases/latest` from the GitHub API at page load and falls back to the GitHub Releases page when no release exists or the API is unavailable, so publishing releases requires no site change as long as asset names keep the pattern above.
