@@ -31,6 +31,8 @@
 | <img src="docs/readme-icons/insights.svg" width="38" alt=""> | **Useful progress, locally** | Track dictated words, weighted words per minute, and consecutive active days on your device. |
 | <img src="docs/readme-icons/updates.svg" width="38" alt=""> | **Verified releases and updates** | Signed packages, checksums, SBOMs, provenance attestations, and stable in-app updates from GitHub Releases. |
 
+The interface is available in 12 languages — English, Italiano, Español, Português, Français, Deutsch, Dansk, Norsk, Svenska, 中文, 한국어, and 日本語. It follows your system language by default, and you can switch instantly in General settings.
+
 ## A calm, native-feeling workspace
 
 | Appearance and device settings | Local and cloud transcription |
