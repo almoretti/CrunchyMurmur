@@ -28,6 +28,10 @@ Data remains compatible with the existing plain Markdown storage format.
 
 The local dashboard reports total dictated words, weighted words per minute, and consecutive active days. These statistics are calculated from local recording metadata and are not sent to a project-operated service.
 
+## Interface languages
+
+The interface is available in 12 languages: English, Italiano, Español, Português, Français, Deutsch, Dansk, Norsk, Svenska, 中文, 한국어, and 日本語. It follows the system language by default, or a specific language can be selected in General settings; changes apply immediately and are saved for the next launch.
+
 ## Providers
 
 | Provider | Purpose | Runs where | Data sent |

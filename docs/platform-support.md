@@ -8,6 +8,7 @@ CrunchyMurmur shares its data model and most product features across Windows, ma
 | Local whisper.cpp and Groq transcription | Supported | Supported | Supported |
 | AI formatting and AI Notes providers | Supported | Supported | Supported |
 | Notes, templates, recordings, retention | Supported | Supported | Supported |
+| Localised interface (12 languages) | Supported | Supported | Supported |
 | Meeting microphone capture | Supported | Supported | Supported |
 | Meeting system/call audio | Supported | Supported on macOS 13+ | Not currently supported |
 | Speaker-labelled chunked transcription | Supported when both tracks exist | Supported when both tracks exist | User microphone is labelled `YOU` |
