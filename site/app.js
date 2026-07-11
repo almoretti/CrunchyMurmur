@@ -42,12 +42,35 @@
     return /ARM64|aarch64/i.test(navigator.userAgent);
   }
 
-  const OS_LABELS = {
-    windows: 'Download for Windows',
-    mac: 'Download for macOS',
-    linux: 'Download for Linux',
-    unknown: 'Download',
+  // Strings this script injects at runtime, per page language (static text is
+  // translated at build time by generate-i18n.js). {os} and {tag} are placeholders.
+  const UI_STRINGS = {
+    en: { downloadFor: 'Download for {os}', download: 'Download', latestRelease: 'Latest release {tag}', noRelease: 'First public release coming soon — installers link to GitHub Releases', copied: 'Copied!', copy: 'Copy' },
+    it: { downloadFor: 'Scarica per {os}', download: 'Scarica', latestRelease: 'Ultima versione {tag}', noRelease: 'Prima versione pubblica in arrivo — i link portano a GitHub Releases', copied: 'Copiato!', copy: 'Copia' },
+    es: { downloadFor: 'Descargar para {os}', download: 'Descargar', latestRelease: 'Última versión {tag}', noRelease: 'Primera versión pública próximamente — los enlaces llevan a GitHub Releases', copied: '¡Copiado!', copy: 'Copiar' },
+    pt: { downloadFor: 'Transferir para {os}', download: 'Transferir', latestRelease: 'Última versão {tag}', noRelease: 'Primeira versão pública em breve — as ligações apontam para o GitHub Releases', copied: 'Copiado!', copy: 'Copiar' },
+    fr: { downloadFor: 'Télécharger pour {os}', download: 'Télécharger', latestRelease: 'Dernière version {tag}', noRelease: 'Première version publique bientôt disponible — les liens pointent vers GitHub Releases', copied: 'Copié !', copy: 'Copier' },
+    de: { downloadFor: 'Für {os} herunterladen', download: 'Herunterladen', latestRelease: 'Neueste Version {tag}', noRelease: 'Erste öffentliche Version folgt in Kürze — Links führen zu GitHub Releases', copied: 'Kopiert!', copy: 'Kopieren' },
+    da: { downloadFor: 'Hent til {os}', download: 'Hent', latestRelease: 'Seneste udgivelse {tag}', noRelease: 'Første offentlige udgivelse kommer snart — links fører til GitHub Releases', copied: 'Kopieret!', copy: 'Kopiér' },
+    no: { downloadFor: 'Last ned for {os}', download: 'Last ned', latestRelease: 'Siste utgivelse {tag}', noRelease: 'Første offentlige utgivelse kommer snart — lenkene går til GitHub Releases', copied: 'Kopiert!', copy: 'Kopier' },
+    sv: { downloadFor: 'Ladda ner för {os}', download: 'Ladda ner', latestRelease: 'Senaste utgåvan {tag}', noRelease: 'Första publika utgåvan kommer snart — länkarna går till GitHub Releases', copied: 'Kopierat!', copy: 'Kopiera' },
+    zh: { downloadFor: '下载 {os} 版', download: '下载', latestRelease: '最新版本 {tag}', noRelease: '首个公开版本即将发布 — 链接指向 GitHub Releases', copied: '已复制！', copy: '复制' },
+    ko: { downloadFor: '{os}용 다운로드', download: '다운로드', latestRelease: '최신 릴리스 {tag}', noRelease: '첫 공개 릴리스가 곧 제공됩니다 — 링크는 GitHub Releases로 연결됩니다', copied: '복사됨!', copy: '복사' },
+    ja: { downloadFor: '{os}版をダウンロード', download: 'ダウンロード', latestRelease: '最新リリース {tag}', noRelease: '初の公開リリースは近日公開 — リンクはGitHub Releasesへ', copied: 'コピーしました！', copy: 'コピー' },
   };
+  const strings = UI_STRINGS[document.documentElement.lang] || UI_STRINGS.en;
+
+  const OS_NAMES = { windows: 'Windows', mac: 'macOS', linux: 'Linux' };
+  const OS_LABELS = {
+    windows: strings.downloadFor.replace('{os}', OS_NAMES.windows),
+    mac: strings.downloadFor.replace('{os}', OS_NAMES.mac),
+    linux: strings.downloadFor.replace('{os}', OS_NAMES.linux),
+    unknown: strings.download,
+  };
+
+  // --- Language picker navigates to the selected page. ---
+  const langPicker = document.getElementById('lang-picker');
+  if (langPicker) langPicker.addEventListener('change', () => { window.location.href = langPicker.value; });
 
   const OS_PRIMARY_ASSET = {
     windows: detectWindowsArm() ? 'win-arm64' : 'win-x64',
@@ -77,8 +100,8 @@
     const active = document.querySelector('.terminal-cmd.active code');
     if (!active) return;
     navigator.clipboard.writeText(active.textContent.trim()).then(() => {
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1600);
+      copyBtn.textContent = strings.copied;
+      setTimeout(() => { copyBtn.textContent = strings.copy; }, 1600);
     });
   });
 
@@ -90,7 +113,7 @@
       return res.json();
     })
     .then((release) => {
-      versionEl.textContent = `Latest release ${release.tag_name}`;
+      versionEl.textContent = strings.latestRelease.replace('{tag}', release.tag_name);
       const assets = release.assets || [];
 
       const urlFor = (key) => {
@@ -114,6 +137,6 @@
     .catch(() => {
       // No published release yet (or API rate-limited): keep the static
       // releases-page links and say so instead of showing a stale version.
-      versionEl.textContent = 'First public release coming soon — installers link to GitHub Releases';
+      versionEl.textContent = strings.noRelease;
     });
 })();

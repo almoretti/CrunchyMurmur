@@ -8,15 +8,29 @@
   <meta property="og:title" content="CrunchyMurmur">
   <meta property="og:description" content="Private-by-default voice dictation, meeting transcription, and Markdown notes for Windows, macOS, and Linux.">
   <meta property="og:type" content="website">
-  <link rel="icon" type="image/svg+xml" href="assets/brand-mark.svg">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="canonical" href="https://crunchymurmur-site-production.up.railway.app/">
+  <link rel="alternate" hreflang="x-default" href="https://crunchymurmur-site-production.up.railway.app/">
+  <link rel="alternate" hreflang="en" href="https://crunchymurmur-site-production.up.railway.app/">
+  <link rel="alternate" hreflang="it" href="https://crunchymurmur-site-production.up.railway.app/it/">
+  <link rel="alternate" hreflang="es" href="https://crunchymurmur-site-production.up.railway.app/es/">
+  <link rel="alternate" hreflang="pt" href="https://crunchymurmur-site-production.up.railway.app/pt/">
+  <link rel="alternate" hreflang="fr" href="https://crunchymurmur-site-production.up.railway.app/fr/">
+  <link rel="alternate" hreflang="de" href="https://crunchymurmur-site-production.up.railway.app/de/">
+  <link rel="alternate" hreflang="da" href="https://crunchymurmur-site-production.up.railway.app/da/">
+  <link rel="alternate" hreflang="no" href="https://crunchymurmur-site-production.up.railway.app/no/">
+  <link rel="alternate" hreflang="sv" href="https://crunchymurmur-site-production.up.railway.app/sv/">
+  <link rel="alternate" hreflang="zh" href="https://crunchymurmur-site-production.up.railway.app/zh/">
+  <link rel="alternate" hreflang="ko" href="https://crunchymurmur-site-production.up.railway.app/ko/">
+  <link rel="alternate" hreflang="ja" href="https://crunchymurmur-site-production.up.railway.app/ja/">
+  <link rel="icon" type="image/svg+xml" href="/assets/brand-mark.svg">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 
 <header class="nav">
   <div class="container nav-inner">
     <a class="nav-brand" href="#top">
-      <img src="assets/brand-mark.svg" width="28" height="28" alt="">
+      <img src="/assets/brand-mark.svg" width="28" height="28" alt="">
       <span>CrunchyMurmur</span>
     </a>
     <nav class="nav-links">
@@ -24,6 +38,20 @@
       <a href="#platforms">Platforms</a>
       <a href="/docs">Docs</a>
       <a href="#download">Download</a>
+      <select class="nav-lang" id="lang-picker" aria-label="Language">
+        <option value="/" selected>English</option>
+        <option value="/it/" lang="it">Italiano</option>
+        <option value="/es/" lang="es">Español</option>
+        <option value="/pt/" lang="pt">Português</option>
+        <option value="/fr/" lang="fr">Français</option>
+        <option value="/de/" lang="de">Deutsch</option>
+        <option value="/da/" lang="da">Dansk</option>
+        <option value="/no/" lang="no">Norsk</option>
+        <option value="/sv/" lang="sv">Svenska</option>
+        <option value="/zh/" lang="zh">中文</option>
+        <option value="/ko/" lang="ko">한국어</option>
+        <option value="/ja/" lang="ja">日本語</option>
+      </select>
       <a class="nav-github" href="https://github.com/almoretti/CrunchyMurmur" target="_blank" rel="noopener">
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
         <span>GitHub</span>
@@ -37,12 +65,9 @@
   <!-- Hero -->
   <section class="hero">
     <div class="container">
-      <img class="hero-mark" src="assets/brand-mark.svg" width="88" height="88" alt="CrunchyMurmur logo">
+      <img class="hero-mark" src="/assets/brand-mark.svg" width="88" height="88" alt="CrunchyMurmur logo">
       <h1>Press a shortcut. Speak.<br>Keep working.</h1>
-      <p class="hero-sub">
-        Private-by-default voice dictation, meeting transcription, and Markdown notes
-        for Windows, macOS, and Linux — with local Whisper transcription or optional cloud providers.
-      </p>
+      <p class="hero-sub">Private-by-default voice dictation, meeting transcription, and Markdown notes for Windows, macOS, and Linux — with local Whisper transcription or optional cloud providers.</p>
 
       <div class="hero-actions">
         <a id="download-btn" class="btn btn-primary" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">
@@ -73,10 +98,7 @@
           <pre class="terminal-cmd" data-cmd-panel="unix"><span class="prompt">$</span> <code>curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/install.sh | sh</code></pre>
           <button class="copy-btn" id="copy-cmd" aria-label="Copy install command">Copy</button>
         </div>
-        <p class="terminal-note">
-          The installer detects your OS and architecture, downloads the latest release, and verifies it
-          against the published SHA-256 digest before installing.
-        </p>
+        <p class="terminal-note">The installer detects your OS and architecture, downloads the latest release, and verifies it against the published SHA-256 digest before installing.</p>
       </div>
     </div>
   </section>
@@ -85,11 +107,11 @@
   <section class="shots">
     <div class="container shots-grid">
       <figure>
-        <img src="assets/general.png" alt="CrunchyMurmur general settings in light mode" loading="lazy">
+        <img src="/assets/general.png" alt="CrunchyMurmur general settings in light mode" loading="lazy">
         <figcaption>Appearance and device settings</figcaption>
       </figure>
       <figure>
-        <img src="assets/engine.png" alt="CrunchyMurmur transcription engine settings" loading="lazy">
+        <img src="/assets/engine.png" alt="CrunchyMurmur transcription engine settings" loading="lazy">
         <figcaption>Local and cloud transcription</figcaption>
       </figure>
     </div>
@@ -166,10 +188,7 @@
   <section class="platforms" id="platforms">
     <div class="container">
       <h2>Platform support</h2>
-      <p class="section-sub">
-        CrunchyMurmur shares its data model and most product features across Windows, macOS, and Linux.
-        Native integrations intentionally differ where no reliable portable API exists.
-      </p>
+      <p class="section-sub">CrunchyMurmur shares its data model and most product features across Windows, macOS, and Linux. Native integrations intentionally differ where no reliable portable API exists.</p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -213,9 +232,7 @@
   <section class="docs" id="docs">
     <div class="container">
       <h2>Documentation</h2>
-      <p class="section-sub">
-        Read the docs here on the site — rendered live from the GitHub repository, so they are always current.
-      </p>
+      <p class="section-sub">Read the docs here on the site — rendered live from the GitHub repository, so they are always current.</p>
       <div class="docs-grid">
         <a class="doc-card" href="/docs#getting-started">
           <h3>Getting started</h3>
@@ -257,9 +274,7 @@
   <section class="downloads" id="download">
     <div class="container">
       <h2>Download</h2>
-      <p class="section-sub" id="downloads-sub">
-        Packages are published on GitHub Releases with checksums and provenance attestations.
-      </p>
+      <p class="section-sub" id="downloads-sub">Packages are published on GitHub Releases with checksums and provenance attestations.</p>
       <div class="download-grid">
         <article class="download-card">
           <h3>Windows</h3>
@@ -281,10 +296,7 @@
           <a class="btn btn-card" data-asset="linux-arm64" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">ARM64 builds</a>
         </article>
       </div>
-      <p class="downloads-note">
-        Prefer the terminal? The <a href="#install">verified installer</a> picks the right package for you.
-        All downloads: <a href="https://github.com/almoretti/CrunchyMurmur/releases" target="_blank" rel="noopener">github.com/almoretti/CrunchyMurmur/releases</a>
-      </p>
+      <p class="downloads-note">Prefer the terminal? The <a href="#install">verified installer</a> picks the right package for you. All downloads: <a href="https://github.com/almoretti/CrunchyMurmur/releases" target="_blank" rel="noopener">github.com/almoretti/CrunchyMurmur/releases</a></p>
     </div>
   </section>
 
@@ -293,7 +305,7 @@
 <footer class="footer">
   <div class="container footer-inner">
     <div class="footer-brand">
-      <img src="assets/brand-mark.svg" width="22" height="22" alt="">
+      <img src="/assets/brand-mark.svg" width="22" height="22" alt="">
       <span>CrunchyMurmur</span>
       <span class="footer-dim">· MIT License</span>
     </div>
@@ -307,6 +319,6 @@
   </div>
 </footer>
 
-<script src="app.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>

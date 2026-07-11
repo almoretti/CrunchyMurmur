@@ -24,20 +24,35 @@ scripts, and `docs/platform-support.md`.
   `node_modules` (no CDN dependency).
 - `server.js` + `package.json` — zero-dependency static server so Railway's Node
   builder can run `npm start` (serves `/docs` as `docs.html`).
+- `i18n-catalog.js` + `generate-i18n.js` — landing-page localisation. The
+  catalog maps every English phrase on `index.html` to the same 11 languages as
+  the app UI (`ui/i18n.js`); the generator writes `/<lang>/index.html` pages,
+  `sitemap.xml` (with `hreflang` alternates), and `robots.txt`. It runs on every
+  `npm start` via the `prestart` hook, and it fails the build if the catalog and
+  `index.html` drift apart, so edit them together. The generated output is
+  gitignored. Dynamic strings that `app.js` injects (download button, release
+  line, copy feedback) live in the `UI_STRINGS` table inside `app.js`.
 - `assets/` — brand mark and screenshots copied from `assets/` and `docs/images/`.
+
+`index.html` is the English source of truth. Its translatable strings are
+replaced by exact match (`>phrase<` for element bodies, `"phrase"` for
+attributes), so keep each translatable block on a single line.
 
 ## Local preview
 
 ```sh
+node site/generate-i18n.js   # regenerate the localised pages
 node site/server.js
-# http://localhost:3000
+# http://localhost:3000 (English), /it/, /es/, /pt/, /fr/, /de/, /da/, /no/, /sv/, /zh/, /ko/, /ja/
 ```
 
 ## Deploy
 
 The site lives in its own Railway project (`crunchymurmur-site`, service
-`crunchymurmur-site`, domain `crunchymurmur-site-production.up.railway.app`).
-From `site/`:
+`crunchymurmur-site`, domain `crunchymurmur-site-production.up.railway.app`)
+and auto-deploys from GitHub `main` (root directory `/site`, watch paths
+`/site/**`), so merging a PR that touches this folder is enough. Manual
+override from `site/`:
 
 ```sh
 railway up --detach --service crunchymurmur-site
