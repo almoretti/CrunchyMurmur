@@ -29,8 +29,10 @@ node site/server.js
 
 ## Deploy
 
-The site lives in its own Railway project (service `site`). From `site/`:
+The site lives in its own Railway project (`crunchymurmur-site`, service
+`crunchymurmur-site`, domain `crunchymurmur-site-production.up.railway.app`).
+From `site/`:
 
 ```sh
-railway up --detach
+railway up --detach --service crunchymurmur-site
 ```
