@@ -146,3 +146,5 @@ Native release packages must be built on their target platform. See [Contributin
 Bug reports, focused pull requests, documentation improvements, and platform testing are welcome. Please read [Contributing](.github/CONTRIBUTING.md) and the [Code of Conduct](.github/CODE_OF_CONDUCT.md) first. Never post API keys, private calendar URLs, recordings, transcripts, or notes in a public issue.
 
 CrunchyMurmur is released under the [MIT License](LICENSE). Use is also subject to the distributed [Terms of Use](docs/legal/terms.md).
+
+The Markdown editing experience is powered by MarkText's MIT-licensed [Muya editor](https://github.com/marktext/marktext/tree/develop/packages/muya). See [third-party notices](docs/THIRD_PARTY_NOTICES.md) for attribution details.

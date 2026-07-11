@@ -10,6 +10,13 @@ esbuild.build({
   target: ['chrome142'],
   minify: true,
   legalComments: 'none',
+  assetNames: 'editor-assets/[name]-[hash]',
+  loader: {
+    '.png': 'file',
+    '.ttf': 'file',
+    '.woff': 'file',
+    '.woff2': 'file',
+  },
 }).then(() => {
   console.log('Built shared Markdown editor bundle.');
 }).catch((error) => {

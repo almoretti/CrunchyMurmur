@@ -5,6 +5,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
     <title>CrunchyMurmur</title>
     <link rel="stylesheet" href="main.css" />
+    <link rel="stylesheet" href="editor.bundle.css" />
   </head>
   <body>
     <header class="app-titlebar">
@@ -107,16 +108,6 @@
                 <h3>Your notes</h3>
                 <span id="meetingNotesStats" class="editor-stats"></span>
               </div>
-              <div id="meetingNotesToolbar" class="md-toolbar compact-toolbar" aria-label="Meeting notes formatting">
-                <button class="md-btn" data-editor-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-                <button class="md-btn" data-editor-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-                <button class="md-btn" data-editor-action="bullet" title="Bulleted list">•</button>
-                <button class="md-btn" data-editor-action="todo" title="To-do">☐</button>
-                <button class="md-btn" data-editor-action="link" title="Link (Ctrl+K)">Link</button>
-                <span class="editor-toolbar-spacer"></span>
-                <button class="editor-mode-btn active" data-editor-mode="write" aria-pressed="true">Write</button>
-                <button class="editor-mode-btn" data-editor-mode="preview" aria-pressed="false">Preview</button>
-              </div>
               <textarea id="meetingUserNotes" class="meeting-notes" placeholder="Type live notes here while you record. Autosaves."></textarea>
             </div>
 
@@ -206,32 +197,8 @@
               <button id="noteMoveBtn" class="text-button" title="Move to folder">Move</button>
               <button id="noteDeleteBtn" class="text-button danger" title="Delete note">Delete</button>
             </header>
-            <div id="noteEditorToolbar" class="md-toolbar" aria-label="Note formatting and view">
-              <button class="md-btn" data-editor-action="h1" title="Heading 1">H1</button>
-              <button class="md-btn" data-editor-action="h2" title="Heading 2">H2</button>
-              <button class="md-btn" data-editor-action="h3" title="Heading 3">H3</button>
-              <span class="md-divider"></span>
-              <button class="md-btn" data-editor-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-              <button class="md-btn" data-editor-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-              <button class="md-btn" data-editor-action="strike" title="Strikethrough"><s>S</s></button>
-              <button class="md-btn" data-editor-action="code" title="Inline code (Ctrl+E)">&lt;/&gt;</button>
-              <span class="md-divider"></span>
-              <button class="md-btn" data-editor-action="bullet" title="Bulleted list">•</button>
-              <button class="md-btn" data-editor-action="numbered" title="Numbered list">1.</button>
-              <button class="md-btn" data-editor-action="todo" title="To-do">☐</button>
-              <button class="md-btn" data-editor-action="quote" title="Quote">“</button>
-              <span class="md-divider"></span>
-              <button class="md-btn" data-editor-action="link" title="Link (Ctrl+K)">Link</button>
-              <button class="md-btn" data-editor-action="hr" title="Divider">—</button>
-              <span class="editor-toolbar-spacer"></span>
-              <div class="editor-mode-switch" role="group" aria-label="Editor view">
-                <button class="editor-mode-btn active" data-editor-mode="write" aria-pressed="true">Write</button>
-                <button class="editor-mode-btn" data-editor-mode="split" aria-pressed="false">Split</button>
-                <button class="editor-mode-btn" data-editor-mode="preview" aria-pressed="false">Preview</button>
-              </div>
-            </div>
             <textarea id="noteBody" class="note-body" spellcheck="false" placeholder="Start writing..."></textarea>
-            <footer class="editor-footer"><span>Markdown</span><span id="noteEditorStats" class="editor-stats"></span></footer>
+            <footer class="editor-footer"><span>Markdown · Type / for blocks</span><span id="noteEditorStats" class="editor-stats"></span></footer>
           </div>
           <div id="notesSelectMessage" class="placeholder">
             <div class="placeholder-icon">✎</div>
@@ -255,20 +222,6 @@
               <button id="templateRevertBtn" class="text-button" title="Revert to bundled default" hidden>Revert to default</button>
               <button id="templateSaveBtn" class="primary-button">Save</button>
             </header>
-            <div id="templateEditorToolbar" class="md-toolbar" aria-label="Template instructions formatting and view">
-              <button class="md-btn" data-editor-action="h2" title="Heading">H2</button>
-              <button class="md-btn" data-editor-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-              <button class="md-btn" data-editor-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-              <button class="md-btn" data-editor-action="bullet" title="Bulleted list">•</button>
-              <button class="md-btn" data-editor-action="numbered" title="Numbered list">1.</button>
-              <button class="md-btn" data-editor-action="code" title="Inline code (Ctrl+E)">&lt;/&gt;</button>
-              <span class="editor-toolbar-spacer"></span>
-              <div class="editor-mode-switch" role="group" aria-label="Editor view">
-                <button class="editor-mode-btn active" data-editor-mode="write" aria-pressed="true">Write</button>
-                <button class="editor-mode-btn" data-editor-mode="split" aria-pressed="false">Split</button>
-                <button class="editor-mode-btn" data-editor-mode="preview" aria-pressed="false">Preview</button>
-              </div>
-            </div>
             <div class="template-form">
               <label>Description</label>
               <input id="templateDescription" type="text" placeholder="Short summary, shown in the picker" />
@@ -280,7 +233,7 @@
                 user's live notes. Output should be Markdown.
               </p>
               <textarea id="templateInstructions" class="template-instructions" spellcheck="false"></textarea>
-              <footer class="editor-footer"><span>Prompt instructions · Markdown</span><span id="templateEditorStats" class="editor-stats"></span></footer>
+              <footer class="editor-footer"><span>Prompt instructions · Markdown · Type / for blocks</span><span id="templateEditorStats" class="editor-stats"></span></footer>
             </div>
           </div>
           <div id="templatesSelectMessage" class="placeholder">

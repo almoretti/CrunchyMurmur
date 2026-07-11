@@ -16,3 +16,6 @@ build/icon.iconset/
 build/icon-mac-square.png
 build/icons/
 build/native/
+ui/editor-assets/
+ui/editor.bundle.js
+ui/editor.bundle.css

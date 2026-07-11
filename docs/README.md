@@ -21,4 +21,4 @@ This documentation covers installation, day-to-day use, platform differences, de
 - [Roadmap](project/roadmap.md) — current direction and explicitly unsupported publishing channels.
 - [Project status](project/status.md) — release scope, limitations, and external release blockers.
 
-Project policies are grouped by purpose: [Privacy](legal/privacy.md), [Terms](legal/terms.md), [Code of Conduct](../.github/CODE_OF_CONDUCT.md), [Changelog](../CHANGELOG.md), and [MIT License](../LICENSE).
+Project policies are grouped by purpose: [Privacy](legal/privacy.md), [Terms](legal/terms.md), [Code of Conduct](../.github/CODE_OF_CONDUCT.md), [Third-party notices](THIRD_PARTY_NOTICES.md), [Changelog](../CHANGELOG.md), and [MIT License](../LICENSE).

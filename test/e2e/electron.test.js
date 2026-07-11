@@ -105,46 +105,43 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   await page.waitForFunction(() => document.documentElement.dataset.themePreference === 'system');
   assert.equal(await electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'system');
 
-  // All editable Markdown surfaces use the same editor, preserve Markdown,
-  // expose a safe preview, and remain usable at narrow desktop sizes.
+  // All editable Markdown surfaces use the same WYSIWYG editor, preserve
+  // Markdown as their public value, and never activate raw HTML.
   await page.locator('[data-tab="templates"]').click();
-  await page.locator('#templateEditor:not(.hidden) .cm-editor').waitFor({ state: 'visible' });
+  await page.locator('#templateEditor:not(.hidden) .text-editor-surface [contenteditable="true"]').first().waitFor({ state: 'visible' });
   const editorRegression = await page.evaluate(() => {
     const textarea = document.getElementById('templateInstructions');
     const editor = textarea.__crunchyEditor;
     const original = editor.getValue();
     editor.setValue('format me');
-    editor.view.dispatch({ selection: { anchor: 0, head: editor.view.state.doc.length } });
+    editor.selectAll();
     editor.format('bold');
     const formatted = editor.getValue();
     editor.setValue('# Agenda\n\n**Decision**\n\n<script>window.editorXss = true</script>');
-    editor.setMode('split');
-    const sourceDisplay = getComputedStyle(editor.shell.querySelector('.text-editor-source')).display;
-    const previewDisplay = getComputedStyle(editor.shell.querySelector('.text-editor-preview')).display;
-    const heading = editor.shell.querySelector('.text-editor-preview h1')?.textContent;
-    const strong = editor.shell.querySelector('.text-editor-preview strong')?.textContent;
-    const scriptCount = editor.shell.querySelectorAll('.text-editor-preview script').length;
+    const heading = editor.shell.querySelector('h1')?.textContent;
+    const strong = editor.shell.querySelector('strong')?.textContent;
+    const scriptCount = editor.shell.querySelectorAll('script').length;
+    const contenteditable = editor.shell.querySelector('[contenteditable="true"]')?.getAttribute('contenteditable');
+    const markdown = editor.getValue();
     const stats = document.getElementById('templateEditorStats').textContent;
     editor.setValue(original);
-    editor.setMode('write');
     return {
-      formatted, sourceDisplay, previewDisplay, heading, strong, scriptCount, stats,
+      formatted, heading, strong, scriptCount, contenteditable, markdown, stats,
       mountedEditors: document.querySelectorAll('.text-editor-shell').length,
+      legacyModeButtons: document.querySelectorAll('[data-editor-mode]').length,
     };
   });
   assert.equal(editorRegression.formatted, '**format me**');
-  assert.notEqual(editorRegression.sourceDisplay, 'none');
-  assert.notEqual(editorRegression.previewDisplay, 'none');
-  assert.equal(editorRegression.heading, 'Agenda');
+  assert.match(editorRegression.heading, /Agenda$/);
   assert.equal(editorRegression.strong, 'Decision');
-  assert.equal(editorRegression.scriptCount, 0, 'Markdown preview rendered executable HTML');
+  assert.equal(editorRegression.contenteditable, 'true');
+  assert.equal(editorRegression.scriptCount, 0, 'Markdown editor rendered executable HTML');
+  assert.match(editorRegression.markdown, /<script>window\.editorXss = true<\/script>/);
   assert.match(editorRegression.stats, /words · .*characters · .*lines/);
   assert.equal(editorRegression.mountedEditors, 3, 'not every editable Markdown surface uses the shared editor');
+  assert.equal(editorRegression.legacyModeButtons, 0, 'obsolete source/preview controls remain visible');
   if (process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) {
-    await page.locator('#templateEditorToolbar [data-editor-mode="split"]').click();
-    assert.equal(await page.locator('#templateEditorToolbar [data-editor-mode="split"]').getAttribute('aria-pressed'), 'true');
     await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_EDITOR) });
-    await page.locator('#templateEditorToolbar [data-editor-mode="write"]').click();
   }
 
   await page.locator('[data-tab="dashboard"]').click();
