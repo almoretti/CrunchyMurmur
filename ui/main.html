@@ -23,16 +23,15 @@
     <aside class="sidebar">
       <nav>
         <div class="nav-section-title">Library</div>
-        <button class="nav-item active" data-tab="dashboard">Dashboard</button>
-        <button class="nav-item"        data-tab="history">Recordings</button>
-        <button class="nav-item"        data-tab="meetings">Meetings</button>
-        <button class="nav-item"        data-tab="notes">Notes</button>
+        <button class="nav-item active" data-tab="dashboard" data-i18n="Dashboard">Dashboard</button>
+        <button class="nav-item" data-tab="history" data-i18n="Recordings">Recordings</button>
+        <button class="nav-item" data-tab="meetings" data-i18n="Meetings">Meetings</button>
+        <button class="nav-item" data-tab="notes" data-i18n="Notes">Notes</button>
 
         <div class="nav-section-title">Configuration</div>
-        <button class="nav-item" data-tab="templates">Templates</button>
-        <button class="nav-item" data-tab="models">Models</button>
-        <button class="nav-item" data-tab="engine">Engine</button>
-        <button class="nav-item" data-tab="general">General</button>
+        <button class="nav-item" data-tab="templates" data-i18n="Templates">Templates</button>
+        <button class="nav-item" data-tab="engine" data-i18n="Engine">Engine</button>
+        <button class="nav-item" data-tab="general" data-i18n="General">General</button>
       </nav>
       <div class="hint" id="sidebarHint">
         Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.
@@ -245,26 +244,10 @@
         </main>
       </section>
 
-      <!-- Models -->
-      <section id="tab-models" class="tab">
-        <header class="toolbar">
-          <h2 class="toolbar-title">Whisper models</h2>
-          <span class="spacer"></span>
-          <button id="openModelsFolder" class="text-button">Open folder</button>
-        </header>
-        <div class="models-help">
-          Models are stored in <code id="modelsDirPath">…</code>. Downloads come straight from
-          <a href="https://huggingface.co/ggerganov/whisper.cpp" target="_blank" rel="noopener">huggingface.co/ggerganov/whisper.cpp</a>
-          — no account needed. Pick the one that fits your accuracy / disk-space budget;
-          for most people <strong>Large v3 Turbo (Q5)</strong> is the sweet spot.
-        </div>
-        <div id="modelsList" class="models-list"></div>
-      </section>
-
       <!-- Engine -->
       <section id="tab-engine" class="tab">
         <div class="settings-pane">
-          <h2>Transcription</h2>
+          <h2 id="engineTranscription">Transcription</h2>
           <p class="muted">
             Choose where transcription runs. <strong>Local</strong> uses
             <code>whisper-cli</code> on this machine — fully offline, no API key.
@@ -308,7 +291,7 @@
                 <option value="">— Pick from your downloads —</option>
               </select>
               <p class="muted small">
-                Manage downloads in the <a href="#" data-jump-tab="models">Models</a> tab.
+                Manage downloads in <a href="#" data-jump-tab="engine" data-engine-section="models">Whisper models</a> below.
               </p>
 
               <label>Or specify a custom .bin path</label>
@@ -342,7 +325,21 @@
             </div>
           </div>
 
-          <h2 style="margin-top:24px">AI Notes</h2>
+          <section class="engine-models-section" aria-labelledby="engineModels">
+            <div class="meeting-section-head">
+              <h2 id="engineModels" data-i18n="Whisper models">Whisper models</h2>
+              <button id="openModelsFolder" class="text-button">Open folder</button>
+            </div>
+            <div class="models-help">
+              Models are stored in <code id="modelsDirPath">…</code>. Downloads come straight from
+              <a href="https://huggingface.co/ggerganov/whisper.cpp" target="_blank" rel="noopener">huggingface.co/ggerganov/whisper.cpp</a>
+              — no account needed. Pick the one that fits your accuracy / disk-space budget;
+              for most people <strong>Large v3 Turbo (Q5)</strong> is the sweet spot.
+            </div>
+            <div id="modelsList" class="models-list"></div>
+          </section>
+
+          <h2 id="engineAiNotes" style="margin-top:24px">AI Notes</h2>
           <p class="muted">
             Provider used to generate summaries from your recordings (and meetings, when those land).
             Right-click any recording → <em>Generate AI note</em> to produce a Markdown note saved to

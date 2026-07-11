@@ -1,17 +1,22 @@
 // Tab switching
-function switchTab(tab) {
-  document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+function switchTab(tab, engineSection = '') {
+  document.querySelectorAll('.nav-item').forEach((button) => button.classList.toggle('active', button.dataset.tab === tab));
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + tab));
+  if (tab === 'engine') {
+    const target = engineSection === 'models' ? document.getElementById('engineModels')
+      : engineSection === 'ai-notes' ? document.getElementById('engineAiNotes') : document.getElementById('engineTranscription');
+    requestAnimationFrame(() => target?.scrollIntoView({ block: 'start' }));
+  }
 }
 document.querySelectorAll('.nav-item').forEach((btn) => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn.dataset.engineSection || ''));
 });
 // Allow inline links to jump tabs (e.g. Settings → "Models" hint).
 document.addEventListener('click', (e) => {
   const t = e.target;
   if (t && t.matches && t.matches('[data-jump-tab]')) {
     e.preventDefault();
-    switchTab(t.getAttribute('data-jump-tab'));
+    switchTab(t.getAttribute('data-jump-tab'), t.getAttribute('data-engine-section') || '');
   }
 });
 
