@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="CrunchyMurmur audio mark">
+  <defs>
+    <linearGradient id="mediterranean" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b7a67"/>
+      <stop offset="1" stop-color="#173d33"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="68" fill="url(#mediterranean)"/>
+  <g fill="#faf8f3">
+    <rect x="57" y="107" width="18" height="42" rx="9"/>
+    <rect x="88" y="89" width="18" height="78" rx="9"/>
+    <rect x="119" y="63" width="18" height="130" rx="9"/>
+    <rect x="150" y="89" width="18" height="78" rx="9"/>
+    <rect x="181" y="107" width="18" height="42" rx="9"/>
+  </g>
+</svg>

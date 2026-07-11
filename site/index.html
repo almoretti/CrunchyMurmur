@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrunchyMurmur — Private voice dictation, meeting transcription, and Markdown notes</title>
+  <meta name="description" content="Press a shortcut, speak, and keep working. CrunchyMurmur is private-by-default voice dictation, meeting transcription, and Markdown notes for Windows, macOS, and Linux.">
+  <meta property="og:title" content="CrunchyMurmur">
+  <meta property="og:description" content="Private-by-default voice dictation, meeting transcription, and Markdown notes for Windows, macOS, and Linux.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="assets/brand-mark.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="nav-brand" href="#top">
+      <img src="assets/brand-mark.svg" width="28" height="28" alt="">
+      <span>CrunchyMurmur</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#platforms">Platforms</a>
+      <a href="#download">Download</a>
+      <a class="nav-github" href="https://github.com/almoretti/CrunchyMurmur" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <img class="hero-mark" src="assets/brand-mark.svg" width="88" height="88" alt="CrunchyMurmur logo">
+      <h1>Press a shortcut. Speak.<br>Keep working.</h1>
+      <p class="hero-sub">
+        Private-by-default voice dictation, meeting transcription, and Markdown notes
+        for Windows, macOS, and Linux — with local Whisper transcription or optional cloud providers.
+      </p>
+
+      <div class="hero-actions">
+        <a id="download-btn" class="btn btn-primary" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7.47 10.78a.75.75 0 0 0 1.06 0l3.75-3.75a.75.75 0 0 0-1.06-1.06L8.75 8.44V1.75a.75.75 0 0 0-1.5 0v6.69L4.78 5.97a.75.75 0 0 0-1.06 1.06l3.75 3.75ZM3.75 13a.75.75 0 0 0 0 1.5h8.5a.75.75 0 0 0 0-1.5h-8.5Z"/></svg>
+          <span id="download-btn-label">Download</span>
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/almoretti/CrunchyMurmur" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+      <p class="hero-meta">
+        <span id="release-version">Latest release</span>
+        <span aria-hidden="true">·</span>
+        <a href="#download">All platforms</a>
+        <span aria-hidden="true">·</span>
+        <span>MIT licensed</span>
+      </p>
+
+      <!-- Terminal installer -->
+      <div class="terminal" id="install">
+        <div class="terminal-header">
+          <span class="terminal-title">Install from the terminal</span>
+          <div class="terminal-tabs" role="tablist">
+            <button class="terminal-tab" data-cmd="windows" role="tab">Windows</button>
+            <button class="terminal-tab" data-cmd="unix" role="tab">macOS / Linux</button>
+          </div>
+        </div>
+        <div class="terminal-body">
+          <pre class="terminal-cmd" data-cmd-panel="windows"><span class="prompt">&gt;</span> <code>irm https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/install.ps1 | iex</code></pre>
+          <pre class="terminal-cmd" data-cmd-panel="unix"><span class="prompt">$</span> <code>curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/install.sh | sh</code></pre>
+          <button class="copy-btn" id="copy-cmd" aria-label="Copy install command">Copy</button>
+        </div>
+        <p class="terminal-note">
+          The installer detects your OS and architecture, downloads the latest release, and verifies it
+          against the published SHA-256 digest before installing.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots -->
+  <section class="shots">
+    <div class="container shots-grid">
+      <figure>
+        <img src="assets/general.png" alt="CrunchyMurmur general settings in light mode" loading="lazy">
+        <figcaption>Appearance and device settings</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/engine.png" alt="CrunchyMurmur transcription engine settings" loading="lazy">
+        <figcaption>Local and cloud transcription</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2>What it does</h2>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">🎙️</div>
+          <h3>Dictation anywhere</h3>
+          <p>Hold the global shortcut, speak, and release to transcribe straight into the focused app.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">🗣️</div>
+          <h3>Meeting capture</h3>
+          <p>Record your microphone and, where supported, system audio as separate speaker-labelled tracks.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">📝</div>
+          <h3>A real Markdown workspace</h3>
+          <p>Edit notes, meeting notes, and reusable AI templates with write, split, and preview modes.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">🔒</div>
+          <h3>Local-first privacy</h3>
+          <p>Use whisper.cpp fully offline. No account, no advertising SDK, no project-operated telemetry.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">📈</div>
+          <h3>Useful progress, locally</h3>
+          <p>Track dictated words, weighted words per minute, and consecutive active days on your device.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">✅</div>
+          <h3>Verified releases and updates</h3>
+          <p>Signed packages, checksums, SBOMs, provenance attestations, and stable in-app updates from GitHub Releases.</p>
+        </article>
+      </div>
+
+      <div class="providers">
+        <h3>Choose where transcription happens</h3>
+        <ul>
+          <li><strong>Local whisper.cpp</strong> — audio stays on your machine; no API key required.</li>
+          <li><strong>Groq Whisper API</strong> — faster on many laptops; audio is sent to the Groq account you configure.</li>
+          <li><strong>Optional AI formatting and notes</strong> — Anthropic, OpenAI, Groq, Claude Code, or Codex, only when you configure and invoke them.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platform support table -->
+  <section class="platforms" id="platforms">
+    <div class="container">
+      <h2>Platform support</h2>
+      <p class="section-sub">
+        CrunchyMurmur shares its data model and most product features across Windows, macOS, and Linux.
+        Native integrations intentionally differ where no reliable portable API exists.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Capability</th><th>Windows</th><th>macOS</th><th>Linux</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Dashboard, word count, WPM, streak</td><td class="ok">Supported</td><td class="ok">Supported</td><td class="ok">Supported</td></tr>
+            <tr><td>Local whisper.cpp and Groq transcription</td><td class="ok">Supported</td><td class="ok">Supported</td><td class="ok">Supported</td></tr>
+            <tr><td>AI formatting and AI Notes providers</td><td class="ok">Supported</td><td class="ok">Supported</td><td class="ok">Supported</td></tr>
+            <tr><td>Notes, templates, recordings, retention</td><td class="ok">Supported</td><td class="ok">Supported</td><td class="ok">Supported</td></tr>
+            <tr><td>Meeting microphone capture</td><td class="ok">Supported</td><td class="ok">Supported</td><td class="ok">Supported</td></tr>
+            <tr><td>Meeting system/call audio</td><td class="ok">Supported</td><td>Supported on macOS&nbsp;13+</td><td class="dim">Not currently supported</td></tr>
+            <tr><td>Speaker-labelled chunked transcription</td><td>When both tracks exist</td><td>When both tracks exist</td><td>Microphone labelled <code>YOU</code></td></tr>
+            <tr><td>Default global shortcut</td><td>Hold <code>Ctrl + Win</code></td><td>Hold <code>Fn</code></td><td>Configurable toggle</td></tr>
+            <tr><td>Calendar</td><td>ICS feeds</td><td>Native EventKit and ICS feeds</td><td>ICS feeds</td></tr>
+            <tr><td>Automatic paste</td><td>Native input simulation</td><td>Accessibility / Automation</td><td><code>wtype</code> or <code>xdotool</code></td></tr>
+            <tr><td>Packages</td><td>NSIS x64 / ARM64</td><td>Signed &amp; notarized universal DMG / ZIP</td><td>AppImage and Debian x64 / ARM64</td></tr>
+            <tr><td>Updates</td><td class="ok">Automatic</td><td class="ok">Automatic</td><td>AppImage automatic; Debian reinstall</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust -->
+  <section class="trust">
+    <div class="container">
+      <h2>Designed for trust</h2>
+      <ul class="trust-list">
+        <li>No CrunchyMurmur account, analytics SDK, ads, or project-operated telemetry.</li>
+        <li>API keys use operating-system-backed safe storage when available.</li>
+        <li>Local data can be exported or permanently deleted from the app.</li>
+        <li>Audio retention never removes meeting transcripts or notes.</li>
+        <li>Release artifacts include SHA-256 checksums, an SPDX SBOM, and GitHub build-provenance attestations.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Downloads -->
+  <section class="downloads" id="download">
+    <div class="container">
+      <h2>Download</h2>
+      <p class="section-sub" id="downloads-sub">
+        Packages are published on GitHub Releases with checksums and provenance attestations.
+      </p>
+      <div class="download-grid">
+        <article class="download-card">
+          <h3>Windows</h3>
+          <p>NSIS installer, Windows 10/11</p>
+          <a class="btn btn-card" data-asset="win-x64" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">x64 installer</a>
+          <a class="btn btn-card" data-asset="win-arm64" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">ARM64 installer</a>
+        </article>
+        <article class="download-card">
+          <h3>macOS</h3>
+          <p>Signed &amp; notarized, macOS 13+</p>
+          <a class="btn btn-card" data-asset="mac-dmg" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">Universal DMG</a>
+          <a class="btn btn-card" data-asset="mac-zip" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">Universal ZIP</a>
+        </article>
+        <article class="download-card">
+          <h3>Linux</h3>
+          <p>AppImage and Debian packages</p>
+          <a class="btn btn-card" data-asset="linux-appimage-x64" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">AppImage x64</a>
+          <a class="btn btn-card" data-asset="linux-deb-x64" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">Debian x64</a>
+          <a class="btn btn-card" data-asset="linux-arm64" href="https://github.com/almoretti/CrunchyMurmur/releases/latest">ARM64 builds</a>
+        </article>
+      </div>
+      <p class="downloads-note">
+        Prefer the terminal? The <a href="#install">verified installer</a> picks the right package for you.
+        All downloads: <a href="https://github.com/almoretti/CrunchyMurmur/releases" target="_blank" rel="noopener">github.com/almoretti/CrunchyMurmur/releases</a>
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <img src="assets/brand-mark.svg" width="22" height="22" alt="">
+      <span>CrunchyMurmur</span>
+      <span class="footer-dim">· MIT License</span>
+    </div>
+    <nav class="footer-links">
+      <a href="https://github.com/almoretti/CrunchyMurmur" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/almoretti/CrunchyMurmur/tree/main/docs" target="_blank" rel="noopener">Documentation</a>
+      <a href="https://github.com/almoretti/CrunchyMurmur/issues/new/choose" target="_blank" rel="noopener">Report a bug</a>
+      <a href="https://github.com/almoretti/CrunchyMurmur/blob/main/.github/SECURITY.md" target="_blank" rel="noopener">Security</a>
+      <a href="https://github.com/almoretti/CrunchyMurmur/blob/main/docs/legal/privacy.md" target="_blank" rel="noopener">Privacy</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
