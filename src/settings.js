@@ -29,6 +29,7 @@ const DEFAULTS = {
   audioRetentionPolicy: 'never', // never | after_transcription | 1 | 7 | 30
   aiFormatEnabled: 'false',
   groqFormatModel: 'llama-3.1-8b-instant',
+  aiFormatFallback: 'raw', // raw | anthropic
 
   // AI Notes
   aiNotesProvider: 'anthropic',  // 'anthropic' | 'openai' (claudeCode/codex coming later)
