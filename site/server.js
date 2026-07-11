@@ -40,9 +40,14 @@ const server = http.createServer((req, res) => {
       return res.end('Not found');
     }
     const ext = path.extname(filePath).toLowerCase();
+    // HTML references app.js/styles.css without cache-busting hashes, so scripts
+    // and styles must revalidate on every load — a long-lived cached app.js kept
+    // running against newer markup after deploys (e.g. the language picker
+    // shipped with no listener attached). Only images stay cacheable.
+    const longLived = ['.svg', '.png', '.ico'].includes(ext);
     res.writeHead(200, {
       'Content-Type': TYPES[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600',
+      'Cache-Control': longLived ? 'public, max-age=3600' : 'no-cache',
     });
     res.end(data);
   });
