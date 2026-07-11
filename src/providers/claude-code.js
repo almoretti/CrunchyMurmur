@@ -28,13 +28,11 @@ function readSettings(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
 }
 
-function models(home = os.homedir(), projectDir = process.cwd()) {
+function models(home = os.homedir()) {
   const claudeDir = path.join(home, '.claude');
   const globalSettings = readSettings(path.join(claudeDir, 'settings.json'));
-  const localSettings = readSettings(path.join(projectDir, '.claude', 'settings.local.json'));
-  const settings = [localSettings, globalSettings];
-  const allowlist = settings.flatMap(value => Array.isArray(value.availableModels) ? value.availableModels : []);
-  const configured = settings.map(value => value.model).find(Boolean);
+  const allowlist = Array.isArray(globalSettings.availableModels) ? globalSettings.availableModels : [];
+  const configured = globalSettings.model;
   const ids = allowlist.length ? allowlist : FAMILY_ALIASES;
   if (configured && !ids.includes(configured)) ids.unshift(configured);
   return [

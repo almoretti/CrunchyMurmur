@@ -19,7 +19,7 @@ function isAvailable() {
   return Boolean(executable());
 }
 
-const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
+const REASONING_EFFORTS = ['minimal', 'low', 'medium', 'high', 'xhigh'];
 
 function modelsCachePath(home = os.homedir()) {
   return path.join(home, '.codex', 'models_cache.json');

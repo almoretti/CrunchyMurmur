@@ -32,7 +32,7 @@ test('Claude models honor its configured model and allowlist', t => {
   assert.deepEqual(claudeCode.models(home).map(model => model.id), ['', 'claude-current', 'claude-allowed']);
 });
 
-test('Claude project-local model takes precedence over the global model', t => {
+test('Claude model discovery does not depend on the app launch directory', t => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-claude-home-'));
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-claude-project-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
@@ -41,7 +41,11 @@ test('Claude project-local model takes precedence over the global model', t => {
   fs.mkdirSync(path.join(project, '.claude'));
   fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ model: 'global-model' }));
   fs.writeFileSync(path.join(project, '.claude', 'settings.local.json'), JSON.stringify({ model: 'local-model' }));
-  assert.equal(claudeCode.models(home, project)[1].id, 'local-model');
+  assert.equal(claudeCode.models(home)[1].id, 'global-model');
+});
+
+test('Codex fallback exposes only supported reasoning efforts', () => {
+  assert.deepEqual(codex.REASONING_EFFORTS, ['minimal', 'low', 'medium', 'high', 'xhigh']);
 });
 
 test('Codex falls back to the selected model default when effort is unsupported', t => {
