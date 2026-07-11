@@ -1902,6 +1902,10 @@ uiLocaleEl.addEventListener('change', async () => {
   const cfg = await window.wisper.saveSettings({ uiLocale: uiLocaleEl.value });
   window.__lastSettings = cfg;
 });
+window.addEventListener('localechange', () => {
+  render();
+  void renderDashboard();
+});
 
 useFnHotkeyBtn.addEventListener('click', () => {
   hotkeyEl.value = 'Fn';

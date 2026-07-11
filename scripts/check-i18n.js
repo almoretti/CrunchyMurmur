@@ -43,6 +43,11 @@ if (JSON.stringify(extractedKeys) !== JSON.stringify(Object.keys(window.__CRUNCH
 }
 for (const file of ['main.html', 'floating.html']) {
   const html = fs.readFileSync(path.join(root, 'ui', file), 'utf8');
-  if (!html.includes('<script src="messages.js"></script>') || !html.includes('<script src="i18n.js"></script>')) throw new Error(`${file} does not load the locale catalog before i18n.js.`);
+  const messagesIndex = html.indexOf('<script src="messages.js"></script>');
+  const i18nIndex = html.indexOf('<script src="i18n.js"></script>');
+  const pageIndex = html.indexOf(`<script src="${file === 'main.html' ? 'main.js' : 'floating.js'}"></script>`);
+  if (messagesIndex < 0 || i18nIndex < 0 || pageIndex < 0 || !(messagesIndex < i18nIndex && i18nIndex < pageIndex)) {
+    throw new Error(`${file} must load messages.js, i18n.js, then its page script in that order.`);
+  }
 }
 console.log(`i18n: ${englishKeys.length} renderer messages catalogued across ${expected.length} locales.`);

@@ -42,6 +42,10 @@ window.wisper.getSettings().then((cfg) => {
   stopLabelEl.textContent = window.i18n.t('Stop');
 });
 window.wisper.onTheme(applyTheme);
+window.wisper.onLocale(({ uiLocale, systemLocale }) => {
+  window.i18n.setLocale(uiLocale || 'system', systemLocale);
+  stopLabelEl.textContent = window.i18n.t('Stop');
+});
 
 async function startCapture() {
   const generation = ++captureGeneration;

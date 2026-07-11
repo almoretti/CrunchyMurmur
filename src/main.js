@@ -647,6 +647,9 @@ handle('settings:save', async (_e, partial) => {
   if (Object.hasOwn(changes, 'theme')) changes.theme = normalizedTheme(changes.theme);
   const saved = settings.save(changes);
   if (Object.hasOwn(changes, 'theme')) applyThemePreference(saved.theme);
+  if (Object.hasOwn(changes, 'uiLocale') && floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send('locale:changed', { uiLocale: saved.uiLocale, systemLocale: shortcutMetadata(saved).systemLocale });
+  }
   return shortcutMetadata(saved);
 });
 
