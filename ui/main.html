@@ -431,6 +431,20 @@
           <h2>General</h2>
 
           <div class="card">
+            <label for="uiLocale" data-i18n="Application language">Application language</label>
+            <select id="uiLocale">
+              <option value="system" data-i18n="System default">System default</option>
+              <option value="en">English</option><option value="it">Italiano</option>
+              <option value="es">Español</option><option value="pt">Português</option>
+              <option value="fr">Français</option><option value="de">Deutsch</option>
+              <option value="da">Dansk</option><option value="no">Norsk</option>
+              <option value="sv">Svenska</option><option value="zh">中文</option>
+              <option value="ko">한국어</option><option value="ja">日本語</option>
+            </select>
+            <p class="muted small" data-i18n="Changes apply immediately and are saved for the next launch.">Changes apply immediately and are saved for the next launch.</p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
             <label>Appearance</label>
             <div id="themeOptions" class="theme-options" role="radiogroup" aria-label="Colour theme">
               <label class="theme-option">
@@ -594,6 +608,8 @@
     </div>
 
     <script src="editor.bundle.js"></script>
+    <script src="messages.js"></script>
+    <script src="i18n.js"></script>
     <script src="main.js"></script>
   </body>
 </html>

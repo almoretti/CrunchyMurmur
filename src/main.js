@@ -494,11 +494,17 @@ function toggleDictation() {
 }
 
 function shortcutMetadata(cfg = settings.load()) {
+  // getSystemLocale reads the user's OS regional/language preference on all
+  // three desktop platforms. getLocale is retained for older Electron builds.
+  const systemLocale = (typeof app.getSystemLocale === 'function' && app.getSystemLocale())
+    || app.getLocale()
+    || 'en';
   return {
     ...settings.publicView(cfg),
     platform: process.platform,
     arch: process.arch,
     version: app.getVersion(),
+    systemLocale,
     accessibilityTrusted: process.platform !== 'darwin' || systemPreferences.isTrustedAccessibilityClient(false),
   };
 }

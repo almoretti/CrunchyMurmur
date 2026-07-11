@@ -35,7 +35,7 @@ function applyTheme(theme) {
 stopLabelEl.textContent = window.i18n.t('Stop');
 window.wisper.getSettings().then((cfg) => {
   applyTheme(cfg?.theme);
-  window.i18n.setLocale(cfg?.uiLocale || 'system');
+  window.i18n.setLocale(cfg?.uiLocale || 'system', cfg?.systemLocale);
   stopLabelEl.textContent = window.i18n.t('Stop');
 }).catch(() => {
   applyTheme('system');
@@ -72,7 +72,7 @@ async function startCapture() {
   } catch (e) {
     if (generation !== captureGeneration) return;
     console.error('[floating] getUserMedia failed:', e);
-    setLabel(micDeviceId ? 'Mic unavailable' : 'Mic blocked');
+    setLabel(window.i18n.t(micDeviceId ? 'Mic unavailable' : 'Mic blocked'));
     window.wisper.captureFailed(e && e.message ? e.message : String(e));
     return;
   }
