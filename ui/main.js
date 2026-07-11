@@ -1504,6 +1504,9 @@ const engineSaveStatusEl = document.getElementById('engineSaveStatus');
 const generalSaveStatusEl = document.getElementById('generalSaveStatus');
 const engineLocalEl = document.getElementById('engineLocal');
 const engineGroqEl = document.getElementById('engineGroq');
+const cliReadinessEl = document.getElementById('cliReadiness');
+const modelReadinessEl = document.getElementById('modelReadiness');
+const cliSetupGuideEl = document.getElementById('cliSetupGuide');
 
 const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
 function selectedTheme() {
@@ -1556,7 +1559,10 @@ async function populateInstalledPicker() {
 }
 
 installedModelPickerEl?.addEventListener('change', () => {
-  if (installedModelPickerEl.value) modelPathEl.value = installedModelPickerEl.value;
+  if (installedModelPickerEl.value) {
+    modelPathEl.value = installedModelPickerEl.value;
+    void refreshModelReadiness();
+  }
 });
 
 // Microphone picker
@@ -1697,7 +1703,54 @@ function applyEngineKind(kind) {
   document.querySelectorAll('input[name="engineKind"]').forEach((r) => {
     r.checked = r.value === k;
   });
+  if (k === 'local') void refreshLocalReadiness();
 }
+
+function setReadiness(el, ready, message) {
+  el.textContent = `${ready ? '✓' : '○'} ${message}`;
+  el.classList.toggle('ready', ready);
+  el.classList.toggle('incomplete', !ready);
+}
+
+let localReadinessRequest = 0;
+let modelReadinessRequest = 0;
+
+async function refreshModelReadiness() {
+  const request = ++modelReadinessRequest;
+  const result = await window.wisper.localModelStatus(modelPathEl.value.trim());
+  if (request !== modelReadinessRequest) return result;
+  setReadiness(modelReadinessEl, result.valid, result.valid ? 'GGML model is ready.' : result.reason);
+  return result;
+}
+
+async function refreshLocalReadiness({ discover = true } = {}) {
+  const request = ++localReadinessRequest;
+  const preferredPath = whisperCliPathEl.value.trim();
+  setReadiness(cliReadinessEl, false, 'Checking whisper-cli…');
+  const [result, model] = await Promise.all([
+    window.wisper.whisperCliStatus(discover ? preferredPath : ''),
+    refreshModelReadiness(),
+  ]);
+  if (request !== localReadinessRequest) return { cli: result, model };
+  if (result.valid) {
+    if (result.discovered) whisperCliPathEl.value = result.path;
+    setReadiness(cliReadinessEl, true, `${result.discovered ? 'Found' : 'Ready'}: ${result.path}${result.version ? ` (${result.version})` : ''}`);
+  } else {
+    setReadiness(cliReadinessEl, false, 'whisper-cli is required before local transcription can run.');
+  }
+  return { cli: result, model };
+}
+
+document.getElementById('showCliSetup').addEventListener('click', () => {
+  const platform = window.__lastSettings?.platform;
+  const command = platform === 'darwin' ? 'brew install whisper-cpp'
+    : platform === 'linux' ? 'Install the whisper.cpp package for your distribution, then return here and choose Refresh.'
+      : 'Download a whisper.cpp release for Windows, then use Browse to select whisper-cli.exe.';
+  cliSetupGuideEl.hidden = !cliSetupGuideEl.hidden;
+  cliSetupGuideEl.textContent = `Install whisper.cpp: ${command} Browse is available if it is already installed somewhere else. After installation, select Local or Refresh this page to detect and validate it.`;
+});
+document.getElementById('refreshCli').addEventListener('click', () => void refreshLocalReadiness());
+modelPathEl.addEventListener('input', () => void refreshModelReadiness());
 
 document.querySelectorAll('input[name="engineKind"]').forEach((r) => {
   r.addEventListener('change', (e) => applyEngineKind(e.target.value));
@@ -1707,25 +1760,38 @@ document.getElementById('pickCli').addEventListener('click', async () => {
   const platform = window.__lastSettings?.platform;
   const filters = platform === 'win32' ? [{ name: 'Executables', extensions: ['exe'] }] : [{ name: 'Executable', extensions: ['*'] }];
   const p = await window.wisper.pickFile(filters);
-  if (p) whisperCliPathEl.value = p;
+  if (p) {
+    whisperCliPathEl.value = p;
+    await refreshLocalReadiness();
+  }
 });
 document.getElementById('pickModel').addEventListener('click', async () => {
   const p = await window.wisper.pickFile([{ name: 'GGML model', extensions: ['bin'] }]);
-  if (p) modelPathEl.value = p;
+  if (p) {
+    modelPathEl.value = p;
+    await refreshModelReadiness();
+  }
 });
 
 saveEngineBtn.addEventListener('click', async () => {
   const engineKind = document.querySelector('input[name="engineKind"]:checked')?.value || 'local';
-  const cfg = await window.wisper.saveSettings({
-    engineKind,
-    whisperCliPath: whisperCliPathEl.value.trim(),
-    modelPath: modelPathEl.value.trim(),
-    groqApiKey: groqApiKeyEl.value.trim(),
-    groqModel: groqModelEl.value,
-  });
-  window.__lastSettings = cfg;
-  engineSaveStatusEl.textContent = 'Saved.';
-  setTimeout(() => { engineSaveStatusEl.textContent = ''; }, 1500);
+  try {
+    if (engineKind === 'local') await refreshLocalReadiness();
+    const cfg = await window.wisper.saveSettings({
+      engineKind,
+      whisperCliPath: whisperCliPathEl.value.trim(),
+      modelPath: modelPathEl.value.trim(),
+      groqApiKey: groqApiKeyEl.value.trim(),
+      groqModel: groqModelEl.value,
+    });
+    window.__lastSettings = cfg;
+    engineSaveStatusEl.style.color = '';
+    engineSaveStatusEl.textContent = 'Saved.';
+    setTimeout(() => { engineSaveStatusEl.textContent = ''; }, 1500);
+  } catch (error) {
+    engineSaveStatusEl.style.color = 'var(--danger)';
+    engineSaveStatusEl.textContent = error.message || String(error);
+  }
 });
 
 // AI Notes provider config

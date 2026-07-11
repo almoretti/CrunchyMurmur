@@ -334,13 +334,22 @@
 
             <!-- Local engine fields -->
             <div id="engineLocal" class="engine-section">
-              <label>whisper-cli path</label>
+              <div class="local-setup" id="localSetup" aria-live="polite">
+                <strong>Local setup</strong>
+                <span id="cliReadiness">Checking whisper-cli…</span>
+                <span id="modelReadiness">A GGML model is also required.</span>
+                <button id="refreshCli" type="button" class="text-button">Refresh</button>
+                <button id="showCliSetup" type="button" class="text-button">Set up local transcription</button>
+              </div>
+              <p id="cliSetupGuide" class="muted small" hidden></p>
+
+              <label for="whisperCliPath">whisper-cli executable <span class="muted small">(required)</span></label>
               <div class="row">
                 <input id="whisperCliPath" type="text" placeholder="Path to whisper-cli" />
-                <button id="pickCli" class="text-button">Browse…</button>
+                <button id="pickCli" type="button" class="text-button">Browse…</button>
               </div>
 
-              <label>Use a downloaded model</label>
+              <label>Use a downloaded model <span class="muted small">(required)</span></label>
               <select id="installedModelPicker">
                 <option value="">— Pick from your downloads —</option>
               </select>

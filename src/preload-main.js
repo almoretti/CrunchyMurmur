@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld('wisper', {
   getSettings:    () => ipcRenderer.invoke('settings:get'),
   saveSettings:   (partial) => ipcRenderer.invoke('settings:save', partial),
   pickFile:       (filters) => ipcRenderer.invoke('settings:pick-file', filters),
+  whisperCliStatus: (path) => ipcRenderer.invoke('whisper-cli:status', path),
+  localModelStatus: (path) => ipcRenderer.invoke('local-model:status', path),
 
   getHistory:     () => ipcRenderer.invoke('history:get'),
   getHistoryStats:() => ipcRenderer.invoke('history:stats'),

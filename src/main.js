@@ -88,6 +88,7 @@ const settings = require('./settings');
 const history = require('./history');
 const dictationStats = require('./dictation-stats');
 const models = require('./models');
+const whisperCli = require('./whisper-cli');
 const notes = require('./notes-store');
 const templates = require('./templates');
 const aiNotes = require('./notes-generator');
@@ -580,9 +581,33 @@ handle('permissions:open', (_e, kind) => {
   return false;
 });
 
-handle('settings:save', (_e, partial) => {
+async function validateLocalModel(modelPath) {
+  const candidate = String(modelPath || '').trim();
+  if (!candidate) return { valid: false, reason: 'Choose or download a GGML .bin model.' };
+  try {
+    const model = await fs.promises.stat(candidate);
+    await fs.promises.access(candidate, fs.constants.R_OK);
+    if (!model.isFile() || path.extname(candidate).toLowerCase() !== '.bin') {
+      return { valid: false, reason: 'The selected model must be a readable GGML .bin file.' };
+    }
+    return { valid: true, path: candidate };
+  } catch {
+    return { valid: false, reason: 'The selected model file was not found or is not readable.' };
+  }
+}
+
+handle('settings:save', async (_e, partial) => {
   const changes = { ...(partial || {}) };
   const current = settings.load();
+  const prospective = { ...current, ...changes };
+  const localConfigChanged = ['engineKind', 'whisperCliPath', 'modelPath']
+    .some((key) => Object.hasOwn(changes, key));
+  if (localConfigChanged && prospective.engineKind === 'local') {
+    const cli = await whisperCli.validateWhisperCli(prospective.whisperCliPath);
+    if (!cli.valid) throw new Error(`Local transcription is not ready: ${cli.reason}`);
+    const model = await validateLocalModel(prospective.modelPath);
+    if (!model.valid) throw new Error(`Local transcription is not ready: ${model.reason}`);
+  }
   if (Object.hasOwn(changes, 'hotkey')) {
     changes.hotkey = String(changes.hotkey || '').trim() || settings.DEFAULTS.hotkey;
     changes.hotkeyCustomized = 'true';
@@ -607,6 +632,12 @@ handle('settings:pick-file', async (_e, filters) => {
   if (result.canceled || !result.filePaths.length) return null;
   return result.filePaths[0];
 });
+handle('whisper-cli:status', async (_e, preferredPath) => {
+  const preferred = await whisperCli.validateWhisperCli(String(preferredPath || '').trim());
+  if (preferred.valid) return { ...preferred, discovered: false };
+  return whisperCli.discoverWhisperCli();
+});
+handle('local-model:status', (_e, modelPath) => validateLocalModel(modelPath));
 
 handle('history:get', () => history.load());
 handle('history:stats', () => dictationStats.compute(history.load()));
