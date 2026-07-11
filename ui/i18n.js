@@ -50,6 +50,7 @@
     if (catalogs.en[value]) return value;
     return reverseKeys.get(value) || value;
   };
+  const userContentSelector = '[data-i18n],input,textarea,[contenteditable],.cm-editor,.muya,#history,#foldersList,#notesList,#calendarList,#meetingsList,#meetingTranscript,#meetingAiNotes,#templatesList';
   const normalize = value => { const code = String(value || '').toLowerCase().split('-')[0]; return supported.includes(code) ? code : 'en'; };
   function t(key, vars = {}) { let value = catalogs[locale]?.[key] || catalogs.en[key] || key; for (const [name, replacement] of Object.entries(vars)) value = value.replaceAll(`{${name}}`, () => String(replacement)); return value; }
   function translateValue(visible) {
@@ -64,7 +65,6 @@
   function translate(root = document) {
     const i18nElements = root.matches?.('[data-i18n]') ? [root, ...root.querySelectorAll('[data-i18n]')] : root.querySelectorAll('[data-i18n]');
     i18nElements.forEach(el => { el.textContent = t(el.dataset.i18n); });
-    const userContentSelector = '[data-i18n],input,textarea,[contenteditable],.cm-editor,.muya,#history,#foldersList,#notesList,#calendarList,#meetingsList,#meetingTranscript,#meetingAiNotes,#templatesList';
     const walker = document.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
       acceptNode: node => node.parentElement?.closest(userContentSelector) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
     });
@@ -83,7 +83,7 @@
     if (observing) return;
     observing = true;
     for (const record of records) for (const node of record.addedNodes) {
-      if (node.nodeType === Node.TEXT_NODE && !node.parentElement?.closest('[data-i18n],input,textarea,[contenteditable],.cm-editor,.muya,#history,#foldersList,#notesList,#calendarList,#meetingsList,#meetingTranscript,#meetingAiNotes,#templatesList')) { const visible = node.nodeValue.trim(); node.nodeValue = node.nodeValue.replace(visible, translateValue(visible)); }
+      if (node.nodeType === Node.TEXT_NODE && !node.parentElement?.closest(userContentSelector)) { const visible = node.nodeValue.trim(); node.nodeValue = node.nodeValue.replace(visible, translateValue(visible)); }
       else if (node.nodeType === Node.ELEMENT_NODE) translate(node);
     }
     observing = false;
