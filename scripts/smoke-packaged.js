@@ -147,20 +147,18 @@ async function evaluate(target, expression) {
       const templateTextarea = document.getElementById('templateInstructions');
       const templateEditor = templateTextarea.__crunchyEditor;
       const originalTemplate = templateEditor.getValue();
-      templateEditor.setValue('# Packaged editor\\n\\n**Safe preview**\\n\\n<script>window.packagedEditorXss=true</script>');
-      templateEditor.setMode('split');
-      const editorPreview = templateEditor.shell.querySelector('.text-editor-preview');
+      templateEditor.setValue('# Packaged editor\\n\\n**Safe Markdown**\\n\\n<script>window.packagedEditorXss=true</script>');
       const editorRegression = {
         mounted: document.querySelectorAll('.text-editor-shell').length,
-        heading: editorPreview.querySelector('h1')?.textContent,
-        strong: editorPreview.querySelector('strong')?.textContent,
-        scriptCount: editorPreview.querySelectorAll('script').length,
-        sourceVisible: getComputedStyle(templateEditor.shell.querySelector('.text-editor-source')).display !== 'none',
-        previewVisible: getComputedStyle(editorPreview).display !== 'none',
+        heading: templateEditor.shell.querySelector('h1')?.textContent,
+        strong: templateEditor.shell.querySelector('strong')?.textContent,
+        scriptCount: templateEditor.shell.querySelectorAll('script').length,
+        contenteditable: templateEditor.shell.querySelector('[contenteditable="true"]')?.getAttribute('contenteditable'),
+        markdown: templateEditor.getValue(),
+        legacyModeButtons: document.querySelectorAll('[data-editor-mode]').length,
         stats: document.getElementById('templateEditorStats').textContent,
       };
       templateEditor.setValue(originalTemplate);
-      templateEditor.setMode('write');
       return {
         liveModifier, incompleteKey, completedChord, macChord, contained, editorRegression, lightTheme, darkTheme,
         cardsClip, minimumModuleHeight, modulesCentered, minimumControlHeight,
@@ -179,8 +177,9 @@ async function evaluate(target, expression) {
       throw new Error(`Packaged card layout regression: ${JSON.stringify(regression)}`);
     }
     const editor = regression.editorRegression;
-    if (editor.mounted !== 3 || editor.heading !== 'Packaged editor' || editor.strong !== 'Safe preview'
-        || editor.scriptCount !== 0 || !editor.sourceVisible || !editor.previewVisible
+    if (editor.mounted !== 3 || !/Packaged editor$/.test(editor.heading) || editor.strong !== 'Safe Markdown'
+        || editor.scriptCount !== 0 || editor.contenteditable !== 'true' || editor.legacyModeButtons !== 0
+        || !editor.markdown.includes('<script>window.packagedEditorXss=true</script>')
         || !/words · .*characters · .*lines/.test(editor.stats)) {
       throw new Error(`Packaged Markdown editor regression: ${JSON.stringify(regression)}`);
     }

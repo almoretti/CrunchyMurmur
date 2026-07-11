@@ -324,7 +324,6 @@ const notesSelectMessageEl = document.getElementById('notesSelectMessage');
 const noteTitleEl = document.getElementById('noteTitle');
 const noteBodyEl = document.getElementById('noteBody');
 const noteBodyEditor = window.CrunchyEditor.mount(noteBodyEl, {
-  toolbar: '#noteEditorToolbar',
   stats: '#noteEditorStats',
   label: 'Note body',
   placeholder: 'Start writing…',
@@ -610,7 +609,6 @@ const templateNameEl = document.getElementById('templateName');
 const templateDescriptionEl = document.getElementById('templateDescription');
 const templateInstructionsEl = document.getElementById('templateInstructions');
 const templateInstructionsEditor = window.CrunchyEditor.mount(templateInstructionsEl, {
-  toolbar: '#templateEditorToolbar',
   stats: '#templateEditorStats',
   label: 'AI note template instructions',
   placeholder: 'Describe the structure, tone, and details the AI should produce…',
@@ -847,7 +845,6 @@ const aiNotesMeetingBtn = document.getElementById('aiNotesMeetingBtn');
 const deleteMeetingBtn = document.getElementById('deleteMeetingBtn');
 const meetingUserNotesEl = document.getElementById('meetingUserNotes');
 const meetingNotesEditor = window.CrunchyEditor.mount(meetingUserNotesEl, {
-  toolbar: '#meetingNotesToolbar',
   stats: '#meetingNotesStats',
   label: 'Live meeting notes',
   placeholder: 'Type live notes here while you record. Autosaves.',
