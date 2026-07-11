@@ -2,12 +2,8 @@
 window.__CRUNCHY_I18N_CATALOGS__ = {
   "en": {
     "CLI default (recommended)": "CLI default (recommended)",
-    "Claude Haiku (fastest)": "Claude Haiku (fastest)",
-    "Claude Opus (highest quality)": "Claude Opus (highest quality)",
-    "Claude Sonnet (balanced)": "Claude Sonnet (balanced)",
-    "GPT-5.3-Codex (agentic coding)": "GPT-5.3-Codex (agentic coding)",
-    "GPT-5.4 (balanced)": "GPT-5.4 (balanced)",
-    "GPT-5.4 mini (faster, lower usage)": "GPT-5.4 mini (faster, lower usage)",
+    "Maximum — highest reasoning depth": "Maximum — highest reasoning depth",
+    "Ultra — maximum reasoning with delegation": "Ultra — maximum reasoning with delegation",
     "Finishing": "Finishing",
     "Meeting recording": "Meeting recording",
     "Mic blocked": "Mic blocked",

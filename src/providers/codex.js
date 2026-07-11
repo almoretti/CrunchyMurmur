@@ -1,6 +1,9 @@
 // Generates notes by spawning the user's installed `codex` CLI.
 // Uses the user's Codex subscription, so no API key needed.
 const sub = require('./subprocess');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 let cachedExe = null;
 let cachedAt = 0;
@@ -17,12 +20,30 @@ function isAvailable() {
 }
 
 const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
-const MODELS = [
-  { id: '', label: 'CLI default (recommended)' },
-  { id: 'gpt-5.3-codex', label: 'GPT-5.3-Codex (agentic coding)' },
-  { id: 'gpt-5.4', label: 'GPT-5.4 (balanced)' },
-  { id: 'gpt-5.4-mini', label: 'GPT-5.4 mini (faster, lower usage)' },
-];
+
+function modelsCachePath(home = os.homedir()) {
+  return path.join(home, '.codex', 'models_cache.json');
+}
+
+function models(home = os.homedir()) {
+  const fallback = [{ id: '', label: 'CLI default (recommended)', efforts: REASONING_EFFORTS }];
+  try {
+    const cache = JSON.parse(fs.readFileSync(modelsCachePath(home), 'utf8'));
+    const visible = (cache.models || [])
+      .filter(model => model?.slug && model.visibility !== 'hide')
+      .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999))
+      .map(model => ({
+        id: model.slug,
+        label: model.display_name || model.slug,
+        description: model.description || '',
+        efforts: (model.supported_reasoning_levels || []).map(level => level.effort).filter(Boolean),
+        defaultEffort: model.default_reasoning_level || 'medium',
+      }));
+    return visible.length ? [fallback[0], ...visible] : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 async function generate({ prompt, model, reasoningEffort = 'medium' }) {
   const exe = executable();
@@ -52,4 +73,4 @@ async function generate({ prompt, model, reasoningEffort = 'medium' }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS, MODELS };
+module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS, models, modelsCachePath };

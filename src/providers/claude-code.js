@@ -1,6 +1,9 @@
 // Generates notes by spawning the user's installed `claude` CLI.
 // Uses the user's Claude Code subscription, so no API key needed.
 const sub = require('./subprocess');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 let cachedExe = null;
 let cachedAt = 0;
@@ -19,12 +22,27 @@ function isAvailable() {
 }
 
 const EFFORTS = ['low', 'medium', 'high'];
-const MODELS = [
-  { id: '', label: 'CLI default (recommended)' },
-  { id: 'sonnet', label: 'Claude Sonnet (balanced)' },
-  { id: 'haiku', label: 'Claude Haiku (fastest)' },
-  { id: 'opus', label: 'Claude Opus (highest quality)' },
-];
+const FAMILY_ALIASES = ['fable', 'opus', 'sonnet', 'haiku'];
+
+function readSettings(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
+}
+
+function models(home = os.homedir()) {
+  const claudeDir = path.join(home, '.claude');
+  const settings = [
+    readSettings(path.join(claudeDir, 'settings.json')),
+    readSettings(path.join(claudeDir, 'settings.local.json')),
+  ];
+  const allowlist = settings.flatMap(value => Array.isArray(value.availableModels) ? value.availableModels : []);
+  const configured = settings.map(value => value.model).find(Boolean);
+  const ids = allowlist.length ? allowlist : FAMILY_ALIASES;
+  if (configured && !ids.includes(configured)) ids.unshift(configured);
+  return [
+    { id: '', label: 'CLI default (recommended)' },
+    ...[...new Set(ids)].map(id => ({ id, label: id })),
+  ];
+}
 
 async function generate({ prompt, model, effort = 'medium' }) {
   const exe = executable();
@@ -55,4 +73,4 @@ async function generate({ prompt, model, effort = 'medium' }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Claude Code', EFFORTS, MODELS };
+module.exports = { generate, isAvailable, executable, displayName: 'Claude Code', EFFORTS, models, FAMILY_ALIASES };
