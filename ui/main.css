@@ -165,6 +165,8 @@ body {
 .titlebar-menu button:hover,
 .titlebar-menu button:focus-visible { color: var(--text); background: var(--hover-strong); }
 html[data-platform="darwin"] .titlebar-menu { display: none; }
+/* hiddenInset retains the native traffic-light buttons in this area. */
+html[data-platform="darwin"] .app-titlebar { padding-left: 78px; }
 .app-workspace {
   flex: 1;
   min-height: 0;
