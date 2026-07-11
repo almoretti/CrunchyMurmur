@@ -1922,6 +1922,11 @@ async function populateAiNotesModels() {
   }
 }
 
+function selectAvailableModel(selectEl, modelId) {
+  if (!modelId) return;
+  if ([...selectEl.options].some(option => option.value === modelId)) selectEl.value = modelId;
+}
+
 saveAiNotesBtn.addEventListener('click', async () => {
   const provider = document.querySelector('input[name="aiNotesProvider"]:checked')?.value || 'anthropic';
   const cfg = await window.wisper.saveSettings({
@@ -1937,6 +1942,14 @@ saveAiNotesBtn.addEventListener('click', async () => {
     codexReasoningEffort: codexReasoningEffortEl.value,
   });
   window.__lastSettings = cfg;
+  await populateAiNotesModels();
+  selectAvailableModel(anthropicModelEl, cfg.anthropicModel);
+  selectAvailableModel(openaiModelEl, cfg.openaiModel);
+  selectAvailableModel(groqNotesModelEl, cfg.groqNotesModel);
+  selectAvailableModel(claudeCodeModelEl, cfg.claudeCodeModel);
+  selectAvailableModel(codexModelEl, cfg.codexModel);
+  populateCodexEfforts(cfg.codexReasoningEffort || 'medium');
+  renderAiNotesEffectiveConfig();
   aiNotesSaveStatusEl.textContent = 'Saved.';
   setTimeout(() => { aiNotesSaveStatusEl.textContent = ''; }, 1500);
 });
@@ -2197,13 +2210,13 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   await populateAiNotesModels();
   applyAiNotesProvider(cfg.aiNotesProvider || 'anthropic');
   anthropicApiKeyEl.value = cfg.anthropicApiKey || '';
-  anthropicModelEl.value = cfg.anthropicModel || 'claude-sonnet-4-6';
+  selectAvailableModel(anthropicModelEl, cfg.anthropicModel || 'claude-sonnet-4-6');
   openaiApiKeyEl.value = cfg.openaiApiKey || '';
-  openaiModelEl.value = cfg.openaiModel || 'gpt-4o';
-  groqNotesModelEl.value = cfg.groqNotesModel || 'llama-3.3-70b-versatile';
-  claudeCodeModelEl.value = cfg.claudeCodeModel || '';
+  selectAvailableModel(openaiModelEl, cfg.openaiModel || 'gpt-4o');
+  selectAvailableModel(groqNotesModelEl, cfg.groqNotesModel || 'llama-3.3-70b-versatile');
+  selectAvailableModel(claudeCodeModelEl, cfg.claudeCodeModel || '');
   claudeCodeEffortEl.value = cfg.claudeCodeEffort || 'medium';
-  codexModelEl.value = cfg.codexModel || '';
+  selectAvailableModel(codexModelEl, cfg.codexModel || '');
   populateCodexEfforts(cfg.codexReasoningEffort || 'medium');
   renderAiNotesEffectiveConfig();
 

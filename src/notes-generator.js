@@ -9,12 +9,18 @@ const groq = require('./providers/groq');
 
 const PROVIDERS = { anthropic, openai, claudeCode, codex, groq };
 
-function listProviders() {
+async function listProviders() {
+  const cfg = settings.load();
+  const [anthropicModels, openaiModels, groqModels] = await Promise.all([
+    anthropic.listModels(cfg.anthropicApiKey),
+    openai.listModels(cfg.openaiApiKey),
+    groq.listModels(cfg.groqApiKey),
+  ]);
   // The order here is also the order shown in the UI radio.
   return [
-    { id: 'anthropic', displayName: 'Anthropic API', models: anthropic.MODELS, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
-    { id: 'openai', displayName: 'OpenAI API', models: openai.MODELS, defaultModel: openai.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
-    { id: 'groq', displayName: 'Groq API (free tier)', models: groq.MODELS, defaultModel: groq.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'anthropic', displayName: 'Anthropic API', models: anthropicModels, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'openai', displayName: 'OpenAI API', models: openaiModels, defaultModel: openai.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'groq', displayName: 'Groq API (free tier)', models: groqModels, defaultModel: groq.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
     { id: 'claudeCode', displayName: 'Claude Code (your subscription)', kind: 'cli',
       available: claudeCode.isAvailable(), executable: claudeCode.executable(), controls: ['model', 'effort'], models: claudeCode.models(), defaultModel: '', efforts: claudeCode.EFFORTS },
     { id: 'codex',      displayName: 'Codex (your subscription)', kind: 'cli',
