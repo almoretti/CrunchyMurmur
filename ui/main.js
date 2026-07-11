@@ -852,7 +852,6 @@ const meetingNotesEditor = window.CrunchyEditor.mount(meetingUserNotesEl, {
   stats: '#meetingNotesStats',
   label: 'Live meeting notes',
   placeholder: 'Type live notes here while you record. Autosaves.',
-  compact: true,
 });
 const meetingTranscriptEl = document.getElementById('meetingTranscript');
 const meetingTranscriptEmptyEl = document.getElementById('meetingTranscriptEmpty');

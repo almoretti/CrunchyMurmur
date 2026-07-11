@@ -22,6 +22,11 @@ const { atomicWriteFileSync, safePathSegment, safeChildPath } = require('./file-
 const SEED_FOLDERS = ['Inbox', 'Meetings'];
 
 function rootDir() {
+  if (process.env.CRUNCHYMURMUR_E2E_NOTES_DIR) {
+    const dir = path.resolve(process.env.CRUNCHYMURMUR_E2E_NOTES_DIR);
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+  }
   const docs = app.getPath('documents') || path.join(os.homedir(), 'Documents');
   const dir = path.join(docs, 'CrunchyMurmur Notes');
   fs.mkdirSync(dir, { recursive: true });
