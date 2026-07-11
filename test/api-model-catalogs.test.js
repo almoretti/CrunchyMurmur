@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const anthropic = require('../src/providers/anthropic');
 const openai = require('../src/providers/openai');
 const groq = require('../src/providers/groq');
+const catalog = require('../src/providers/model-catalog');
 
 function mockResponse(data) {
   return { ok: true, async json() { return { data }; } };
@@ -47,4 +48,24 @@ test('API providers retain fallback catalogs without credentials', async () => {
   assert.deepEqual(await anthropic.listModels(''), anthropic.MODELS);
   assert.deepEqual(await openai.listModels(''), openai.MODELS);
   assert.deepEqual(await groq.listModels(''), groq.MODELS);
+});
+
+test('model catalog rejects non-successful HTTP responses', async t => {
+  t.mock.method(global, 'fetch', async () => ({ ok: false, status: 503 }));
+  await assert.rejects(catalog.fetchModelList({ url: 'https://example.test/models' }), /Model catalog HTTP 503/);
+});
+
+test('model catalog propagates malformed JSON errors', async t => {
+  t.mock.method(global, 'fetch', async () => ({
+    ok: true,
+    async json() { throw new SyntaxError('Unexpected token'); },
+  }));
+  await assert.rejects(catalog.fetchModelList({ url: 'https://example.test/models' }), SyntaxError);
+});
+
+test('model catalog aborts a request after its timeout', async t => {
+  t.mock.method(global, 'fetch', (_url, { signal }) => new Promise((_resolve, reject) => {
+    signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true });
+  }));
+  await assert.rejects(catalog.fetchModelList({ url: 'https://example.test/models', timeoutMs: 1 }), { name: 'AbortError' });
 });

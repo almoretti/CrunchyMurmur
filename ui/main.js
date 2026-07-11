@@ -1887,7 +1887,9 @@ async function populateAiNotesModels() {
     for (const m of p.models) {
       const opt = document.createElement('option');
       opt.value = m.id;
-      opt.textContent = m.id ? m.label : window.i18n.t('CLI default (recommended)');
+      opt.textContent = m.id
+        ? (m.builtIn ? window.i18n.t(m.label) : m.label)
+        : window.i18n.t('CLI default (recommended)');
       if (m.description) opt.title = m.description;
       selectEl.appendChild(opt);
     }
@@ -2213,7 +2215,7 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   selectAvailableModel(anthropicModelEl, cfg.anthropicModel || 'claude-sonnet-4-6');
   openaiApiKeyEl.value = cfg.openaiApiKey || '';
   selectAvailableModel(openaiModelEl, cfg.openaiModel || 'gpt-4o');
-  selectAvailableModel(groqNotesModelEl, cfg.groqNotesModel || 'llama-3.3-70b-versatile');
+  selectAvailableModel(groqNotesModelEl, cfg.groqNotesModel || 'openai/gpt-oss-120b');
   selectAvailableModel(claudeCodeModelEl, cfg.claudeCodeModel || '');
   claudeCodeEffortEl.value = cfg.claudeCodeEffort || 'medium';
   selectAvailableModel(codexModelEl, cfg.codexModel || '');

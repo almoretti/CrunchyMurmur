@@ -1,13 +1,12 @@
 const catalog = require('./model-catalog');
 
 const MODELS = [
-  { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (recommended)' },
+  { id: 'openai/gpt-oss-120b', label: 'GPT OSS 120B (recommended)' },
   { id: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout 17B' },
   { id: 'qwen/qwen3-32b', label: 'Qwen 3 32B' },
-  { id: 'openai/gpt-oss-120b', label: 'GPT OSS 120B' },
   { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B (fastest)' },
 ];
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 function isNotesModel(model) {
   const id = String(model?.id || '');

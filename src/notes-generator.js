@@ -32,10 +32,13 @@ async function listProviders() {
     groq.listModels(cfg.groqApiKey),
   ]);
   // The order here is also the order shown in the UI radio.
+  const markBuiltIns = (models, fallback) => models === fallback
+    ? models.map(model => ({ ...model, builtIn: true }))
+    : models;
   return [
-    { id: 'anthropic', displayName: 'Anthropic API', models: anthropicModels, defaultModel: anthropic.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
-    { id: 'openai', displayName: 'OpenAI API', models: openaiModels, defaultModel: openai.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
-    { id: 'groq', displayName: 'Groq API (free tier)', models: groqModels, defaultModel: groq.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'anthropic', displayName: 'Anthropic API', models: markBuiltIns(anthropicModels, anthropic.MODELS), defaultModel: anthropic.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'openai', displayName: 'OpenAI API', models: markBuiltIns(openaiModels, openai.MODELS), defaultModel: openai.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
+    { id: 'groq', displayName: 'Groq API (free tier)', models: markBuiltIns(groqModels, groq.MODELS), defaultModel: groq.DEFAULT_MODEL, kind: 'http', controls: ['model'] },
     { id: 'claudeCode', displayName: 'Claude Code (your subscription)', kind: 'cli',
       available: claudeCode.isAvailable(), executable: claudeCode.executable(), controls: ['model', 'effort'], models: claudeCode.models(), defaultModel: '', efforts: claudeCode.EFFORTS },
     { id: 'codex',      displayName: 'Codex (your subscription)', kind: 'cli',
