@@ -1,6 +1,9 @@
 // Generates notes by spawning the user's installed `claude` CLI.
 // Uses the user's Claude Code subscription, so no API key needed.
 const sub = require('./subprocess');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 let cachedExe = null;
 let cachedAt = 0;
@@ -18,7 +21,29 @@ function isAvailable() {
   return Boolean(executable());
 }
 
-async function generate({ prompt }) {
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+const FAMILY_ALIASES = ['fable', 'opus', 'sonnet', 'haiku'];
+
+function readSettings(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
+}
+
+function models(home = os.homedir(), projectDir = process.cwd()) {
+  const claudeDir = path.join(home, '.claude');
+  const globalSettings = readSettings(path.join(claudeDir, 'settings.json'));
+  const localSettings = readSettings(path.join(projectDir, '.claude', 'settings.local.json'));
+  const settings = [localSettings, globalSettings];
+  const allowlist = settings.flatMap(value => Array.isArray(value.availableModels) ? value.availableModels : []);
+  const configured = settings.map(value => value.model).find(Boolean);
+  const ids = allowlist.length ? allowlist : FAMILY_ALIASES;
+  if (configured && !ids.includes(configured)) ids.unshift(configured);
+  return [
+    { id: '', label: 'CLI default (recommended)' },
+    ...[...new Set(ids)].map(id => ({ id, label: id })),
+  ];
+}
+
+async function generate({ prompt, model, effort = 'medium' }) {
   const exe = executable();
   if (!exe) {
     const err = new Error('claude CLI not found on PATH. Install Claude Code and re-launch CrunchyMurmur.');
@@ -28,9 +53,12 @@ async function generate({ prompt }) {
   // -p / --print: one-shot mode, prints response and exits.
   // Prompt over stdin to avoid ARG_MAX and to keep transcripts off the
   // process command-line listing.
+  const args = ['-p', '--safe-mode', '--disable-slash-commands', '--no-session-persistence', '--tools='];
+  if (model) args.push('--model', model);
+  if (EFFORTS.includes(effort)) args.push('--effort', effort);
   const result = await sub.run({
     executable: exe,
-    args: ['-p', '--safe-mode', '--disable-slash-commands', '--no-session-persistence', '--tools='],
+    args,
     stdinText: prompt,
     isolated: true,
   });
@@ -44,4 +72,4 @@ async function generate({ prompt }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Claude Code' };
+module.exports = { generate, isAvailable, executable, displayName: 'Claude Code', EFFORTS, models, FAMILY_ALIASES };

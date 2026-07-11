@@ -1806,8 +1806,41 @@ const anthropicModelEl = document.getElementById('anthropicModel');
 const openaiApiKeyEl = document.getElementById('openaiApiKey');
 const openaiModelEl = document.getElementById('openaiModel');
 const groqNotesModelEl = document.getElementById('groqNotesModel');
+const claudeCodeModelEl = document.getElementById('claudeCodeModel');
+const claudeCodeEffortEl = document.getElementById('claudeCodeEffort');
+const codexModelEl = document.getElementById('codexModel');
+const codexReasoningEffortEl = document.getElementById('codexReasoningEffort');
+const aiNotesEffectiveConfigEl = document.getElementById('aiNotesEffectiveConfig');
 const saveAiNotesBtn = document.getElementById('saveAiNotes');
 const aiNotesSaveStatusEl = document.getElementById('aiNotesSaveStatus');
+let aiNotesProviderCatalog = [];
+
+function effortLabel(effort) {
+  const labels = {
+    low: window.i18n.t('Low — fastest, lowest subscription usage'),
+    medium: window.i18n.t('Medium — recommended for summaries'),
+    high: window.i18n.t('High — better for complex transcripts'),
+    xhigh: window.i18n.t('Extra high — slowest, highest subscription usage'),
+    max: window.i18n.t('Maximum — highest reasoning depth'),
+    ultra: window.i18n.t('Ultra — maximum reasoning with delegation'),
+  };
+  return labels[effort] || effort;
+}
+
+function populateCodexEfforts(preferred = '') {
+  const provider = aiNotesProviderCatalog.find(value => value.id === 'codex');
+  const model = provider?.models?.find(value => value.id === codexModelEl.value);
+  const efforts = model?.efforts?.length ? model.efforts : provider?.efforts || ['low', 'medium', 'high'];
+  codexReasoningEffortEl.innerHTML = '';
+  for (const effort of efforts) {
+    const option = document.createElement('option');
+    option.value = effort;
+    option.textContent = effortLabel(effort);
+    codexReasoningEffortEl.appendChild(option);
+  }
+  const target = preferred || model?.defaultEffort || 'medium';
+  codexReasoningEffortEl.value = efforts.includes(target) ? target : efforts[0];
+}
 
 function applyAiNotesProvider(kind) {
   const valid = ['anthropic', 'openai', 'groq', 'claudeCode', 'codex'];
@@ -1820,13 +1853,33 @@ function applyAiNotesProvider(kind) {
   document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
     r.checked = r.value === k;
   });
+  renderAiNotesEffectiveConfig();
+}
+
+function renderAiNotesEffectiveConfig() {
+  const provider = document.querySelector('input[name="aiNotesProvider"]:checked')?.value || 'anthropic';
+  const configs = {
+    anthropic: `Anthropic · ${anthropicModelEl.value}`,
+    openai: `OpenAI · ${openaiModelEl.value}`,
+    groq: `Groq · ${groqNotesModelEl.value}`,
+    claudeCode: `Claude Code · ${claudeCodeModelEl.selectedOptions[0]?.textContent} · ${claudeCodeEffortEl.selectedOptions[0]?.textContent}`,
+    codex: `Codex · ${codexModelEl.selectedOptions[0]?.textContent} · ${codexReasoningEffortEl.selectedOptions[0]?.textContent}`,
+  };
+  aiNotesEffectiveConfigEl.textContent = window.i18n.t('Effective configuration: {0}', { 0: configs[provider] });
 }
 document.querySelectorAll('input[name="aiNotesProvider"]').forEach((r) => {
   r.addEventListener('change', (e) => applyAiNotesProvider(e.target.value));
 });
+[anthropicModelEl, openaiModelEl, groqNotesModelEl, claudeCodeModelEl, claudeCodeEffortEl, codexModelEl, codexReasoningEffortEl]
+  .forEach((el) => el.addEventListener('input', renderAiNotesEffectiveConfig));
+codexModelEl.addEventListener('change', () => {
+  populateCodexEfforts();
+  renderAiNotesEffectiveConfig();
+});
 
 async function populateAiNotesModels() {
   const providers = await window.wisper.aiNotesProviders();
+  aiNotesProviderCatalog = providers;
   const fill = (selectEl, providerId) => {
     const p = providers.find((x) => x.id === providerId);
     if (!p || !p.models) return;
@@ -1834,13 +1887,19 @@ async function populateAiNotesModels() {
     for (const m of p.models) {
       const opt = document.createElement('option');
       opt.value = m.id;
-      opt.textContent = m.label;
+      opt.textContent = m.id
+        ? (m.builtIn ? window.i18n.t(m.label) : m.label)
+        : window.i18n.t('CLI default (recommended)');
+      if (m.description) opt.title = m.description;
       selectEl.appendChild(opt);
     }
   };
   fill(anthropicModelEl, 'anthropic');
   fill(openaiModelEl, 'openai');
   fill(groqNotesModelEl, 'groq');
+  fill(claudeCodeModelEl, 'claudeCode');
+  fill(codexModelEl, 'codex');
+  populateCodexEfforts();
 
   // CLI provider availability hints
   const cc = providers.find((p) => p.id === 'claudeCode');
@@ -1865,6 +1924,11 @@ async function populateAiNotesModels() {
   }
 }
 
+function selectAvailableModel(selectEl, modelId) {
+  if (!modelId) return;
+  if ([...selectEl.options].some(option => option.value === modelId)) selectEl.value = modelId;
+}
+
 saveAiNotesBtn.addEventListener('click', async () => {
   const provider = document.querySelector('input[name="aiNotesProvider"]:checked')?.value || 'anthropic';
   const cfg = await window.wisper.saveSettings({
@@ -1874,8 +1938,20 @@ saveAiNotesBtn.addEventListener('click', async () => {
     openaiApiKey: openaiApiKeyEl.value.trim(),
     openaiModel: openaiModelEl.value,
     groqNotesModel: groqNotesModelEl.value,
+    claudeCodeModel: claudeCodeModelEl.value.trim(),
+    claudeCodeEffort: claudeCodeEffortEl.value,
+    codexModel: codexModelEl.value.trim(),
+    codexReasoningEffort: codexReasoningEffortEl.value,
   });
   window.__lastSettings = cfg;
+  await populateAiNotesModels();
+  selectAvailableModel(anthropicModelEl, cfg.anthropicModel);
+  selectAvailableModel(openaiModelEl, cfg.openaiModel);
+  selectAvailableModel(groqNotesModelEl, cfg.groqNotesModel);
+  selectAvailableModel(claudeCodeModelEl, cfg.claudeCodeModel);
+  selectAvailableModel(codexModelEl, cfg.codexModel);
+  populateCodexEfforts(cfg.codexReasoningEffort || 'medium');
+  renderAiNotesEffectiveConfig();
   aiNotesSaveStatusEl.textContent = 'Saved.';
   setTimeout(() => { aiNotesSaveStatusEl.textContent = ''; }, 1500);
 });
@@ -2136,10 +2212,15 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   await populateAiNotesModels();
   applyAiNotesProvider(cfg.aiNotesProvider || 'anthropic');
   anthropicApiKeyEl.value = cfg.anthropicApiKey || '';
-  anthropicModelEl.value = cfg.anthropicModel || 'claude-sonnet-4-6';
+  selectAvailableModel(anthropicModelEl, cfg.anthropicModel || 'claude-sonnet-4-6');
   openaiApiKeyEl.value = cfg.openaiApiKey || '';
-  openaiModelEl.value = cfg.openaiModel || 'gpt-4o';
-  groqNotesModelEl.value = cfg.groqNotesModel || 'llama-3.3-70b-versatile';
+  selectAvailableModel(openaiModelEl, cfg.openaiModel || 'gpt-4o');
+  selectAvailableModel(groqNotesModelEl, cfg.groqNotesModel || 'openai/gpt-oss-120b');
+  selectAvailableModel(claudeCodeModelEl, cfg.claudeCodeModel || '');
+  claudeCodeEffortEl.value = cfg.claudeCodeEffort || 'medium';
+  selectAvailableModel(codexModelEl, cfg.codexModel || '');
+  populateCodexEfforts(cfg.codexReasoningEffort || 'medium');
+  renderAiNotesEffectiveConfig();
 
   entries = await window.wisper.getHistory();
   render();

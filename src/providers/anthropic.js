@@ -1,11 +1,29 @@
 // Anthropic Messages API — direct HTTP. Mirrors Mac AnthropicProvider.swift.
 
+const catalog = require('./model-catalog');
+
 const MODELS = [
   { id: 'claude-opus-4-5',   label: 'Claude Opus 4.5 (highest quality)' },
   { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (recommended)' },
   { id: 'claude-haiku-4-5',  label: 'Claude Haiku 4.5 (fastest, cheapest)' },
 ];
 const DEFAULT_MODEL = 'claude-sonnet-4-6';
+
+async function listModels(apiKey) {
+  if (!apiKey) return MODELS;
+  try {
+    const data = await catalog.fetchModelList({
+      url: 'https://api.anthropic.com/v1/models?limit=1000',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    });
+    const models = catalog.uniqueModels(data
+      .filter(model => /^claude-/i.test(model.id || ''))
+      .map(model => ({ id: model.id, label: model.display_name || model.id })));
+    return models.length ? models : MODELS;
+  } catch {
+    return MODELS;
+  }
+}
 
 async function generate({ apiKey, model, prompt }) {
   if (!apiKey) {
@@ -50,4 +68,4 @@ async function generate({ apiKey, model, prompt }) {
   return text;
 }
 
-module.exports = { generate, MODELS, DEFAULT_MODEL, displayName: 'Anthropic' };
+module.exports = { generate, listModels, MODELS, DEFAULT_MODEL, displayName: 'Anthropic' };

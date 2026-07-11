@@ -1,10 +1,34 @@
 // OpenAI Chat Completions — direct HTTP. Mirrors Mac OpenAIProvider.swift.
 
+const catalog = require('./model-catalog');
+
 const MODELS = [
   { id: 'gpt-4o',      label: 'GPT-4o (recommended)' },
   { id: 'gpt-4o-mini', label: 'GPT-4o mini (fastest, cheapest)' },
 ];
 const DEFAULT_MODEL = 'gpt-4o';
+
+function isNotesModel(id) {
+  if (!/^(gpt-|o[1-9](?:-|$))/i.test(id)) return false;
+  return !/(audio|realtime|transcribe|tts|image|search|moderation|embedding|instruct|vision|codex)/i.test(id);
+}
+
+async function listModels(apiKey) {
+  if (!apiKey) return MODELS;
+  try {
+    const data = await catalog.fetchModelList({
+      url: 'https://api.openai.com/v1/models',
+      headers: { authorization: `Bearer ${apiKey}` },
+    });
+    const models = catalog.uniqueModels(data
+      .filter(model => isNotesModel(model.id || ''))
+      .map(model => ({ id: model.id, label: model.id }))
+      .sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true })));
+    return models.length ? models : MODELS;
+  } catch {
+    return MODELS;
+  }
+}
 
 async function generate({ apiKey, model, prompt }) {
   if (!apiKey) {
@@ -43,4 +67,4 @@ async function generate({ apiKey, model, prompt }) {
   return text;
 }
 
-module.exports = { generate, MODELS, DEFAULT_MODEL, displayName: 'OpenAI' };
+module.exports = { generate, listModels, isNotesModel, MODELS, DEFAULT_MODEL, displayName: 'OpenAI' };

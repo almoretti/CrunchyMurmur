@@ -1,6 +1,9 @@
 // Generates notes by spawning the user's installed `codex` CLI.
 // Uses the user's Codex subscription, so no API key needed.
 const sub = require('./subprocess');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 let cachedExe = null;
 let cachedAt = 0;
@@ -16,7 +19,41 @@ function isAvailable() {
   return Boolean(executable());
 }
 
-async function generate({ prompt }) {
+const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
+
+function modelsCachePath(home = os.homedir()) {
+  return path.join(home, '.codex', 'models_cache.json');
+}
+
+function models(home = os.homedir()) {
+  const fallback = [{ id: '', label: 'CLI default (recommended)', efforts: REASONING_EFFORTS }];
+  try {
+    const cache = JSON.parse(fs.readFileSync(modelsCachePath(home), 'utf8'));
+    const visible = (cache.models || [])
+      .filter(model => model?.slug && model.visibility !== 'hide')
+      .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999))
+      .map(model => ({
+        id: model.slug,
+        label: model.display_name || model.slug,
+        description: model.description || '',
+        efforts: (model.supported_reasoning_levels || []).map(level => level.effort).filter(Boolean),
+        defaultEffort: model.default_reasoning_level || 'medium',
+      }));
+    return visible.length ? [fallback[0], ...visible] : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function resolveReasoningEffort(modelId, requested, home = os.homedir()) {
+  const model = models(home).find(value => value.id === modelId);
+  const supported = model?.efforts?.length ? model.efforts : REASONING_EFFORTS;
+  if (supported.includes(requested)) return requested;
+  if (model?.defaultEffort && supported.includes(model.defaultEffort)) return model.defaultEffort;
+  return supported.includes('medium') ? 'medium' : supported[0];
+}
+
+async function generate({ prompt, model, effort = 'medium' }) {
   const exe = executable();
   if (!exe) {
     const err = new Error('codex CLI not found on PATH. Install OpenAI Codex and re-launch CrunchyMurmur.');
@@ -25,9 +62,12 @@ async function generate({ prompt }) {
   }
   // `codex exec` is the non-interactive mode; reads instructions from stdin
   // when no positional prompt is given.
+  const args = ['exec', '--sandbox', 'read-only', '--skip-git-repo-check'];
+  if (model) args.push('--model', model);
+  if (REASONING_EFFORTS.includes(effort)) args.push('--config', `model_reasoning_effort="${effort}"`);
   const result = await sub.run({
     executable: exe,
-    args: ['exec', '--sandbox', 'read-only', '--skip-git-repo-check'],
+    args,
     stdinText: prompt,
     isolated: true,
   });
@@ -41,4 +81,4 @@ async function generate({ prompt }) {
   return text;
 }
 
-module.exports = { generate, isAvailable, executable, displayName: 'Codex' };
+module.exports = { generate, isAvailable, executable, displayName: 'Codex', REASONING_EFFORTS, models, modelsCachePath, resolveReasoningEffort };

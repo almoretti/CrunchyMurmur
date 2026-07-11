@@ -44,6 +44,10 @@ for (const file of jsFiles) {
       if (key === 'placeholder') collectValue(node.value);
     }
     if (node.type === 'CallExpression' && node.callee?.type === 'Identifier' && ['alert', 'confirm', 'prompt'].includes(node.callee.name)) collectValue(node.arguments[0]);
+    if (node.type === 'CallExpression' && node.callee?.type === 'MemberExpression') {
+      const property = node.callee.computed ? node.callee.property?.value : node.callee.property?.name;
+      if (property === 't') collectValue(node.arguments[0]);
+    }
     for (const [key, value] of Object.entries(node)) {
       if (key === 'start' || key === 'end') continue;
       if (Array.isArray(value)) value.forEach(visit);

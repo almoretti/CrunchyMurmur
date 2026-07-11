@@ -37,7 +37,11 @@ const DEFAULTS = {
   anthropicModel: 'claude-sonnet-4-6',
   openaiApiKey: '',
   openaiModel: 'gpt-4o',
-  groqNotesModel: 'llama-3.3-70b-versatile',
+  groqNotesModel: 'openai/gpt-oss-120b',
+  claudeCodeModel: '',
+  claudeCodeEffort: 'medium',
+  codexModel: '',
+  codexReasoningEffort: 'medium',
 };
 
 function configPath() {
