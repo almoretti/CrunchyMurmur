@@ -167,15 +167,19 @@ section { padding: 64px 0; }
 .prompt { color: #8ac58b; user-select: none; }
 .copy-btn {
   position: absolute; top: 50%; right: 16px; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid rgba(246, 241, 232, 0.25);
   background: transparent;
   color: var(--terminal-text);
-  font: inherit; font-size: 0.82rem; font-weight: 600;
   border-radius: 7px;
-  padding: 6px 13px;
+  width: 34px; height: 34px;
   cursor: pointer;
 }
 .copy-btn:hover { background: rgba(246, 241, 232, 0.12); }
+.copy-btn .icon-check { display: none; color: #8ac58b; }
+.copy-btn.copied .icon-copy { display: none; }
+.copy-btn.copied .icon-check { display: block; }
+.copy-btn.copied { border-color: rgba(138, 197, 139, 0.5); }
 .terminal-note {
   margin: 0;
   padding: 12px 20px 16px;
