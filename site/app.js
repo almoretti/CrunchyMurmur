@@ -100,12 +100,14 @@
 
   // --- Copy button for the visible command. ---
   const copyBtn = document.getElementById('copy-cmd');
+  let copiedStateTimer;
   copyBtn.addEventListener('click', () => {
     const active = document.querySelector('.terminal-cmd.active code');
     if (!active) return;
     navigator.clipboard.writeText(active.textContent.trim()).then(() => {
+      clearTimeout(copiedStateTimer);
       copyBtn.classList.add('copied');
-      setTimeout(() => { copyBtn.classList.remove('copied'); }, 1600);
+      copiedStateTimer = setTimeout(() => { copyBtn.classList.remove('copied'); }, 1600);
     });
   });
 
