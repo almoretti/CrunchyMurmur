@@ -768,6 +768,28 @@ function renderCalendar() {
   calendarEmptyEl.style.display = (calendarSnapshot.feeds.length === 0) ? 'block' : 'none';
 }
 
+// Calendar-store ERR_ codes → localised guidance. Unrecognised errors (raw
+// HTTP statuses, network failures) pass through unchanged.
+function feedErrorMessage(raw) {
+  const text = String(raw || '');
+  if (text.includes('ERR_GOOGLE_EMBED_URL')) return window.i18n.t('This is Google Calendar’s browser page, not an ICS feed. In Google Calendar settings, copy the “Secret address in iCal format” instead.');
+  if (text.includes('ERR_GOOGLE_NOT_PUBLIC')) {
+    // The native Calendar integration only exists on macOS; don't send
+    // Windows/Linux users looking for it.
+    return window.__lastSettings?.platform === 'darwin'
+      ? window.i18n.t('This Google calendar is not public. Copy the “Secret address in iCal format” from its settings, or use the macOS Calendar integration if your organisation disables it.')
+      : window.i18n.t('This Google calendar is not public. Copy the “Secret address in iCal format” from its settings.');
+  }
+  if (text.includes('ERR_FEED_AUTH_REQUIRED')) return window.i18n.t('This feed requires sign-in. Use a private or secret ICS address instead.');
+  if (text.includes('ERR_NOT_ICS')) return window.i18n.t('The URL returned a web page, not calendar data. Check that the address is an ICS feed.');
+  // Validation errors from normalizeFeedUrl arrive wrapped by the IPC layer;
+  // match on the exact source text so they localise too.
+  if (text.includes('Calendar feed URL is invalid.')) return window.i18n.t('Calendar feed URL is invalid.');
+  if (text.includes('Calendar feeds must use HTTPS.')) return window.i18n.t('Calendar feeds must use HTTPS.');
+  if (text.includes('Calendar feed URLs cannot contain embedded credentials.')) return window.i18n.t('Calendar feed URLs cannot contain embedded credentials.');
+  return text;
+}
+
 function renderFeedsDialog() {
   feedsListEl.innerHTML = '';
   for (const f of calendarSnapshot.feeds) {
@@ -783,7 +805,7 @@ function renderFeedsDialog() {
     `;
     li.querySelector('.label').textContent = f.label || '(unlabeled)';
     li.querySelector('.url').textContent = f.url;
-    if (f.lastError) li.querySelector('.err').textContent = f.lastError;
+    if (f.lastError) li.querySelector('.err').textContent = feedErrorMessage(f.lastError);
     li.querySelector('[data-action="remove"]').addEventListener('click', async () => {
       if (!confirm(`Remove feed "${f.label || f.url}"?`)) return;
       await window.wisper.calendarRemoveFeed(f.id);
@@ -807,7 +829,7 @@ feedAddBtn.addEventListener('click', async () => {
   try {
     await window.wisper.calendarAddFeed({ url, label: feedNewLabelEl.value.trim() });
   } catch (e) {
-    alert('Could not add calendar feed: ' + (e.message || e));
+    alert(window.i18n.t('Could not add calendar feed: {0}', { 0: feedErrorMessage(e.message || e) }));
     return;
   }
   feedNewUrlEl.value = '';

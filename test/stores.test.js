@@ -143,3 +143,65 @@ test('settings public view masks persisted API keys', (t) => {
   const expectedHotkey = process.platform === 'win32' ? 'Control+Super' : process.platform === 'darwin' ? 'Fn' : 'CommandOrControl+Shift+Space';
   assert.equal(settings.load().hotkey, expectedHotkey);
 });
+
+test('calendar feed errors map known bad URLs to guidance codes', (t) => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-calendar-'));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const calendar = loadWithElectronMock('../src/calendar-store', { userData: base });
+
+  // Google Calendar's "Public URL" is an HTML page, rejected at add time.
+  assert.throws(
+    () => calendar.addFeed({ url: 'https://calendar.google.com/calendar/embed?src=user%40example.com&ctz=Europe%2FLondon' }),
+    /ERR_GOOGLE_EMBED_URL/,
+  );
+  assert.throws(() => calendar.addFeed({ url: 'http://example.com/cal.ics' }), /HTTPS/);
+  assert.equal(calendar.loadFeeds().length, 0);
+
+  // webcal:// is normalised to https and accepted.
+  calendar.addFeed({ url: 'webcal://example.com/feed.ics', label: 'ok' });
+  assert.equal(calendar.loadFeeds()[0].url, 'https://example.com/feed.ics');
+
+  // HTTP failure shapes → guidance codes; unknown statuses stay raw.
+  const googlePublic = new URL('https://calendar.google.com/calendar/ical/user%40example.com/public/basic.ics');
+  assert.equal(calendar.httpFeedError(googlePublic, 404), 'ERR_GOOGLE_NOT_PUBLIC');
+  assert.equal(calendar.httpFeedError(new URL('https://example.com/feed.ics'), 401), 'ERR_FEED_AUTH_REQUIRED');
+  assert.equal(calendar.httpFeedError(new URL('https://example.com/feed.ics'), 403), 'ERR_FEED_AUTH_REQUIRED');
+  assert.equal(calendar.httpFeedError(new URL('https://example.com/feed.ics'), 404), 'HTTP 404 fetching ICS feed');
+  assert.equal(calendar.httpFeedError(googlePublic, 500), 'HTTP 500 fetching ICS feed');
+});
+
+test('calendar refresh flags a 200 response that is not ICS', async (t) => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-calendar-html-'));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const { EventEmitter } = require('events');
+  const resolved = require.resolve('../src/calendar-store');
+  delete require.cache[resolved];
+  const originalLoad = Module._load;
+  Module._load = function mockedLoad(request, parent, isMain) {
+    if (request === 'electron') return { app: { getPath: () => base } };
+    if (request === 'https') {
+      return {
+        get: (url, opts, callback) => {
+          const res = new EventEmitter();
+          res.statusCode = 200;
+          res.headers = {};
+          res.resume = () => {};
+          process.nextTick(() => {
+            callback(res);
+            res.emit('data', Buffer.from('<!doctype html><html><body>Sign in to continue</body></html>'));
+            res.emit('end');
+          });
+          return { on: () => {}, setTimeout: () => {}, destroy: () => {} };
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  let calendar;
+  try { calendar = require(resolved); }
+  finally { Module._load = originalLoad; }
+
+  const id = calendar.addFeed({ url: 'https://example.com/looks-like-a-feed.ics', label: 'html' });
+  const result = await calendar.refresh(id);
+  assert.deepEqual(result, { ok: false, error: 'ERR_NOT_ICS' });
+});

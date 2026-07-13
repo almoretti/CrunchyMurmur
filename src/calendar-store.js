@@ -41,7 +41,23 @@ function normalizeFeedUrl(url) {
   try { parsed = new URL(value); } catch { throw new Error('Calendar feed URL is invalid.'); }
   if (parsed.protocol !== 'https:') throw new Error('Calendar feeds must use HTTPS.');
   if (parsed.username || parsed.password) throw new Error('Calendar feed URLs cannot contain embedded credentials.');
+  // Google Calendar's "Public URL to this calendar" is an HTML page, not
+  // ICS; users paste it in good faith and get an opaque 401. ERR_ codes are
+  // mapped to localised guidance by the renderer (feedErrorMessage).
+  if (parsed.hostname === 'calendar.google.com' && parsed.pathname.startsWith('/calendar/embed')) {
+    throw new Error('ERR_GOOGLE_EMBED_URL');
+  }
   return parsed.toString();
+}
+
+// Turn known HTTP failure shapes into ERR_ codes the renderer localises
+// into actionable guidance; anything unrecognised keeps the raw status.
+function httpFeedError(url, statusCode) {
+  if (statusCode === 404 && url.hostname === 'calendar.google.com' && /^\/calendar\/ical\/[^/]+\/public\//.test(url.pathname)) {
+    return 'ERR_GOOGLE_NOT_PUBLIC';
+  }
+  if (statusCode === 401 || statusCode === 403) return 'ERR_FEED_AUTH_REQUIRED';
+  return `HTTP ${statusCode} fetching ICS feed`;
 }
 
 function fetchText(url, redirects = 0) {
@@ -56,7 +72,7 @@ function fetchText(url, redirects = 0) {
       }
       if (res.statusCode !== 200) {
         res.resume();
-        return reject(new Error(`HTTP ${res.statusCode} fetching ICS feed`));
+        return reject(new Error(httpFeedError(new URL(finalUrl), res.statusCode)));
       }
       const chunks = [];
       let bytes = 0;
@@ -125,6 +141,9 @@ async function refresh(feedId) {
   if (!feed) throw new Error('Unknown feed id: ' + feedId);
   try {
     const text = await fetchText(feed.url);
+    // A 200 that isn't ICS (a login page, a calendar web UI) would otherwise
+    // parse to zero events and look like an empty calendar.
+    if (!/BEGIN:VCALENDAR/i.test(text.slice(0, 4096))) throw new Error('ERR_NOT_ICS');
     const parsed = ical.sync.parseICS(text);
     // Two-day window — same as the Mac CalendarManager (now → +2 days).
     const start = new Date();
@@ -217,6 +236,8 @@ function removeFeed(id) {
 
 module.exports = {
   loadFeeds,
+  normalizeFeedUrl,
+  httpFeedError,
   addFeed,
   updateFeed,
   removeFeed,
