@@ -331,6 +331,14 @@ function showMainWindow() {
     },
   });
   hardenWindow(mainWindow);
+  // Dev runs get the DEV-badged icon in the window frame / taskbar so they
+  // are distinguishable from an installed copy (macOS handles this via the
+  // Dock icon instead — window icons don't exist there).
+  if (!app.isPackaged && process.platform !== 'darwin') {
+    getDevBadgedIcon()
+      .then((icon) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setIcon(icon); })
+      .catch((err) => log.warn('[main] dev window icon failed:', err.message));
+  }
   updateWindowThemeChrome();
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
@@ -1025,8 +1033,59 @@ handle('ai-notes:generate-from-recording', async (_e, payload) => {
 
 // ---------- App lifecycle ----------
 
+// Dev-only icon: the brand mark padded to standard icon margins (artwork ≈
+// 824/1024 on a transparent 1024 canvas — full-bleed looks oversized in the
+// Dock) with a "DEV" ribbon so a dev run is distinguishable from an installed
+// copy. Rendered on a hidden window's canvas; the source PNG is inlined as a
+// data URL so the canvas is not tainted and toDataURL stays allowed.
+let devBadgedIconPromise = null;
+function getDevBadgedIcon() {
+  if (!devBadgedIconPromise) {
+    devBadgedIconPromise = (async () => {
+      const markBase64 = fs.readFileSync(path.join(__dirname, '..', 'assets', 'brand-mark.png')).toString('base64');
+      const win = new BrowserWindow({ show: false, width: 64, height: 64 });
+      try {
+        await win.loadURL('about:blank');
+        const dataUrl = await win.webContents.executeJavaScript(`(async () => {
+          const img = new Image();
+          img.src = 'data:image/png;base64,${markBase64}';
+          await img.decode();
+          const c = document.createElement('canvas');
+          c.width = 1024; c.height = 1024;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 100, 100, 824, 824);
+          const w = 540, h = 220, x = (1024 - w) / 2, y = 1024 - h - 70;
+          ctx.fillStyle = '#ff9500';
+          ctx.beginPath();
+          ctx.roundRect(x, y, w, h, h / 2);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '700 150px -apple-system, "Segoe UI", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('DEV', 512, y + h / 2 + 10);
+          return c.toDataURL('image/png');
+        })()`);
+        return nativeImage.createFromDataURL(dataUrl);
+      } finally {
+        win.destroy();
+      }
+    })();
+  }
+  return devBadgedIconPromise;
+}
+
 app.whenReady().then(() => {
   if (!hasSingleInstanceLock) return;
+  // In dev mode the macOS Dock shows the stock Electron icon (the packaged
+  // build gets its icon from the .icns in the bundle). Use the DEV-badged
+  // brand mark so dev runs are recognisable and distinguishable from an
+  // installed copy of the app.
+  if (process.platform === 'darwin' && !app.isPackaged && app.dock) {
+    getDevBadgedIcon()
+      .then((icon) => app.dock.setIcon(icon))
+      .catch((err) => log.warn('[main] dev dock icon failed:', err.message));
+  }
   applyThemePreference(settings.load().theme);
   Menu.setApplicationMenu(createApplicationMenu());
   createTray();
@@ -1085,6 +1144,10 @@ app.whenReady().then(() => {
 });
 
 app.on('second-instance', () => showMainWindow());
+
+// macOS: reopen the main window when the Dock icon is clicked (the app
+// otherwise lives in the tray with no visible window).
+app.on('activate', () => showMainWindow());
 
 app.on('window-all-closed', (e) => {
   // Tray app — don't quit when the main window closes.

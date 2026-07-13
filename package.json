@@ -22,6 +22,7 @@
   "scripts": {
     "build:editor": "node scripts/build-editor.js",
     "start": "npm run build:editor && node scripts/ensure-macos-native.js && electron .",
+    "dev:permissions": "electron scripts/dev-macos-permissions.js",
     "lint": "npm run build:editor && node scripts/check-js.js",
     "test": "node --test test/*.test.js",
     "test:e2e": "npm run build:editor && node --test test/e2e/electron.test.js",
@@ -190,5 +191,12 @@
         }
       }
     }
+  },
+  "allowScripts": {
+    "electron@43.1.0": true,
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.2": true,
+    "uiohook-napi@1.5.5": true,
+    "electron-winstaller@5.4.0": true
   }
 }
