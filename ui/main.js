@@ -782,6 +782,11 @@ function feedErrorMessage(raw) {
   }
   if (text.includes('ERR_FEED_AUTH_REQUIRED')) return window.i18n.t('This feed requires sign-in. Use a private or secret ICS address instead.');
   if (text.includes('ERR_NOT_ICS')) return window.i18n.t('The URL returned a web page, not calendar data. Check that the address is an ICS feed.');
+  // Validation errors from normalizeFeedUrl arrive wrapped by the IPC layer;
+  // match on the exact source text so they localise too.
+  if (text.includes('Calendar feed URL is invalid.')) return window.i18n.t('Calendar feed URL is invalid.');
+  if (text.includes('Calendar feeds must use HTTPS.')) return window.i18n.t('Calendar feeds must use HTTPS.');
+  if (text.includes('Calendar feed URLs cannot contain embedded credentials.')) return window.i18n.t('Calendar feed URLs cannot contain embedded credentials.');
   return text;
 }
 
@@ -824,7 +829,7 @@ feedAddBtn.addEventListener('click', async () => {
   try {
     await window.wisper.calendarAddFeed({ url, label: feedNewLabelEl.value.trim() });
   } catch (e) {
-    alert(window.i18n.t('Could not add calendar feed:') + ' ' + feedErrorMessage(e.message || e));
+    alert(window.i18n.t('Could not add calendar feed: {0}', { 0: feedErrorMessage(e.message || e) }));
     return;
   }
   feedNewUrlEl.value = '';

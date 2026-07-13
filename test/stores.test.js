@@ -169,3 +169,39 @@ test('calendar feed errors map known bad URLs to guidance codes', (t) => {
   assert.equal(calendar.httpFeedError(new URL('https://example.com/feed.ics'), 404), 'HTTP 404 fetching ICS feed');
   assert.equal(calendar.httpFeedError(googlePublic, 500), 'HTTP 500 fetching ICS feed');
 });
+
+test('calendar refresh flags a 200 response that is not ICS', async (t) => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-calendar-html-'));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const { EventEmitter } = require('events');
+  const resolved = require.resolve('../src/calendar-store');
+  delete require.cache[resolved];
+  const originalLoad = Module._load;
+  Module._load = function mockedLoad(request, parent, isMain) {
+    if (request === 'electron') return { app: { getPath: () => base } };
+    if (request === 'https') {
+      return {
+        get: (url, opts, callback) => {
+          const res = new EventEmitter();
+          res.statusCode = 200;
+          res.headers = {};
+          res.resume = () => {};
+          process.nextTick(() => {
+            callback(res);
+            res.emit('data', Buffer.from('<!doctype html><html><body>Sign in to continue</body></html>'));
+            res.emit('end');
+          });
+          return { on: () => {}, setTimeout: () => {}, destroy: () => {} };
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  let calendar;
+  try { calendar = require(resolved); }
+  finally { Module._load = originalLoad; }
+
+  const id = calendar.addFeed({ url: 'https://example.com/looks-like-a-feed.ics', label: 'html' });
+  const result = await calendar.refresh(id);
+  assert.deepEqual(result, { ok: false, error: 'ERR_NOT_ICS' });
+});
