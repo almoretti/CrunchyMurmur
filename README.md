@@ -15,7 +15,7 @@
   [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-256351)](docs/platform-support.md)
   [![License: MIT](https://img.shields.io/badge/license-MIT-7EB880)](LICENSE)
 
-  [Download](https://github.com/almoretti/CrunchyMurmur/releases/latest) · [Documentation](docs/README.md) · [Report a bug](https://github.com/almoretti/CrunchyMurmur/issues/new/choose) · [Security](.github/SECURITY.md)
+  [Website](https://crunchymurmur.com/) · [Download](https://github.com/almoretti/CrunchyMurmur/releases/latest) · [Documentation](docs/README.md) · [Report a bug](https://github.com/almoretti/CrunchyMurmur/issues/new/choose) · [Security](.github/SECURITY.md)
 </div>
 
 ![CrunchyMurmur dashboard with live dictation active](docs/images/hero.png)

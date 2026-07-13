@@ -18,8 +18,28 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8',
 };
 
+const CANONICAL_HOST = 'crunchymurmur.com';
+
 const server = http.createServer((req, res) => {
-  const urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  const url = new URL(req.url, 'http://localhost');
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(url.pathname);
+  } catch {
+    // Malformed percent-encoding (e.g. /%zz) — reject instead of letting the
+    // URIError crash the process.
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    return res.end('Bad request');
+  }
+
+  // The Railway service domain stays reachable but permanently redirects to the
+  // canonical custom domain so search engines consolidate on one origin.
+  const host = String(req.headers.host || '').toLowerCase();
+  if (host.endsWith('.up.railway.app')) {
+    res.writeHead(301, { Location: `https://${CANONICAL_HOST}${url.pathname}${url.search}` });
+    return res.end();
+  }
+
   let filePath = path.normalize(path.join(ROOT, urlPath));
 
   if (!filePath.startsWith(ROOT)) {

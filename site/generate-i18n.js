@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const { LANGUAGES, PHRASES, ATTRIBUTES } = require('./i18n-catalog');
 
-const SITE_ORIGIN = 'https://crunchymurmur-site-production.up.railway.app';
+const SITE_ORIGIN = 'https://crunchymurmur.com';
 const ROOT = __dirname;
 
 const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

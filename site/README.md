@@ -49,7 +49,10 @@ node site/server.js
 ## Deploy
 
 The site lives in its own Railway project (`crunchymurmur-site`, service
-`crunchymurmur-site`, domain `crunchymurmur-site-production.up.railway.app`)
+`crunchymurmur-site`), served at https://crunchymurmur.com/ (the Railway
+service domain `crunchymurmur-site-production.up.railway.app` 301-redirects
+there; `SITE_ORIGIN` in `generate-i18n.js` and the `hreflang`/canonical links
+in `index.html` must all use the canonical domain)
 and auto-deploys from GitHub `main` (root directory `/site`, watch paths
 `/site/**`), so merging a PR that touches this folder is enough. Manual
 override from `site/`:
