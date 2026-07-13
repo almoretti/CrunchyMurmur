@@ -321,6 +321,7 @@ window.__CRUNCHY_I18N_CATALOGS__ = {
     "These are the prompt instructions the AI receives when generating notes with this template. They're appended after the meeting transcript and the user's live notes. Output should be Markdown.": "These are the prompt instructions the AI receives when generating notes with this template. They're appended after the meeting transcript and the user's live notes. Output should be Markdown.",
     "This feed requires sign-in. Use a private or secret ICS address instead.": "This feed requires sign-in. Use a private or secret ICS address instead.",
     "This Google calendar is not public. Copy the “Secret address in iCal format” from its settings, or use the macOS Calendar integration if your organisation disables it.": "This Google calendar is not public. Copy the “Secret address in iCal format” from its settings, or use the macOS Calendar integration if your organisation disables it.",
+    "This Google calendar is not public. Copy the “Secret address in iCal format” from its settings.": "This Google calendar is not public. Copy the “Secret address in iCal format” from its settings.",
     "This is Google Calendar’s browser page, not an ICS feed. In Google Calendar settings, copy the “Secret address in iCal format” instead.": "This is Google Calendar’s browser page, not an ICS feed. In Google Calendar settings, copy the “Secret address in iCal format” instead.",
     "to add a Google / iCloud / Outlook ICS URL.": "to add a Google / iCloud / Outlook ICS URL.",
     "to create one.": "to create one.",

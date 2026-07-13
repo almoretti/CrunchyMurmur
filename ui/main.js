@@ -773,7 +773,13 @@ function renderCalendar() {
 function feedErrorMessage(raw) {
   const text = String(raw || '');
   if (text.includes('ERR_GOOGLE_EMBED_URL')) return window.i18n.t('This is Google Calendar’s browser page, not an ICS feed. In Google Calendar settings, copy the “Secret address in iCal format” instead.');
-  if (text.includes('ERR_GOOGLE_NOT_PUBLIC')) return window.i18n.t('This Google calendar is not public. Copy the “Secret address in iCal format” from its settings, or use the macOS Calendar integration if your organisation disables it.');
+  if (text.includes('ERR_GOOGLE_NOT_PUBLIC')) {
+    // The native Calendar integration only exists on macOS; don't send
+    // Windows/Linux users looking for it.
+    return window.__lastSettings?.platform === 'darwin'
+      ? window.i18n.t('This Google calendar is not public. Copy the “Secret address in iCal format” from its settings, or use the macOS Calendar integration if your organisation disables it.')
+      : window.i18n.t('This Google calendar is not public. Copy the “Secret address in iCal format” from its settings.');
+  }
   if (text.includes('ERR_FEED_AUTH_REQUIRED')) return window.i18n.t('This feed requires sign-in. Use a private or secret ICS address instead.');
   if (text.includes('ERR_NOT_ICS')) return window.i18n.t('The URL returned a web page, not calendar data. Check that the address is an ICS feed.');
   return text;
