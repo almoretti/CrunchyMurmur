@@ -191,12 +191,5 @@
         }
       }
     }
-  },
-  "allowScripts": {
-    "electron@43.1.0": true,
-    "esbuild@0.28.1": true,
-    "fsevents@2.3.2": true,
-    "uiohook-napi@1.5.5": true,
-    "electron-winstaller@5.4.0": true
   }
 }
