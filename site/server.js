@@ -22,7 +22,15 @@ const CANONICAL_HOST = 'crunchymurmur.com';
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  const urlPath = decodeURIComponent(url.pathname);
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(url.pathname);
+  } catch {
+    // Malformed percent-encoding (e.g. /%zz) — reject instead of letting the
+    // URIError crash the process.
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    return res.end('Bad request');
+  }
 
   // The Railway service domain stays reachable but permanently redirects to the
   // canonical custom domain so search engines consolidate on one origin.
