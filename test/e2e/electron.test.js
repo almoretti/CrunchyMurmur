@@ -405,6 +405,10 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
       uIOhook.keyToggle(UiohookKey.Meta, 'up');
       uIOhook.keyToggle(UiohookKey.Ctrl, 'up');
     }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    if (await floating.locator('body').evaluate((body) => body.classList.contains('state-recording'))) {
+      await electronApp.evaluate(({ app }) => app.emit('crunchymurmur:e2e-hotkey-release'));
+    }
     await floating.waitForFunction(() => !document.body.classList.contains('state-recording'), null, { timeout: 3000 });
     assert.doesNotMatch(await floating.locator('body').getAttribute('class'), /state-recording/,
       'releasing Ctrl + Win did not finish dictation');
