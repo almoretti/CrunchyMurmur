@@ -16,6 +16,12 @@ test('rejects near-silent recordings before they can hallucinate text', () => {
   assert.equal(result.reason, 'no-speech');
 });
 
+test('rejects a constant DC offset as silence', () => {
+  const result = analyseSpeechSamples(new Array(16_000).fill(0.04));
+  assert.equal(result.usable, false);
+  assert.equal(result.reason, 'no-speech');
+});
+
 test('accepts a normal speech-level signal', () => {
   const samples = Array.from({ length: 16_000 }, (_, index) => Math.sin(index / 20) * 0.04);
   const result = analyseSpeechSamples(samples);

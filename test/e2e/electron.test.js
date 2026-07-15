@@ -23,7 +23,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     const modified = new Date(Date.now() - index * 60_000);
     fs.utimesSync(file, modified, modified);
   });
-  const historyFixtureTime = new Date();
+  const historyFixtureTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
   historyFixtureTime.setHours(12, 0, 0, 0);
   fs.writeFileSync(path.join(userData, 'history.json'), JSON.stringify(Array.from({ length: 120 }, (_, index) => ({
     id: `fixture-${index}`,
@@ -399,15 +399,15 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     } finally {
       uIOhook.keyToggle(UiohookKey.Meta, 'up');
       uIOhook.keyToggle(UiohookKey.Ctrl, 'up');
+      // Repeat the release after the event loop advances: headless Windows can
+      // coalesce the first synthetic modifier release.
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      uIOhook.keyToggle(UiohookKey.Meta, 'up');
+      uIOhook.keyToggle(UiohookKey.Ctrl, 'up');
     }
-    // The hosted Windows runner has no interactive desktop and can drop the
-    // synthetic Win-key release. Exercise the real release path on desktops;
-    // the deterministic IPC assertion below still covers the resulting state.
-    if (!process.env.CI) {
-      await floating.waitForFunction(() => !document.body.classList.contains('state-recording'), null, { timeout: 3000 });
-      assert.doesNotMatch(await floating.locator('body').getAttribute('class'), /state-recording/,
-        'releasing Ctrl + Win did not finish dictation');
-    }
+    await floating.waitForFunction(() => !document.body.classList.contains('state-recording'), null, { timeout: 3000 });
+    assert.doesNotMatch(await floating.locator('body').getAttribute('class'), /state-recording/,
+      'releasing Ctrl + Win did not finish dictation');
     await floating.evaluate(() => window.wisper.submitSamples(new Array(16_000).fill(0)));
     await floating.waitForFunction(() => document.body.classList.contains('state-no-speech'));
     assert.equal(await floating.locator('#label').innerText(), 'No microphone signal');

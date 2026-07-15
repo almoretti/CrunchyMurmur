@@ -318,12 +318,12 @@ async function downloadModel(id) {
 function useModel(id, modelPath, family = 'whisper') {
   switchTab('engine');
   const engineKind = family === 'parakeet' ? 'parakeet' : 'local';
-  applyEngineKind(engineKind);
   if (engineKind === 'parakeet') parakeetModelPathEl.value = modelPath;
   else {
     modelPathEl.value = modelPath;
     installedModelPickerEl.value = modelPath;
   }
+  applyEngineKind(engineKind);
   window.wisper.saveSettings(engineKind === 'parakeet'
     ? { engineKind, parakeetModelPath: modelPath }
     : { engineKind, modelPath });
@@ -1822,7 +1822,7 @@ async function refreshLocalReadiness({ discover = true } = {}) {
     if (result.discovered) whisperCliPathEl.value = result.path;
     setReadiness(cliReadinessEl, true, result.bundled
       ? window.i18n.t('Bundled whisper.cpp is ready.')
-      : `${result.discovered ? 'Found' : 'Ready'}: ${result.path}${result.version ? ` (${result.version})` : ''}`);
+      : `${window.i18n.t(result.discovered ? 'Found' : 'Ready')}: ${result.path}${result.version ? ` (${result.version})` : ''}`);
     const backend = await window.wisper.localEngineStatus(result.path, modelPathEl.value.trim());
     if (request !== localReadinessRequest) return { cli: result, model, backend };
     if (backend.ready) {
@@ -1833,7 +1833,7 @@ async function refreshLocalReadiness({ discover = true } = {}) {
       setReadiness(localBackendReadinessEl, false, window.i18n.t('Persistent acceleration is unavailable. Transcription still works, but the model reloads for each recording.'));
     }
   } else {
-    setReadiness(cliReadinessEl, false, 'whisper-cli is required before local transcription can run.');
+    setReadiness(cliReadinessEl, false, window.i18n.t('whisper-cli is required before local transcription can run.'));
     setReadiness(localBackendReadinessEl, false, window.i18n.t('Persistent acceleration is unavailable. Transcription still works, but the model reloads for each recording.'));
   }
   return { cli: result, model };

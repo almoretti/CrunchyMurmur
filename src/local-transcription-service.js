@@ -133,6 +133,7 @@ class LocalTranscriptionService {
     const inBackoff = this.failedSession?.key === sessionKey && this.now() < this.failedSession.retryAfter;
     if (serverPath && effectiveSettings.modelPath && !inBackoff) {
       try {
+        this.#disarmIdleTimer();
         const session = await this.#ensureSession(serverPath, effectiveSettings.modelPath, signal);
         const startedAt = this.now();
         const audio = await this.readFile(wavPath);
@@ -276,15 +277,19 @@ class LocalTranscriptionService {
   }
 
   #armIdleTimer() {
-    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.#disarmIdleTimer();
     if (!this.idleTimeoutMs) return;
     this.idleTimer = setTimeout(() => this.#stopSession(), this.idleTimeoutMs);
     this.idleTimer.unref?.();
   }
 
-  #stopSession() {
+  #disarmIdleTimer() {
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.idleTimer = null;
+  }
+
+  #stopSession() {
+    this.#disarmIdleTimer();
     const child = this.session?.child;
     const pendingChild = this.pendingChild;
     this.session = null;

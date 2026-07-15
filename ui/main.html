@@ -249,7 +249,7 @@
         <div class="settings-pane">
           <h2 id="engineTranscription" data-i18n="Transcription">Transcription</h2>
           <p class="muted">
-            Choose where transcription runs.
+            <span data-i18n="Choose where transcription runs.">Choose where transcription runs.</span>
             <span data-i18n="Parakeet is the fast recommended local engine for 25 European languages.">Parakeet is the fast recommended local engine for 25 European languages.</span>
             <span data-i18n="Whisper provides the widest language support and optional translation.">Whisper provides the widest language support and optional translation.</span>
             <strong>Groq</strong> sends each clip to Groq's Whisper API — no model
@@ -347,8 +347,9 @@
               <button type="button" id="openModelsFolder" class="text-button">Open folder</button>
             </div>
             <div class="models-help">
-              Models are stored in <code id="modelsDirPath">…</code>. Parakeet V3 is the recommended fast default for supported European languages.
-              Choose Whisper when you need broader language coverage, translation, or a custom GGML model.
+              <span data-i18n="Models are stored in">Models are stored in</span> <code id="modelsDirPath">…</code>.
+              <span data-i18n="Parakeet V3 is the recommended fast default for supported European languages.">Parakeet V3 is the recommended fast default for supported European languages.</span>
+              <span data-i18n="Choose Whisper when you need broader language coverage, translation, or a custom GGML model.">Choose Whisper when you need broader language coverage, translation, or a custom GGML model.</span>
             </div>
             <div id="modelsList" class="models-list"></div>
           </section>

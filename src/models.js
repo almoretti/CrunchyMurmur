@@ -132,18 +132,17 @@ function parakeetFileUrl(filename) {
 // Active downloads — one entry per model id while a download is in flight.
 // Allows the renderer to cancel by id.
 const active = new Map();
+const DOWNLOAD_INACTIVITY_TIMEOUT_MS = 60_000;
 
 function isInstalled(id) {
   try {
     const catalogEntry = CATALOG.find((m) => m.id === id);
     if (catalogEntry?.directory) {
       const directory = modelFilePath(id);
-      return [
-        'encoder-model.int8.onnx',
-        'decoder_joint-model.int8.onnx',
-        'nemo128.onnx',
-        'vocab.txt',
-      ].every((file) => fs.statSync(path.join(directory, file)).size > 0);
+      return catalogEntry.files.every((file) => {
+        const stat = fs.statSync(path.join(directory, file.name));
+        return stat.isFile() && stat.size === file.size;
+      });
     }
     const bytes = fs.statSync(modelFilePath(id)).size;
     if (bytes < 1024 * 1024) return false;
@@ -349,13 +348,36 @@ async function downloadDirectoryModel(meta, onProgress) {
         const stream = fs.createWriteStream(target);
         const digest = crypto.createHash('sha256');
         let fileBytes = 0;
+        let response = null;
+        let inactivityTimer = null;
+        let settled = false;
+        const clearInactivity = () => {
+          if (inactivityTimer) clearTimeout(inactivityTimer);
+          inactivityTimer = null;
+        };
+        const resetInactivity = () => {
+          clearInactivity();
+          inactivityTimer = setTimeout(() => {
+            const error = new Error(`Model download stalled while receiving ${file.name}.`);
+            try { response?.destroy(error); } catch {}
+            try { entry.req?.destroy(error); } catch {}
+            fail(error);
+          }, DOWNLOAD_INACTIVITY_TIMEOUT_MS);
+          inactivityTimer.unref?.();
+        };
         const fail = (error) => {
+          if (settled) return;
+          settled = true;
+          clearInactivity();
           try { stream.destroy(); } catch {}
           reject(entry.canceled ? new Error('Download canceled') : error);
         };
         const request = (url, redirects = 0) => {
           const req = https.get(url, { headers: { 'User-Agent': 'CrunchyMurmur' } }, (res) => {
+            response = res;
+            resetInactivity();
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+              clearInactivity();
               res.resume();
               if (redirects >= 5) return fail(new Error('Too many model download redirects.'));
               const next = new URL(res.headers.location, url);
@@ -365,10 +387,12 @@ async function downloadDirectoryModel(meta, onProgress) {
             }
             if (res.statusCode !== 200) return fail(new Error(`HTTP ${res.statusCode} from HuggingFace`));
             res.on('data', (chunk) => {
+              resetInactivity();
               fileBytes += chunk.length;
               digest.update(chunk);
               try { onProgress?.({ id, bytesDone: completedBytes + fileBytes, bytesTotal: meta.size }); } catch {}
             });
+            res.on('end', clearInactivity);
             res.on('error', fail);
             res.pipe(stream);
           });
@@ -376,8 +400,11 @@ async function downloadDirectoryModel(meta, onProgress) {
           entry.req = req;
         };
         stream.on('finish', () => {
+          if (settled) return;
+          clearInactivity();
           if (fileBytes !== file.size) return fail(new Error(`Incomplete model file: ${file.name}`));
           if (digest.digest('hex') !== file.sha256) return fail(new Error(`Checksum mismatch for model file: ${file.name}`));
+          settled = true;
           resolve();
         });
         stream.on('error', fail);

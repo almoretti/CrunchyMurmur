@@ -45,8 +45,9 @@ request, and is stopped after 15 idle minutes or when the app quits.
 Recording starts the model preload before the completed clip is submitted. A
 model or executable change disposes the old process before loading the new one.
 If the persistent server exits or fails health checks, the same service falls
-back to the bundled one-shot `whisper-cli` process so local transcription
-remains available. A user-selected executable overrides the bundled runtime.
+back to the configured one-shot `whisper-cli` process so local transcription
+remains available. A user-selected executable overrides the bundled runtime;
+otherwise the packaged executable is used.
 Backend, model-load, inference, and fallback information is included in masked
 diagnostics and app logs.
 

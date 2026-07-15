@@ -16,7 +16,7 @@ function developmentRuntimeName(platform = process.platform, arch = process.arch
 function bundledRuntimeDir({
   packaged,
   resourcesPath = process.resourcesPath,
-  appPath,
+  appPath = process.cwd(),
   platform = process.platform,
   arch = process.arch,
 } = {}) {

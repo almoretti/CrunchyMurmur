@@ -7,6 +7,7 @@ const { spawnSync } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const VERSION = 'v1.8.6';
 const COMMIT = '23ee03506a91ac3d3f0071b40e66a430eebdfa1d';
+const SOURCE_SHA256 = 'c8b0de473e9ec47a74bdf6104425c709261beeada8d6d7c1fec7432be701d032';
 const WINDOWS_X64 = {
   url: `https://github.com/ggml-org/whisper.cpp/releases/download/${VERSION}/whisper-bin-x64.zip`,
   sha256: 'b07ea0b1b4115a38e1a7b07debf581f0b77d999925f8acb8f39d322b0ba0a822',
@@ -62,10 +63,30 @@ function writeManifest(target, details) {
   }, null, 2)}\n`);
 }
 
+function validRuntime(target, expected, executables) {
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(target, 'runtime.json'), 'utf8'));
+    if (manifest.project !== 'ggml-org/whisper.cpp' || manifest.version !== VERSION || manifest.commit !== COMMIT) return false;
+    if (Object.entries(expected).some(([key, value]) => manifest[key] !== value)) return false;
+    return executables.every((name) => {
+      const filename = path.join(target, name);
+      fs.accessSync(filename, fs.constants.R_OK | fs.constants.X_OK);
+      const stat = fs.statSync(filename);
+      return stat.isFile() && stat.size > 0;
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function prepareWindows(arch) {
   const target = path.join(ROOT, 'build', 'whisper-runtime', `win-${arch}`);
-  const marker = path.join(target, 'runtime.json');
-  if (fs.existsSync(marker)) return;
+  const expected = {
+    platform: 'win', arch, source: WINDOWS_X64.url, sourceSha256: WINDOWS_X64.sha256,
+    emulatedX64OnArm64: arch === 'arm64',
+  };
+  if (validRuntime(target, expected, ['whisper-cli.exe', 'whisper-server.exe'])) return;
+  fs.rmSync(target, { recursive: true, force: true });
   const cache = path.join(ROOT, 'build', 'whisper-cache');
   const archive = path.join(cache, `whisper-bin-x64-${VERSION}.zip`);
   await download(WINDOWS_X64.url, archive, WINDOWS_X64.sha256);
@@ -84,13 +105,7 @@ async function prepareWindows(arch) {
         fs.copyFileSync(path.join(path.dirname(server), entry.name), path.join(target, entry.name));
       }
     }
-    writeManifest(target, {
-      platform: 'win',
-      arch,
-      source: WINDOWS_X64.url,
-      sourceSha256: WINDOWS_X64.sha256,
-      emulatedX64OnArm64: arch === 'arm64',
-    });
+    writeManifest(target, expected);
   } finally {
     fs.rmSync(extracted, { recursive: true, force: true });
   }
@@ -101,7 +116,7 @@ async function sourceTree() {
   const archive = path.join(cache, `whisper.cpp-${COMMIT}.tar.gz`);
   const source = path.join(cache, `whisper.cpp-${COMMIT}`);
   if (!fs.existsSync(source)) {
-    await download(`https://codeload.github.com/ggml-org/whisper.cpp/tar.gz/${COMMIT}`, archive);
+    await download(`https://codeload.github.com/ggml-org/whisper.cpp/tar.gz/${COMMIT}`, archive, SOURCE_SHA256);
     const extracted = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-whisper-source-'));
     try {
       run('tar', ['-xf', archive, '-C', extracted]);
@@ -119,7 +134,10 @@ async function sourceTree() {
 async function prepareUnix(platform, arch) {
   const osName = platform === 'darwin' ? 'mac' : 'linux';
   const target = path.join(ROOT, 'build', 'whisper-runtime', `${osName}-${arch}`);
-  if (fs.existsSync(path.join(target, 'runtime.json'))) return;
+  const sourceUrl = `https://github.com/ggml-org/whisper.cpp/commit/${COMMIT}`;
+  const expected = { platform: osName, arch, source: sourceUrl, sourceSha256: SOURCE_SHA256 };
+  if (validRuntime(target, expected, ['whisper-cli', 'whisper-server'])) return;
+  fs.rmSync(target, { recursive: true, force: true });
   const source = await sourceTree();
   const buildDir = path.join(ROOT, 'build', 'whisper-build', `${osName}-${arch}`);
   const args = [
@@ -154,7 +172,7 @@ async function prepareUnix(platform, arch) {
   fs.copyFileSync(cli, path.join(target, 'whisper-cli'));
   fs.chmodSync(path.join(target, 'whisper-server'), 0o755);
   fs.chmodSync(path.join(target, 'whisper-cli'), 0o755);
-  writeManifest(target, { platform: osName, arch, source: `https://github.com/ggml-org/whisper.cpp/commit/${COMMIT}` });
+  writeManifest(target, expected);
 }
 
 (async () => {

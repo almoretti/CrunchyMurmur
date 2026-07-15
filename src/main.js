@@ -563,6 +563,8 @@ function registerDictationShortcut(accelerator) {
 handle('floating:submit-samples', async (_e, samples) => {
   const audioQuality = analyseSpeechSamples(Array.isArray(samples) ? samples : []);
   if (!audioQuality.usable) {
+    isDictating = false;
+    isProcessing = false;
     const state = audioQuality.reason === 'too-short' ? 'too-short' : 'no-speech';
     log.info(`[dictation] audio rejected reason=${audioQuality.reason} duration=${audioQuality.durationSeconds.toFixed(2)}s peak=${(audioQuality.peak || 0).toFixed(6)} rms=${(audioQuality.rms || 0).toFixed(6)} active=${(audioQuality.activeFraction || 0).toFixed(4)}`);
     showFloating(state);
@@ -675,8 +677,12 @@ async function validateParakeetModel(modelPath) {
   const candidate = String(modelPath || '').trim();
   if (!candidate) return { valid: false, reason: 'Download Parakeet V3 before using this engine.' };
   try {
-    const required = ['encoder-model.int8.onnx', 'decoder_joint-model.int8.onnx', 'nemo128.onnx', 'vocab.txt'];
-    const files = await Promise.all(required.map((file) => fs.promises.stat(path.join(candidate, file))));
+    const required = ['encoder-model.int8.onnx', 'decoder_joint-model.int8.onnx', 'nemo128.onnx', 'vocab.txt', 'config.json'];
+    const files = await Promise.all(required.map(async (file) => {
+      const filename = path.join(candidate, file);
+      await fs.promises.access(filename, fs.constants.R_OK);
+      return fs.promises.stat(filename);
+    }));
     if (files.some((file) => !file.isFile() || file.size <= 0)) throw new Error('invalid model');
     return { valid: true, path: candidate };
   } catch {
@@ -753,7 +759,9 @@ handle('whisper-cli:status', async (_e, preferredPath) => {
 handle('local-model:status', (_e, modelPath) => validateLocalModel(modelPath));
 handle('native-engine:status', async (_e, preferred = {}) => {
   const cfg = settings.load();
-  const parakeetModelPath = String(preferred.parakeetModelPath || cfg.parakeetModelPath || '').trim();
+  const parakeetModelPath = String(Object.hasOwn(preferred, 'parakeetModelPath')
+    ? preferred.parakeetModelPath
+    : cfg.parakeetModelPath || '').trim();
   const model = await validateParakeetModel(parakeetModelPath);
   const diagnostics = nativeTranscription.diagnostics();
   return {
@@ -763,17 +771,21 @@ handle('native-engine:status', async (_e, preferred = {}) => {
     ready: diagnostics.ready && diagnostics.modelPath === parakeetModelPath,
   };
 });
-handle('local-engine:status', (_e, preferred = {}) => {
+handle('local-engine:status', async (_e, preferred = {}) => {
   const cfg = settings.load();
-  const preferredCliPath = String(preferred.whisperCliPath || cfg.whisperCliPath || '').trim();
+  const preferredCliPath = String(Object.hasOwn(preferred, 'whisperCliPath')
+    ? preferred.whisperCliPath
+    : cfg.whisperCliPath || '').trim();
   const runtime = preferredCliPath ? {} : resolveWhisperRuntime();
   const serverPath = runtime.serverPath || findWhisperServer(preferredCliPath);
-  const modelPath = String(preferred.modelPath || cfg.modelPath || '').trim();
+  const cli = await whisperCli.validateWhisperCli(preferredCliPath || runtime.cliPath || '');
+  const modelPath = String(Object.hasOwn(preferred, 'modelPath') ? preferred.modelPath : cfg.modelPath || '').trim();
   const diagnostics = localTranscription.diagnostics();
   return {
-    available: Boolean(serverPath),
-    serverPath,
     ...diagnostics,
+    available: Boolean(serverPath || cli.valid),
+    serverPath,
+    cliPath: cli.valid ? cli.path : '',
     ready: diagnostics.ready && diagnostics.serverPath === serverPath && diagnostics.modelPath === modelPath,
   };
 });
@@ -1027,9 +1039,9 @@ handle('meetings:transcribe', async (_e, id) => {
     const text = await meetingTranscriber.transcribeMeeting({
       tracks,
       settings: cfg,
-      localTranscriber: (filename, localSettings) => localSettings.engineKind === 'parakeet'
-        ? nativeTranscription.transcribe(filename, localSettings)
-        : localTranscription.transcribe(filename, localSettings),
+      localTranscriber: (filename, localSettings, options = {}) => localSettings.engineKind === 'parakeet'
+        ? nativeTranscription.transcribe(filename, localSettings, options)
+        : localTranscription.transcribe(filename, localSettings, options),
       signal: controller.signal,
       onProgress: (progress) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
