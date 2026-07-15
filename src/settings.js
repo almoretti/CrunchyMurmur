@@ -16,7 +16,8 @@ const DEFAULTS = {
   theme: 'system', // 'system' | 'light' | 'dark'
   overlayX: '',
   overlayY: '',
-  engineKind: 'local', // 'local' | 'groq'
+  engineKind: 'parakeet', // 'parakeet' | 'local' (Whisper) | 'groq'
+  parakeetModelPath: '',
   whisperCliPath: '',
   modelPath: '',
   language: 'auto',

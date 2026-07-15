@@ -210,6 +210,31 @@ function formatBytes(b) {
 let catalog = [];
 const downloadingIds = new Set();
 
+function modelSpeedLabel(speed) {
+  const labels = {
+    Fastest: window.i18n.t('Speed: Fastest'),
+    'Very fast': window.i18n.t('Speed: Very fast'),
+    Fast: window.i18n.t('Speed: Fast'),
+    Medium: window.i18n.t('Speed: Medium'),
+    Slow: window.i18n.t('Speed: Slow'),
+    Slowest: window.i18n.t('Speed: Slowest'),
+  };
+  return labels[speed] || speed;
+}
+
+function modelAccuracyLabel(accuracy) {
+  const labels = {
+    Lowest: window.i18n.t('Accuracy: Lowest'),
+    Low: window.i18n.t('Accuracy: Low'),
+    OK: window.i18n.t('Accuracy: OK'),
+    Good: window.i18n.t('Accuracy: Good'),
+    Excellent: window.i18n.t('Accuracy: Excellent'),
+    High: window.i18n.t('Accuracy: High'),
+    Best: window.i18n.t('Accuracy: Best'),
+  };
+  return labels[accuracy] || accuracy;
+}
+
 function renderModels() {
   modelsListEl.innerHTML = '';
   for (const m of catalog) {
@@ -225,9 +250,9 @@ function renderModels() {
       <div class="name">${escapeHtml(m.name)} ${badges.join(' ')}</div>
       <div class="meta">
         <span>${formatBytes(m.size)}</span>
-        <span>${escapeHtml(m.language)}</span>
-        <span>Speed: ${escapeHtml(m.speed)}</span>
-        <span>Accuracy: ${escapeHtml(m.accuracy)}</span>
+        <span>${escapeHtml(window.i18n.t(m.language))}</span>
+        <span>${escapeHtml(modelSpeedLabel(m.speed))}</span>
+        <span>${escapeHtml(modelAccuracyLabel(m.accuracy))}</span>
       </div>
       <div class="actions"></div>
       <div class="progress">
@@ -247,7 +272,7 @@ function renderModels() {
       const use = document.createElement('button');
       use.className = 'text-button';
       use.textContent = 'Use this';
-      use.addEventListener('click', () => useModel(m.id, m.path));
+      use.addEventListener('click', () => useModel(m.id, m.path, m.family));
       actions.appendChild(use);
 
       const del = document.createElement('button');
@@ -290,14 +315,18 @@ async function downloadModel(id) {
   await populateInstalledPicker();
 }
 
-function useModel(id, modelPath) {
-  // Jump to Engine, set engine = local, fill path.
+function useModel(id, modelPath, family = 'whisper') {
   switchTab('engine');
-  applyEngineKind('local');
-  modelPathEl.value = modelPath;
-  installedModelPickerEl.value = modelPath;
-  // Persist immediately so the user doesn't have to remember to hit Save.
-  window.wisper.saveSettings({ engineKind: 'local', modelPath });
+  const engineKind = family === 'parakeet' ? 'parakeet' : 'local';
+  applyEngineKind(engineKind);
+  if (engineKind === 'parakeet') parakeetModelPathEl.value = modelPath;
+  else {
+    modelPathEl.value = modelPath;
+    installedModelPickerEl.value = modelPath;
+  }
+  window.wisper.saveSettings(engineKind === 'parakeet'
+    ? { engineKind, parakeetModelPath: modelPath }
+    : { engineKind, modelPath });
   engineSaveStatusEl.textContent = `Using ${id}.`;
   setTimeout(() => { engineSaveStatusEl.textContent = ''; }, 2000);
 }
@@ -1499,11 +1528,13 @@ templateRevertBtn.addEventListener('click', async () => {
 
 // Settings
 const whisperCliPathEl = document.getElementById('whisperCliPath');
+const parakeetModelPathEl = document.getElementById('parakeetModelPath');
 const modelPathEl = document.getElementById('modelPath');
 const installedModelPickerEl = document.getElementById('installedModelPicker');
 const groqApiKeyEl = document.getElementById('groqApiKey');
 const groqModelEl = document.getElementById('groqModel');
 const languageEl = document.getElementById('language');
+const languageHintEl = document.getElementById('languageHint');
 const uiLocaleEl = document.getElementById('uiLocale');
 const micDeviceEl = document.getElementById('micDeviceId');
 const testMicBtn = document.getElementById('testMic');
@@ -1527,9 +1558,12 @@ const saveGeneralBtn = document.getElementById('saveGeneral');
 const engineSaveStatusEl = document.getElementById('engineSaveStatus');
 const generalSaveStatusEl = document.getElementById('generalSaveStatus');
 const engineLocalEl = document.getElementById('engineLocal');
+const engineParakeetEl = document.getElementById('engineParakeet');
 const engineGroqEl = document.getElementById('engineGroq');
+const parakeetReadinessEl = document.getElementById('parakeetReadiness');
 const cliReadinessEl = document.getElementById('cliReadiness');
 const modelReadinessEl = document.getElementById('modelReadiness');
+const localBackendReadinessEl = document.getElementById('localBackendReadiness');
 const cliSetupGuideEl = document.getElementById('cliSetupGuide');
 
 const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1567,7 +1601,8 @@ async function populateInstalledPicker() {
   const installed = await window.wisper.modelsInstalled();
   const current = modelPathEl.value;
   installedModelPickerEl.innerHTML = '<option value="">— Pick from your downloads —</option>';
-  for (const m of installed) {
+  const whisperModels = installed.filter((model) => model.family !== 'parakeet');
+  for (const m of whisperModels) {
     const opt = document.createElement('option');
     opt.value = m.path;
     opt.textContent = `${m.name} (${formatBytes(m.bytes)})`;
@@ -1575,7 +1610,7 @@ async function populateInstalledPicker() {
   }
   // Reflect the current path in the dropdown if it points at one of the
   // downloaded models, otherwise leave the picker on the placeholder.
-  if (current && installed.some((m) => m.path === current)) {
+  if (current && whisperModels.some((m) => m.path === current)) {
     installedModelPickerEl.value = current;
   } else {
     installedModelPickerEl.value = '';
@@ -1721,14 +1756,25 @@ document.querySelectorAll('.nav-item').forEach((b) => {
 });
 
 function applyEngineKind(kind) {
-  const k = kind === 'groq' ? 'groq' : 'local';
+  const k = ['parakeet', 'local', 'groq'].includes(kind) ? kind : 'parakeet';
+  engineParakeetEl.classList.toggle('active', k === 'parakeet');
   engineLocalEl.classList.toggle('active', k === 'local');
   engineGroqEl.classList.toggle('active', k === 'groq');
   document.querySelectorAll('input[name="engineKind"]').forEach((r) => {
     r.checked = r.value === k;
   });
   if (k === 'local') void refreshLocalReadiness();
+  if (k === 'parakeet') void refreshParakeetReadiness();
+  updateLanguageHint(k);
 }
+
+function updateLanguageHint(engineKind = document.querySelector('input[name="engineKind"]:checked')?.value) {
+  languageHintEl.textContent = engineKind === 'parakeet'
+    ? window.i18n.t('Parakeet detects language automatically. Choose Whisper for Turkish, Arabic, Hindi, Japanese, Korean, Chinese, Norwegian, and other unsupported languages.')
+    : window.i18n.t('Forces detection to a single language. Speeds up Whisper on short clips and avoids language mis-detection.');
+}
+
+languageEl.addEventListener('change', () => updateLanguageHint());
 
 function setReadiness(el, ready, message) {
   el.textContent = `${ready ? '✓' : '○'} ${message}`;
@@ -1738,6 +1784,21 @@ function setReadiness(el, ready, message) {
 
 let localReadinessRequest = 0;
 let modelReadinessRequest = 0;
+
+async function refreshParakeetReadiness() {
+  setReadiness(parakeetReadinessEl, false, window.i18n.t('Checking the bundled local engine...'));
+  const result = await window.wisper.nativeEngineStatus(parakeetModelPathEl.value.trim());
+  if (!result.available) {
+    setReadiness(parakeetReadinessEl, false, window.i18n.t('The bundled local transcription engine is missing.'));
+  } else if (!result.model.valid) {
+    setReadiness(parakeetReadinessEl, false, result.model.reason);
+  } else if (result.ready) {
+    setReadiness(parakeetReadinessEl, true, window.i18n.t('Parakeet V3 is loaded and ready.'));
+  } else {
+    setReadiness(parakeetReadinessEl, true, window.i18n.t('Parakeet V3 is ready and will load with your next recording.'));
+  }
+  return result;
+}
 
 async function refreshModelReadiness() {
   const request = ++modelReadinessRequest;
@@ -1750,7 +1811,8 @@ async function refreshModelReadiness() {
 async function refreshLocalReadiness({ discover = true } = {}) {
   const request = ++localReadinessRequest;
   const preferredPath = whisperCliPathEl.value.trim();
-  setReadiness(cliReadinessEl, false, 'Checking whisper-cli…');
+  setReadiness(cliReadinessEl, false, window.i18n.t('Checking bundled whisper.cpp...'));
+  setReadiness(localBackendReadinessEl, false, window.i18n.t('Checking local acceleration...'));
   const [result, model] = await Promise.all([
     window.wisper.whisperCliStatus(discover ? preferredPath : ''),
     refreshModelReadiness(),
@@ -1758,20 +1820,28 @@ async function refreshLocalReadiness({ discover = true } = {}) {
   if (request !== localReadinessRequest) return { cli: result, model };
   if (result.valid) {
     if (result.discovered) whisperCliPathEl.value = result.path;
-    setReadiness(cliReadinessEl, true, `${result.discovered ? 'Found' : 'Ready'}: ${result.path}${result.version ? ` (${result.version})` : ''}`);
+    setReadiness(cliReadinessEl, true, result.bundled
+      ? window.i18n.t('Bundled whisper.cpp is ready.')
+      : `${result.discovered ? 'Found' : 'Ready'}: ${result.path}${result.version ? ` (${result.version})` : ''}`);
+    const backend = await window.wisper.localEngineStatus(result.path, modelPathEl.value.trim());
+    if (request !== localReadinessRequest) return { cli: result, model, backend };
+    if (backend.ready) {
+      setReadiness(localBackendReadinessEl, true, window.i18n.t('Persistent acceleration is active. The model stays loaded between transcriptions.'));
+    } else if (backend.available) {
+      setReadiness(localBackendReadinessEl, true, window.i18n.t('Persistent acceleration is available and will start with your next recording.'));
+    } else {
+      setReadiness(localBackendReadinessEl, false, window.i18n.t('Persistent acceleration is unavailable. Transcription still works, but the model reloads for each recording.'));
+    }
   } else {
     setReadiness(cliReadinessEl, false, 'whisper-cli is required before local transcription can run.');
+    setReadiness(localBackendReadinessEl, false, window.i18n.t('Persistent acceleration is unavailable. Transcription still works, but the model reloads for each recording.'));
   }
   return { cli: result, model };
 }
 
 document.getElementById('showCliSetup').addEventListener('click', () => {
-  const platform = window.__lastSettings?.platform;
-  const command = platform === 'darwin' ? 'brew install whisper-cpp'
-    : platform === 'linux' ? 'Install the whisper.cpp package for your distribution, then return here and choose Refresh.'
-      : 'Download a whisper.cpp release for Windows, then use Browse to select whisper-cli.exe.';
   cliSetupGuideEl.hidden = !cliSetupGuideEl.hidden;
-  cliSetupGuideEl.textContent = `Install whisper.cpp: ${command} Browse is available if it is already installed somewhere else. After installation, select Local or Refresh this page to detect and validate it.`;
+  cliSetupGuideEl.textContent = window.i18n.t('CrunchyMurmur includes whisper.cpp. Use Browse only to override the bundled runtime with another compatible build.');
 });
 document.getElementById('refreshCli').addEventListener('click', () => void refreshLocalReadiness());
 modelPathEl.addEventListener('input', () => void refreshModelReadiness());
@@ -1798,11 +1868,13 @@ document.getElementById('pickModel').addEventListener('click', async () => {
 });
 
 saveEngineBtn.addEventListener('click', async () => {
-  const engineKind = document.querySelector('input[name="engineKind"]:checked')?.value || 'local';
+  const engineKind = document.querySelector('input[name="engineKind"]:checked')?.value || 'parakeet';
   try {
     if (engineKind === 'local') await refreshLocalReadiness();
+    if (engineKind === 'parakeet') await refreshParakeetReadiness();
     const cfg = await window.wisper.saveSettings({
       engineKind,
+      parakeetModelPath: parakeetModelPathEl.value.trim(),
       whisperCliPath: whisperCliPathEl.value.trim(),
       modelPath: modelPathEl.value.trim(),
       groqApiKey: groqApiKeyEl.value.trim(),
@@ -2198,6 +2270,7 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   window.i18n.setLocale(uiLocaleEl.value, cfg.systemLocale);
   document.documentElement.dataset.platform = cfg.platform;
   whisperCliPathEl.value = cfg.whisperCliPath || '';
+  parakeetModelPathEl.value = cfg.parakeetModelPath || '';
   modelPathEl.value = cfg.modelPath || '';
   groqApiKeyEl.value = cfg.groqApiKey || '';
   groqModelEl.value = cfg.groqModel || 'whisper-large-v3-turbo';
@@ -2227,7 +2300,7 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   await renderPermissions();
   document.getElementById('appDetails').textContent = `CrunchyMurmur ${cfg.version} · ${cfg.platform} ${cfg.arch}`;
   renderUpdateStatus(await window.wisper.getUpdateStatus());
-  applyEngineKind(cfg.engineKind || 'local');
+  applyEngineKind(cfg.engineKind || 'parakeet');
   await populateMicDevices(cfg.micDeviceId || '');
 
   // AI Notes provider config
@@ -2275,7 +2348,9 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
 
   const needsSetup = (cfg.engineKind === 'groq')
     ? !cfg.groqApiKey
-    : (!cfg.whisperCliPath || !cfg.modelPath);
+    : cfg.engineKind === 'parakeet'
+      ? !cfg.parakeetModelPath
+      : !cfg.modelPath;
   if (needsSetup) {
     switchTab('engine');
   }

@@ -23,12 +23,14 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     const modified = new Date(Date.now() - index * 60_000);
     fs.utimesSync(file, modified, modified);
   });
+  const historyFixtureTime = new Date();
+  historyFixtureTime.setHours(12, 0, 0, 0);
   fs.writeFileSync(path.join(userData, 'history.json'), JSON.stringify(Array.from({ length: 120 }, (_, index) => ({
     id: `fixture-${index}`,
     text: `Recording ${index + 1}: this transcript preview must remain readable even when the history contains many entries. `.repeat(4),
     language: 'en',
     durationSec: 8,
-    createdAt: new Date(Date.now() - index * 60_000).toISOString(),
+    createdAt: new Date(historyFixtureTime.getTime() - index * 60_000).toISOString(),
   }))));
   let electronApp;
   t.after(async () => {
@@ -90,7 +92,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
       models: document.getElementById('engineModels').textContent.trim(),
     };
   });
-  assert.deepEqual(restoredNavigationLabels, { templates: 'Templates', models: 'Whisper models' });
+  assert.deepEqual(restoredNavigationLabels, { templates: 'Templates', models: 'Local models' });
 
   const engineNav = page.locator('.nav-item[data-tab="engine"]');
   assert.equal(await page.locator('#engineSubmenu').count(), 0);
@@ -98,6 +100,11 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   await engineNav.click();
   assert.equal(await page.locator('#engineModels').isVisible(), true);
   assert.equal(await engineNav.evaluate((button) => button.classList.contains('active')), true);
+  const modelQualities = await page.locator('.model-card .meta').allTextContents();
+  assert.ok(modelQualities.some((text) => text.includes('Speed: Fastest') && text.includes('Accuracy: Lowest')));
+  assert.ok(modelQualities.some((text) => text.includes('Speed: Fast') && text.includes('Accuracy: Excellent')));
+  assert.ok(new Set(modelQualities).size > 1, 'every Whisper model presents the same speed and accuracy');
+  assert.equal(modelQualities.some((text) => /\{\d+\}/.test(text)), false, 'model ratings expose localisation placeholders');
   const italianEngineLabels = await page.evaluate(() => {
     window.i18n.setLocale('it');
     const labels = [
@@ -108,7 +115,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     window.i18n.setLocale('en');
     return labels;
   });
-  assert.deepEqual(italianEngineLabels, ['Trascrizione', 'Modelli Whisper', 'Note IA']);
+  assert.deepEqual(italianEngineLabels, ['Trascrizione', 'Modelli locali', 'Note IA']);
 
   const applicationDensity = await page.evaluate(() => ({
     bodyFontSize: getComputedStyle(document.body).fontSize,
@@ -372,12 +379,14 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
 
   if (process.platform === 'win32') {
     const { uIOhook, UiohookKey } = require('uiohook-napi');
+    const floating = electronApp.windows().find((candidate) => candidate.url().endsWith('/ui/floating.html'));
+    assert.ok(floating, 'floating dictation overlay was not created');
+    await floating.waitForFunction(() => document.documentElement.dataset.ready === 'true');
     try {
       uIOhook.keyToggle(UiohookKey.Ctrl, 'down');
       uIOhook.keyToggle(UiohookKey.Meta, 'down');
       await new Promise((resolve) => setTimeout(resolve, 500));
-      const floating = electronApp.windows().find((candidate) => candidate.url().endsWith('/ui/floating.html'));
-      assert.ok(floating, 'floating dictation overlay was not created');
+      await floating.waitForFunction(() => document.body.classList.contains('state-recording'), null, { timeout: 3000 });
       assert.match(await floating.locator('body').getAttribute('class'), /state-recording/);
       const overlayVisible = await electronApp.evaluate(({ BrowserWindow }) => (
         BrowserWindow.getAllWindows().some((window) => (
@@ -391,5 +400,11 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
       uIOhook.keyToggle(UiohookKey.Meta, 'up');
       uIOhook.keyToggle(UiohookKey.Ctrl, 'up');
     }
+    await floating.waitForFunction(() => !document.body.classList.contains('state-recording'), null, { timeout: 3000 });
+    assert.doesNotMatch(await floating.locator('body').getAttribute('class'), /state-recording/,
+      'releasing Ctrl + Win did not finish dictation');
+    await floating.evaluate(() => window.wisper.submitSamples(new Array(16_000).fill(0)));
+    await floating.waitForFunction(() => document.body.classList.contains('state-no-speech'));
+    assert.equal(await floating.locator('#label').innerText(), 'No microphone signal');
   }
 });

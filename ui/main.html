@@ -249,8 +249,9 @@
         <div class="settings-pane">
           <h2 id="engineTranscription" data-i18n="Transcription">Transcription</h2>
           <p class="muted">
-            Choose where transcription runs. <strong>Local</strong> uses
-            <code>whisper-cli</code> on this machine — fully offline, no API key.
+            Choose where transcription runs.
+            <span data-i18n="Parakeet is the fast recommended local engine for 25 European languages.">Parakeet is the fast recommended local engine for 25 European languages.</span>
+            <span data-i18n="Whisper provides the widest language support and optional translation.">Whisper provides the widest language support and optional translation.</span>
             <strong>Groq</strong> sends each clip to Groq's Whisper API — no model
             download, faster on most laptops, requires an account at
             <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>.
@@ -260,8 +261,12 @@
             <label>Engine</label>
             <div class="row engine-radio">
               <label class="radio">
+                <input type="radio" name="engineKind" value="parakeet" />
+                <span>Parakeet V3 (fast local)</span>
+              </label>
+              <label class="radio">
                 <input type="radio" name="engineKind" value="local" />
-                <span>Local (whisper.cpp)</span>
+                <span>Whisper (widest languages)</span>
               </label>
               <label class="radio">
                 <input type="radio" name="engineKind" value="groq" />
@@ -269,18 +274,29 @@
               </label>
             </div>
 
+            <div id="engineParakeet" class="engine-section">
+              <input id="parakeetModelPath" type="hidden" />
+              <div class="local-setup" aria-live="polite">
+                <strong>Parakeet V3</strong>
+                <span id="parakeetReadiness">Checking the bundled local engine...</span>
+                <span data-i18n="Fast, high-accuracy transcription for 25 European languages. Language is detected automatically.">Fast, high-accuracy transcription for 25 European languages. Language is detected automatically.</span>
+                <a href="#" data-i18n="Manage local models" data-jump-tab="engine" data-engine-section="models">Manage local models</a>
+              </div>
+            </div>
+
             <!-- Local engine fields -->
             <div id="engineLocal" class="engine-section">
               <div class="local-setup" id="localSetup" aria-live="polite">
                 <strong>Local setup</strong>
-                <span id="cliReadiness">Checking whisper-cli…</span>
+                <span id="cliReadiness">Checking bundled whisper.cpp...</span>
                 <span id="modelReadiness">A GGML model is also required.</span>
+                <span id="localBackendReadiness">Checking local acceleration...</span>
                 <button id="refreshCli" type="button" class="text-button">Refresh</button>
-                <button id="showCliSetup" type="button" class="text-button">Set up local transcription</button>
+                <button id="showCliSetup" type="button" class="text-button">Use a custom whisper.cpp build</button>
               </div>
               <p id="cliSetupGuide" class="muted small" hidden></p>
 
-              <label for="whisperCliPath">whisper-cli executable <span class="muted small">(required)</span></label>
+              <label for="whisperCliPath">Custom whisper-cli executable <span class="muted small">(optional)</span></label>
               <div class="row">
                 <input id="whisperCliPath" type="text" placeholder="Path to whisper-cli" />
                 <button id="pickCli" type="button" class="text-button">Browse…</button>
@@ -291,7 +307,7 @@
                 <option value="">— Pick from your downloads —</option>
               </select>
               <p class="muted small">
-                Manage downloads in <a href="#" data-jump-tab="engine" data-engine-section="models">Whisper models</a> below.
+                Manage downloads in <a href="#" data-jump-tab="engine" data-engine-section="models">Local models</a> below.
               </p>
 
               <label>Or specify a custom .bin path</label>
@@ -327,14 +343,12 @@
 
           <section class="engine-models-section" aria-labelledby="engineModels">
             <div class="meeting-section-head">
-              <h2 id="engineModels" data-i18n="Whisper models">Whisper models</h2>
+              <h2 id="engineModels" data-i18n="Local models">Local models</h2>
               <button type="button" id="openModelsFolder" class="text-button">Open folder</button>
             </div>
             <div class="models-help">
-              Models are stored in <code id="modelsDirPath">…</code>. Downloads come straight from
-              <a href="https://huggingface.co/ggerganov/whisper.cpp" target="_blank" rel="noopener">huggingface.co/ggerganov/whisper.cpp</a>
-              — no account needed. Pick the one that fits your accuracy / disk-space budget;
-              for most people <strong>Large v3 Turbo (Q5)</strong> is the sweet spot.
+              Models are stored in <code id="modelsDirPath">…</code>. Parakeet V3 is the recommended fast default for supported European languages.
+              Choose Whisper when you need broader language coverage, translation, or a custom GGML model.
             </div>
             <div id="modelsList" class="models-list"></div>
           </section>
@@ -525,7 +539,7 @@
               <option value="da">Danish</option>
               <option value="no">Norwegian</option>
             </select>
-            <p class="muted small">
+            <p id="languageHint" class="muted small">
               Forces detection to a single language. Speeds up Whisper on short clips and avoids language mis-detection.
             </p>
           </div>

@@ -5,7 +5,7 @@
 
   **Private-by-default voice dictation, meeting transcription, and Markdown notes.**
 
-  Press a shortcut, speak, and keep working. CrunchyMurmur runs on Windows, macOS, and Linux, with local Whisper transcription or optional cloud providers.
+  Press a shortcut, speak, and keep working. CrunchyMurmur runs on Windows, macOS, and Linux, with fast local Parakeet, broad-language Whisper, or optional cloud transcription.
 
   [![Latest release](https://img.shields.io/github/v/release/almoretti/CrunchyMurmur?display_name=tag&sort=semver)](https://github.com/almoretti/CrunchyMurmur/releases/latest)
   [![Downloads](https://img.shields.io/github/downloads/almoretti/CrunchyMurmur/total)](https://github.com/almoretti/CrunchyMurmur/releases)
@@ -73,8 +73,11 @@ The scripts detect your operating system and architecture, download the latest r
 
 ## Choose where transcription happens
 
-- **Local whisper.cpp:** audio stays on your machine; no API key is required.
+- **Parakeet V3 (recommended):** fast, accurate CPU transcription for 25 European languages through the bundled Rust `transcribe-rs` engine. The model stays loaded between dictations and meeting chunks.
+- **Local Whisper:** the broad-language fallback for 99+ languages, manual language selection, translation, and custom GGML models. CrunchyMurmur bundles `whisper.cpp`; no separate engine installation is required.
 - **Groq Whisper API:** faster on many laptops; audio is sent to the Groq account you configure.
+
+Near-silent recordings are rejected before inference instead of being saved as model hallucinations.
 - **Optional AI formatting and notes:** use Anthropic, OpenAI, Groq, Claude Code, or Codex only when you configure and invoke them.
 
 Cloud features are optional. Provider failures fall back safely without discarding the original transcript.
@@ -110,7 +113,7 @@ You can also run the same terminal install command again at any time. Debian pac
 
 ## Build from source
 
-Requires Node.js 22.12 or newer and npm. Git is optional: the source bootstrap resolves `main` to an exact commit, downloads its GitHub archive, installs locked dependencies, validates the project, and launches it.
+Requires Node.js 22.12 or newer, npm, the stable Rust toolchain, and a native C/C++ linker (Visual Studio Build Tools on Windows, Xcode Command Line Tools on macOS, or GCC on Linux). Git is optional: the source bootstrap resolves `main` to an exact commit, downloads its GitHub archive, installs locked dependencies, validates the project, builds the local transcription helper, and launches it.
 
 **Windows — PowerShell**
 

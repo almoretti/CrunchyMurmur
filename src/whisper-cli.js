@@ -62,10 +62,13 @@ async function validateWhisperCli(cliPath, { stat = fs.promises.stat, run = runV
   }
 
   const result = await run(cliPath);
-  if (result.error || result.status !== 0) {
+  const combinedOutput = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
+  const currentCliWithoutVersionFlag = /unknown argument:\s*--version/i.test(combinedOutput)
+    && /usage:.*whisper-cli/i.test(combinedOutput);
+  if (result.error || (result.status !== 0 && !currentCliWithoutVersionFlag)) {
     return { valid: false, reason: 'The selected executable did not respond to whisper-cli --version.' };
   }
-  const version = String(result.stdout || result.stderr || '').trim().split('\n')[0];
+  const version = currentCliWithoutVersionFlag ? 'whisper-cli detected' : combinedOutput.split('\n')[0];
   return { valid: true, path: cliPath, version: version || 'whisper-cli detected' };
 }
 

@@ -6,6 +6,11 @@ CrunchyMurmur shares its data model and most product features across Windows, ma
 |---|---|---|---|
 | Dashboard, word count, WPM, streak | Supported | Supported | Supported |
 | Local whisper.cpp and Groq transcription | Supported | Supported | Supported |
+| Bundled persistent local model session | Supported | Supported | Supported |
+| Parakeet V3 CPU transcription | Supported | Supported | Supported |
+| Whisper broad-language fallback | Supported | Supported | Supported |
+
+Windows ARM64 packages use the tested x64 Parakeet and Whisper helpers through Windows' built-in x64 emulation. macOS universal and Linux ARM64 packages contain native helpers.
 | AI formatting and AI Notes providers | Supported | Supported | Supported |
 | Notes, templates, recordings, retention | Supported | Supported | Supported |
 | Localised interface (12 languages) | Supported | Supported | Supported |
@@ -25,3 +30,7 @@ The Debian package declares its Electron runtime dependencies. AppImage users ma
 System-audio meeting capture is deliberately disabled on Linux for now. PipeWire and XDG desktop portal behavior varies by compositor, distribution, and session type. It should be enabled only after a portal-backed implementation has automated coverage on both Wayland and X11.
 
 Linux release CI runs unit tests, Electron UI tests under Xvfb, builds x64 and ARM64 packages, and launches the packaged x64 renderer.
+
+## Local acceleration
+
+Release builds pin whisper.cpp v1.8.6 to commit `23ee03506a91ac3d3f0071b40e66a430eebdfa1d`. Windows includes the checksum-verified official x64 CPU runtime; the ARM64 package uses Windows' x64 emulation for this runtime. macOS builds one universal runtime with Metal enabled. Linux builds portable CPU runtimes for x64 and ARM64. Advanced users can choose a different compatible `whisper-cli` build in Engine settings, including hardware-specific Vulkan, CUDA, or ROCm builds.

@@ -36,6 +36,13 @@ if (generated.status !== 0) throw new Error(generated.stderr || 'Could not extra
 const generatedWindow = {};
 vm.runInNewContext(generated.stdout, { window: generatedWindow });
 const extractedKeys = Object.keys(generatedWindow.__CRUNCHY_I18N_CATALOGS__.en).sort();
+for (const key of extractedKeys) {
+  const placeholders = [...key.matchAll(/\{(\d+)\}/g)].map(match => Number(match[1]));
+  const unique = [...new Set(placeholders)].sort((left, right) => left - right);
+  if (unique.some((value, index) => value !== index)) {
+    throw new Error(`Renderer message has sparse placeholders: "${key}". Placeholders must start at {0} and remain contiguous.`);
+  }
+}
 if (JSON.stringify(extractedKeys) !== JSON.stringify(Object.keys(window.__CRUNCHY_I18N_CATALOGS__.en).sort())) {
   const missing = extractedKeys.filter(key => !window.__CRUNCHY_I18N_CATALOGS__.en[key]);
   const stale = Object.keys(window.__CRUNCHY_I18N_CATALOGS__.en).filter(key => !generatedWindow.__CRUNCHY_I18N_CATALOGS__.en[key]);

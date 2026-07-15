@@ -223,6 +223,14 @@ function setState(state) {
     flushAndSubmit();
   } else if (state === 'transcribing') {
     setLabel(window.i18n.t('Transcribing'));
+  } else if (state === 'no-speech') {
+    setLabel(window.i18n.t('No microphone signal'));
+    stopCapture();
+    stopRecordingTimer();
+  } else if (state === 'too-short') {
+    setLabel(window.i18n.t('Recording was too short'));
+    stopCapture();
+    stopRecordingTimer();
   } else if (state === 'meeting') {
     setLabel(window.i18n.t('Meeting recording'));
     stopRecordingTimer();
@@ -239,6 +247,7 @@ function setState(state) {
 }
 
 window.wisper.onState((state) => setState(state));
+document.documentElement.dataset.ready = 'true';
 
 window.wisper.onMeetingState(({ startedAt }) => {
   meetingStartedAt = startedAt || Date.now();

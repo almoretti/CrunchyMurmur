@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const https = require('https');
 const { app } = require('electron');
@@ -11,7 +12,26 @@ const { atomicWriteFileSync } = require('./file-utils');
 // still works.
 const CATALOG = [
   {
+    id: 'parakeet-v3',
+    family: 'parakeet',
+    name: 'Parakeet V3',
+    size: 670_619_803,
+    language: '25 European languages',
+    speed: 'Fast',
+    accuracy: 'High',
+    recommended: true,
+    directory: 'parakeet-tdt-0.6b-v3-int8',
+    files: [
+      { name: 'encoder-model.int8.onnx', size: 652_183_999, sha256: '6139d2fa7e1b086097b277c7149725edbab89cc7c7ae64b23c741be4055aff09' },
+      { name: 'decoder_joint-model.int8.onnx', size: 18_202_004, sha256: 'eea7483ee3d1a30375daedc8ed83e3960c91b098812127a0d99d1c8977667a70' },
+      { name: 'nemo128.onnx', size: 139_764, sha256: 'a9fde1486ebfcc08f328d75ad4610c67835fea58c73ba57e3209a6f6cf019e9f' },
+      { name: 'vocab.txt', size: 93_939, sha256: 'd58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d' },
+      { name: 'config.json', size: 97, sha256: '666903c76b9798caf2c210afd4f6cd60b08a8dbf9800ec8d7a3bc0d2148ac466' },
+    ],
+  },
+  {
     id: 'tiny.en',
+    family: 'whisper',
     name: 'Tiny English',
     size: 77_700_000,
     language: 'English only',
@@ -20,6 +40,7 @@ const CATALOG = [
   },
   {
     id: 'base',
+    family: 'whisper',
     name: 'Base',
     size: 147_900_000,
     language: 'Multilingual',
@@ -28,6 +49,7 @@ const CATALOG = [
   },
   {
     id: 'small',
+    family: 'whisper',
     name: 'Small',
     size: 487_600_000,
     language: 'Multilingual',
@@ -36,6 +58,7 @@ const CATALOG = [
   },
   {
     id: 'medium',
+    family: 'whisper',
     name: 'Medium',
     size: 1_530_000_000,
     language: 'Multilingual',
@@ -44,15 +67,16 @@ const CATALOG = [
   },
   {
     id: 'large-v3-turbo-q5_0',
+    family: 'whisper',
     name: 'Large v3 Turbo (Q5)',
     size: 574_000_000,
     language: 'Multilingual',
     speed: 'Fast',
     accuracy: 'Excellent',
-    recommended: true,
   },
   {
     id: 'large-v3-turbo',
+    family: 'whisper',
     name: 'Large v3 Turbo',
     size: 1_620_000_000,
     language: 'Multilingual',
@@ -61,6 +85,7 @@ const CATALOG = [
   },
   {
     id: 'large-v3',
+    family: 'whisper',
     name: 'Large v3',
     size: 3_100_000_000,
     language: 'Multilingual',
@@ -77,6 +102,8 @@ function modelsDir() {
 
 function modelFilePath(id) {
   validateModelId(id);
+  const entry = CATALOG.find((model) => model.id === id);
+  if (entry?.directory) return path.join(modelsDir(), entry.directory);
   return path.join(modelsDir(), `ggml-${id}.bin`);
 }
 
@@ -86,11 +113,20 @@ function validateModelId(id) {
 }
 
 function metadataPath(id) {
-  return modelFilePath(id) + '.metadata.json';
+  const entry = CATALOG.find((model) => model.id === id);
+  return entry?.directory
+    ? path.join(modelsDir(), `.${id}.metadata.json`)
+    : modelFilePath(id) + '.metadata.json';
 }
 
 function modelUrl(id) {
+  const entry = CATALOG.find((model) => model.id === id);
+  if (entry?.url) return entry.url;
   return `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${id}.bin`;
+}
+
+function parakeetFileUrl(filename) {
+  return `https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/main/${encodeURIComponent(filename)}`;
 }
 
 // Active downloads — one entry per model id while a download is in flight.
@@ -99,6 +135,16 @@ const active = new Map();
 
 function isInstalled(id) {
   try {
+    const catalogEntry = CATALOG.find((m) => m.id === id);
+    if (catalogEntry?.directory) {
+      const directory = modelFilePath(id);
+      return [
+        'encoder-model.int8.onnx',
+        'decoder_joint-model.int8.onnx',
+        'nemo128.onnx',
+        'vocab.txt',
+      ].every((file) => fs.statSync(path.join(directory, file)).size > 0);
+    }
     const bytes = fs.statSync(modelFilePath(id)).size;
     if (bytes < 1024 * 1024) return false;
     try {
@@ -107,7 +153,6 @@ function isInstalled(id) {
         return bytes === metadata.expectedBytes;
       }
     } catch {}
-    const catalogEntry = CATALOG.find((m) => m.id === id);
     return !catalogEntry || (bytes >= catalogEntry.size * 0.8 && bytes <= catalogEntry.size * 1.2);
   } catch {
     return false;
@@ -119,7 +164,14 @@ function listInstalled() {
   // user dropped in manually — so external downloads still show up in the UI.
   const dir = modelsDir();
   const files = fs.readdirSync(dir).filter((f) => f.startsWith('ggml-') && f.endsWith('.bin'));
-  const out = [];
+  const out = CATALOG.filter((model) => model.directory && isInstalled(model.id)).map((model) => ({
+    id: model.id,
+    family: model.family,
+    name: model.name,
+    bytes: model.size,
+    path: modelFilePath(model.id),
+    external: false,
+  }));
   for (const f of files) {
     const id = f.slice('ggml-'.length, -'.bin'.length);
     if (!isInstalled(id)) continue;
@@ -127,6 +179,7 @@ function listInstalled() {
     const meta = CATALOG.find((m) => m.id === id);
     out.push({
       id,
+      family: 'whisper',
       name: meta ? meta.name : id,
       bytes: stat.size,
       path: path.join(dir, f),
@@ -150,9 +203,15 @@ function removeModel(id) {
   // download is running).
   cancelDownload(id);
   const p = modelFilePath(id);
-  if (fs.existsSync(p)) fs.unlinkSync(p);
+  const entry = CATALOG.find((model) => model.id === id);
+  if (fs.existsSync(p)) {
+    if (entry?.directory) fs.rmSync(p, { recursive: true, force: true });
+    else fs.unlinkSync(p);
+  }
   const partial = p + '.partial';
   if (fs.existsSync(partial)) fs.unlinkSync(partial);
+  const archivePartial = path.join(modelsDir(), `.${id}.tar.gz.partial`);
+  if (fs.existsSync(archivePartial)) fs.unlinkSync(archivePartial);
   const metadata = metadataPath(id);
   if (fs.existsSync(metadata)) fs.unlinkSync(metadata);
   return true;
@@ -174,6 +233,8 @@ function cancelDownload(id) {
  * into place; rejects on network error, HTTP error, or cancel.
  */
 function downloadModel(id, onProgress) {
+  const directoryMeta = CATALOG.find((model) => model.id === id && model.directory);
+  if (directoryMeta) return downloadDirectoryModel(directoryMeta, onProgress);
   return new Promise((resolve, reject) => {
     if (active.has(id)) {
       return reject(new Error('A download for this model is already in progress.'));
@@ -266,6 +327,78 @@ function downloadModel(id, onProgress) {
 
     active.set(id, { req, canceled: false });
   });
+}
+
+async function downloadDirectoryModel(meta, onProgress) {
+  const { id } = meta;
+  if (active.has(id)) throw new Error('A download for this model is already in progress.');
+  const finalPath = modelFilePath(id);
+  if (isInstalled(id)) return { id, path: finalPath };
+  const partialPath = path.join(modelsDir(), `.${id}.partial`);
+  fs.rmSync(partialPath, { recursive: true, force: true });
+  fs.mkdirSync(partialPath, { recursive: true });
+  const entry = { req: null, canceled: false };
+  active.set(id, entry);
+  let completedBytes = 0;
+
+  try {
+    for (const file of meta.files) {
+      if (entry.canceled) throw new Error('Download canceled');
+      const target = path.join(partialPath, file.name);
+      await new Promise((resolve, reject) => {
+        const stream = fs.createWriteStream(target);
+        const digest = crypto.createHash('sha256');
+        let fileBytes = 0;
+        const fail = (error) => {
+          try { stream.destroy(); } catch {}
+          reject(entry.canceled ? new Error('Download canceled') : error);
+        };
+        const request = (url, redirects = 0) => {
+          const req = https.get(url, { headers: { 'User-Agent': 'CrunchyMurmur' } }, (res) => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+              res.resume();
+              if (redirects >= 5) return fail(new Error('Too many model download redirects.'));
+              const next = new URL(res.headers.location, url);
+              if (next.protocol !== 'https:') return fail(new Error('Model download redirected to an insecure URL.'));
+              request(next, redirects + 1);
+              return;
+            }
+            if (res.statusCode !== 200) return fail(new Error(`HTTP ${res.statusCode} from HuggingFace`));
+            res.on('data', (chunk) => {
+              fileBytes += chunk.length;
+              digest.update(chunk);
+              try { onProgress?.({ id, bytesDone: completedBytes + fileBytes, bytesTotal: meta.size }); } catch {}
+            });
+            res.on('error', fail);
+            res.pipe(stream);
+          });
+          req.on('error', fail);
+          entry.req = req;
+        };
+        stream.on('finish', () => {
+          if (fileBytes !== file.size) return fail(new Error(`Incomplete model file: ${file.name}`));
+          if (digest.digest('hex') !== file.sha256) return fail(new Error(`Checksum mismatch for model file: ${file.name}`));
+          resolve();
+        });
+        stream.on('error', fail);
+        request(parakeetFileUrl(file.name));
+      });
+      completedBytes += file.size;
+    }
+    fs.rmSync(finalPath, { recursive: true, force: true });
+    fs.renameSync(partialPath, finalPath);
+    if (!isInstalled(id)) throw new Error('The downloaded Parakeet model is incomplete.');
+    atomicWriteFileSync(metadataPath(id), JSON.stringify({
+      id,
+      expectedBytes: meta.size,
+      source: 'https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx',
+      downloadedAt: new Date().toISOString(),
+    }, null, 2), 'utf8');
+    return { id, path: finalPath };
+  } finally {
+    active.delete(id);
+    if (fs.existsSync(partialPath)) fs.rmSync(partialPath, { recursive: true, force: true });
+  }
 }
 
 module.exports = {

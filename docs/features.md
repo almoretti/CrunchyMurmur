@@ -4,6 +4,10 @@
 
 CrunchyMurmur captures microphone audio while the global shortcut is active, transcribes it through the selected engine, stores a searchable local recording entry, and pastes the result into the previously focused application. The shortcut recorder listens to physical key presses; it is not a text field.
 
+For local transcription, CrunchyMurmur offers two complementary engines. Parakeet V3 is the recommended fast default for its 25 supported European languages and runs through a bundled Rust `transcribe-rs` helper. Whisper supports 99+ languages, explicit language selection, translation, and custom GGML models through bundled `whisper-server` and `whisper-cli`. Both engines retain the selected model between recordings and are shared with meeting transcription. Whisper safely falls back to the bundled one-shot CLI if its persistent server fails.
+
+The recorder rejects clips that are too short or contain no meaningful speech energy before inference. This prevents common silence hallucinations such as “Thank you.”
+
 Optional AI formatting removes fillers and improves punctuation before paste. If formatting fails, the original transcript is preserved.
 
 ## Meetings
@@ -36,8 +40,9 @@ The interface is available in 12 languages: English, Italiano, Español, Portugu
 
 | Provider | Purpose | Runs where | Data sent |
 |---|---|---|---|
-| whisper.cpp | Transcription | On device | Nothing |
+| whisper.cpp (`whisper-server`, with CLI fallback) | Transcription | On device | Nothing |
 | Groq Whisper API | Transcription | Groq cloud | Recorded audio clip |
+| NVIDIA Parakeet V3 | Local transcription | This device | Nothing |
 | Anthropic, OpenAI, Groq | Formatting and notes | Provider cloud | Selected transcript and prompt |
 | Claude Code, Codex | Formatting and notes | Local authenticated CLI | Selected transcript and prompt through that CLI |
 
