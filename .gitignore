@@ -16,6 +16,10 @@ build/icon.iconset/
 build/icon-mac-square.png
 build/icons/
 build/native/
+build/whisper-cache/
+build/whisper-runtime/
+build/transcriber-runtime/
+native/transcriber/target/
 ui/editor-assets/
 ui/editor.bundle.js
 ui/editor.bundle.css

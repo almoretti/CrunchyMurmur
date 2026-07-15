@@ -19,6 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run build:editor
       - run: npm run check
+      - run: cargo test --locked --manifest-path native/transcriber/Cargo.toml
       - run: npm audit --audit-level=high
       - run: npm run release:check
 
@@ -42,6 +43,8 @@ jobs:
             throw 'WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD repository secrets are required.'
           }
       - run: npm run build:editor
+      - run: npm run prepare:whisper:win
+      - run: npm run prepare:transcriber:win
       - run: npx electron-builder --win --publish never -c.forceCodeSigning=true
       - run: node scripts/verify-update-manifest.js dist/latest.yml
       - run: npm run smoke:packaged -- dist\win-unpacked\CrunchyMurmur.exe
@@ -73,6 +76,8 @@ jobs:
       - run: npm run build:editor
       - run: bash scripts/prepare-macos-icon.sh
       - run: bash scripts/build-macos-native.sh
+      - run: npm run prepare:whisper:mac
+      - run: npm run prepare:transcriber:mac
       - run: npm run test:e2e
         env:
           CRUNCHYMURMUR_DISABLE_NATIVE_HOTKEY: '1'
@@ -107,7 +112,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: sudo apt-get update && sudo apt-get install -y imagemagick
+      - run: sudo apt-get update && sudo apt-get install -y imagemagick cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
       - run: xvfb-run --auto-servernum npm run test:e2e
       - run: npm run build:linux
       - run: node scripts/verify-update-manifest.js dist/latest-linux.yml

@@ -178,7 +178,7 @@ html[data-platform="darwin"] .app-titlebar { padding-left: 78px; }
 
 .local-setup {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px 10px;
   margin: 10px 0 14px;
@@ -188,8 +188,11 @@ html[data-platform="darwin"] .app-titlebar { padding-left: 78px; }
   background: var(--surface-raised);
   font-size: 12px;
 }
-.local-setup strong { grid-row: span 2; }
-.local-setup span { color: var(--text-muted); }
+.local-setup strong { grid-column: 1; grid-row: 1 / span 3; align-self: start; padding-top: 2px; }
+.local-setup span { grid-column: 2 / -1; color: var(--text-muted); line-height: 1.45; }
+.local-setup > a { grid-column: 2 / -1; justify-self: start; }
+.local-setup #refreshCli { grid-column: 2; justify-self: start; }
+.local-setup #showCliSetup { grid-column: 3; justify-self: end; }
 .local-setup .ready { color: var(--success, #317a55); }
 .local-setup .incomplete { color: var(--danger); }
 

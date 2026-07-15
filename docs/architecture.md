@@ -29,3 +29,27 @@ Short dictation is capped at ten minutes, encoded to a unique temporary WAV,
 transcribed, and deleted in `finally`. Meetings are streamed to a partial WAV
 in main. Finalization patches the header and renames the file. A partial file
 left by a crash is recovered on the next meeting-list load.
+
+## Local transcription lifecycle
+
+Local transcription has two process boundaries shared by dictation and meeting
+chunks. `src/native-transcription-service.js` keeps the bundled Rust
+`transcribe-rs` helper and Parakeet model alive across requests.
+`src/local-transcription-service.js` manages Whisper. Packaged releases include
+a whisper.cpp runtime prepared from a pinned upstream commit with verified
+source artifacts. Main starts `whisper-server` on an unused loopback port,
+loads the selected model once, and reuses it for subsequent requests.
+The server binds only to `127.0.0.1`, receives WAV data over a private local
+request, and is stopped after 15 idle minutes or when the app quits.
+
+Recording starts the model preload before the completed clip is submitted. A
+model or executable change disposes the old process before loading the new one.
+If the persistent server exits or fails health checks, the same service falls
+back to the configured one-shot `whisper-cli` process, so local transcription
+remains available. A user-selected executable overrides the bundled runtime;
+otherwise the packaged executable is used.
+Backend, model-load, inference, and fallback information is included in masked
+diagnostics and app logs.
+
+Before either local or cloud inference, `src/audio-quality.js` rejects clips
+that are too short or effectively silent.

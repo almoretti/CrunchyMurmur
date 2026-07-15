@@ -95,13 +95,36 @@ const aiNotes = require('./notes-generator');
 const calendar = require('./calendar-store');
 const meetings = require('./meetings-store');
 const updater = require('./updater');
-const { transcribeWav, writeTempWav } = require('./transcriber');
+const { writeTempWav } = require('./transcriber');
+const { LocalTranscriptionService, findWhisperServer } = require('./local-transcription-service');
+const { NativeTranscriptionService } = require('./native-transcription-service');
+const nativeTranscriberRuntime = require('./native-transcriber-runtime');
+const whisperRuntime = require('./whisper-runtime');
+const { analyseSpeechSamples } = require('./audio-quality');
 const { transcribeWithGroq } = require('./groq');
 const dictationFormatter = require('./dictation-formatter');
 const meetingTranscriber = require('./meeting-transcriber');
 const macNative = require('./mac-native');
 const { pasteText } = require('./paste');
 const hotkeys = require('./hotkey-manager');
+
+function resolveWhisperRuntime() {
+  return whisperRuntime.resolveBundledRuntime({
+    packaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+  });
+}
+
+const localTranscription = new LocalTranscriptionService({ logger: log, resolveRuntime: resolveWhisperRuntime });
+const nativeTranscription = new NativeTranscriptionService({
+  logger: log,
+  resolveExecutable: () => nativeTranscriberRuntime.resolveNativeTranscriber({
+    packaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+  }),
+});
 
 let tray = null;
 let mainWindow = null;
@@ -487,6 +510,17 @@ function beginDictation() {
   // meeting capture loop. Dictation is disabled until the meeting stops.
   if (isDictating || isProcessing || activeMeetingId) return;
   isDictating = true;
+  const cfg = settings.load();
+  if (cfg.engineKind === 'local') {
+    localTranscription.prepare(cfg).catch((error) => {
+      log.debug(`[local-transcription] preload skipped: ${error.message || error}`);
+    });
+  }
+  if (cfg.engineKind === 'parakeet') {
+    nativeTranscription.prepare(cfg).catch((error) => {
+      log.debug(`[native-transcription] preload skipped: ${error.message || error}`);
+    });
+  }
   showFloating('recording');
 }
 
@@ -527,10 +561,17 @@ function registerDictationShortcut(accelerator) {
 }
 
 handle('floating:submit-samples', async (_e, samples) => {
-  if (!Array.isArray(samples) || samples.length < 16000 / 4) {
-    // < 250 ms — too short; bail.
-    hideFloating();
-    return { ok: false, error: 'Recording too short.' };
+  const audioQuality = analyseSpeechSamples(Array.isArray(samples) ? samples : []);
+  if (!audioQuality.usable) {
+    isDictating = false;
+    isProcessing = false;
+    const state = audioQuality.reason === 'too-short' ? 'too-short' : 'no-speech';
+    log.info(`[dictation] audio rejected reason=${audioQuality.reason} duration=${audioQuality.durationSeconds.toFixed(2)}s peak=${(audioQuality.peak || 0).toFixed(6)} rms=${(audioQuality.rms || 0).toFixed(6)} active=${(audioQuality.activeFraction || 0).toFixed(4)}`);
+    showFloating(state);
+    setTimeout(() => {
+      if (!isDictating && !isProcessing) hideFloating();
+    }, 2_500);
+    return { ok: false, error: audioQuality.reason === 'too-short' ? 'Recording too short.' : 'No speech was detected.' };
   }
   if (samples.length > 16_000 * 10 * 60) {
     hideFloating();
@@ -546,7 +587,9 @@ handle('floating:submit-samples', async (_e, samples) => {
     const cfg = settings.load();
     const text = cfg.engineKind === 'groq'
       ? await transcribeWithGroq(wavPath, cfg)
-      : await transcribeWav(wavPath, cfg);
+      : cfg.engineKind === 'parakeet'
+        ? await nativeTranscription.transcribe(wavPath, cfg)
+        : await localTranscription.transcribe(wavPath, cfg);
     const cleaned = await dictationFormatter.format(text, cfg);
 
     if (cleaned) {
@@ -630,16 +673,38 @@ async function validateLocalModel(modelPath) {
   }
 }
 
+async function validateParakeetModel(modelPath) {
+  const candidate = String(modelPath || '').trim();
+  if (!candidate) return { valid: false, reason: 'Download Parakeet V3 before using this engine.' };
+  try {
+    const required = ['encoder-model.int8.onnx', 'decoder_joint-model.int8.onnx', 'nemo128.onnx', 'vocab.txt', 'config.json'];
+    const files = await Promise.all(required.map(async (file) => {
+      const filename = path.join(candidate, file);
+      await fs.promises.access(filename, fs.constants.R_OK);
+      return fs.promises.stat(filename);
+    }));
+    if (files.some((file) => !file.isFile() || file.size <= 0)) throw new Error('invalid model');
+    return { valid: true, path: candidate };
+  } catch {
+    return { valid: false, reason: 'The Parakeet V3 model is incomplete or unreadable.' };
+  }
+}
+
 handle('settings:save', async (_e, partial) => {
   const changes = { ...(partial || {}) };
   const current = settings.load();
   const prospective = { ...current, ...changes };
-  const localConfigChanged = ['engineKind', 'whisperCliPath', 'modelPath']
+  const localConfigChanged = ['engineKind', 'whisperCliPath', 'modelPath', 'parakeetModelPath']
     .some((key) => Object.hasOwn(changes, key));
   if (localConfigChanged && prospective.engineKind === 'local') {
-    const cli = await whisperCli.validateWhisperCli(prospective.whisperCliPath);
+    const runtime = prospective.whisperCliPath ? {} : resolveWhisperRuntime();
+    const cli = await whisperCli.validateWhisperCli(prospective.whisperCliPath || runtime.cliPath);
     if (!cli.valid) throw new Error(`Local transcription is not ready: ${cli.reason}`);
     const model = await validateLocalModel(prospective.modelPath);
+    if (!model.valid) throw new Error(`Local transcription is not ready: ${model.reason}`);
+  }
+  if (localConfigChanged && prospective.engineKind === 'parakeet') {
+    const model = await validateParakeetModel(prospective.parakeetModelPath);
     if (!model.valid) throw new Error(`Local transcription is not ready: ${model.reason}`);
   }
   if (Object.hasOwn(changes, 'hotkey')) {
@@ -654,6 +719,20 @@ handle('settings:save', async (_e, partial) => {
   }
   if (Object.hasOwn(changes, 'theme')) changes.theme = normalizedTheme(changes.theme);
   const saved = settings.save(changes);
+  if (localConfigChanged) {
+    localTranscription.dispose();
+    nativeTranscription.dispose();
+    if (saved.engineKind === 'local') {
+      localTranscription.prepare(saved).catch((error) => {
+        log.debug(`[local-transcription] preload after settings change skipped: ${error.message || error}`);
+      });
+    }
+    if (saved.engineKind === 'parakeet') {
+      nativeTranscription.prepare(saved).catch((error) => {
+        log.debug(`[native-transcription] preload after settings change skipped: ${error.message || error}`);
+      });
+    }
+  }
   if (Object.hasOwn(changes, 'theme')) applyThemePreference(saved.theme);
   if (Object.hasOwn(changes, 'uiLocale') && floatingWindow && !floatingWindow.isDestroyed()) {
     floatingWindow.webContents.send('locale:changed', { uiLocale: saved.uiLocale, systemLocale: shortcutMetadata(saved).systemLocale });
@@ -672,9 +751,44 @@ handle('settings:pick-file', async (_e, filters) => {
 handle('whisper-cli:status', async (_e, preferredPath) => {
   const preferred = await whisperCli.validateWhisperCli(String(preferredPath || '').trim());
   if (preferred.valid) return { ...preferred, discovered: false };
+  const runtime = resolveWhisperRuntime();
+  const bundled = await whisperCli.validateWhisperCli(runtime.cliPath);
+  if (bundled.valid) return { ...bundled, bundled: true, discovered: false };
   return whisperCli.discoverWhisperCli();
 });
 handle('local-model:status', (_e, modelPath) => validateLocalModel(modelPath));
+handle('native-engine:status', async (_e, preferred = {}) => {
+  const cfg = settings.load();
+  const parakeetModelPath = String(Object.hasOwn(preferred, 'parakeetModelPath')
+    ? preferred.parakeetModelPath
+    : cfg.parakeetModelPath || '').trim();
+  const model = await validateParakeetModel(parakeetModelPath);
+  const diagnostics = nativeTranscription.diagnostics();
+  return {
+    ...diagnostics,
+    model,
+    available: Boolean(diagnostics.executablePath),
+    ready: diagnostics.ready && diagnostics.modelPath === parakeetModelPath,
+  };
+});
+handle('local-engine:status', async (_e, preferred = {}) => {
+  const cfg = settings.load();
+  const preferredCliPath = String(Object.hasOwn(preferred, 'whisperCliPath')
+    ? preferred.whisperCliPath
+    : cfg.whisperCliPath || '').trim();
+  const runtime = preferredCliPath ? {} : resolveWhisperRuntime();
+  const serverPath = runtime.serverPath || findWhisperServer(preferredCliPath);
+  const cli = await whisperCli.validateWhisperCli(preferredCliPath || runtime.cliPath || '');
+  const modelPath = String(Object.hasOwn(preferred, 'modelPath') ? preferred.modelPath : cfg.modelPath || '').trim();
+  const diagnostics = localTranscription.diagnostics();
+  return {
+    ...diagnostics,
+    available: Boolean(serverPath || cli.valid),
+    serverPath,
+    cliPath: cli.valid ? cli.path : '',
+    ready: diagnostics.ready && diagnostics.serverPath === serverPath && diagnostics.modelPath === modelPath,
+  };
+});
 
 handle('history:get', () => history.load());
 handle('history:stats', () => dictationStats.compute(history.load()));
@@ -694,6 +808,8 @@ handle('support:diagnostics', () => ({
   notes: notes.rootDir(),
   logFile: log.transports.file.getFile().path,
   settings: settings.publicView(),
+  localTranscription: localTranscription.diagnostics(),
+  nativeTranscription: nativeTranscription.diagnostics(),
 }));
 handle('data:export', () => exportLocalData());
 handle('data:delete', () => deleteLocalData());
@@ -923,6 +1039,9 @@ handle('meetings:transcribe', async (_e, id) => {
     const text = await meetingTranscriber.transcribeMeeting({
       tracks,
       settings: cfg,
+      localTranscriber: (filename, localSettings, options = {}) => localSettings.engineKind === 'parakeet'
+        ? nativeTranscription.transcribe(filename, localSettings, options)
+        : localTranscription.transcribe(filename, localSettings, options),
       signal: controller.signal,
       onProgress: (progress) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -1117,6 +1236,13 @@ app.whenReady().then(() => {
       systemPreferences.isTrustedAccessibilityClient(true);
     }
     if (!nativeHotkeyDisabled) registerDictationShortcut(settings.load().hotkey);
+    if (process.env.CRUNCHYMURMUR_E2E === '1') {
+      app.on('crunchymurmur:e2e-hotkey-release', () => {
+        isDictating = false;
+        isProcessing = false;
+        showFloating('flushing');
+      });
+    }
   } catch (err) {
     console.error('[main] global hotkey listener failed:', err);
     tray.setToolTip('CrunchyMurmur — hotkey unavailable');
@@ -1130,14 +1256,27 @@ app.whenReady().then(() => {
 
   // Open the main window on first launch when nothing is configured yet.
   const cfg = settings.load();
+  if (cfg.engineKind === 'local' && cfg.modelPath) {
+    localTranscription.prepare(cfg).catch((error) => {
+      log.debug(`[local-transcription] startup preload skipped: ${error.message || error}`);
+    });
+  }
+  if (cfg.engineKind === 'parakeet' && cfg.parakeetModelPath) {
+    nativeTranscription.prepare(cfg).catch((error) => {
+      log.debug(`[native-transcription] startup preload skipped: ${error.message || error}`);
+    });
+  }
   const pruned = meetings.cleanupAudio(cfg.audioRetentionPolicy);
   if (pruned) log.info(`[main] removed audio from ${pruned} meeting(s)`);
   if (cfg.autoUpdate === 'true') {
     setTimeout(() => updater.check().catch((err) => log.warn('[updater] automatic check failed:', err.message)), 10_000);
   }
+  const runtime = resolveWhisperRuntime();
   const needsSetup = cfg.engineKind === 'groq'
     ? !cfg.groqApiKey
-    : (!cfg.whisperCliPath || !cfg.modelPath);
+    : cfg.engineKind === 'parakeet'
+      ? !cfg.parakeetModelPath
+      : (!(cfg.whisperCliPath || runtime.cliPath) || !cfg.modelPath);
   if (needsSetup || process.argv.includes('--show')) {
     showMainWindow();
   }
@@ -1156,6 +1295,8 @@ app.on('window-all-closed', (e) => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  localTranscription.dispose();
+  nativeTranscription.dispose();
   if (activeMeetingId) {
     try { meetings.finishMicWav(activeMeetingId); }
     catch (err) { console.error('[main] failed to finalize meeting during quit:', err); }

@@ -23,6 +23,7 @@ function transcribeWav(wavPath, { whisperCliPath, modelPath, language }, { signa
       '-m', modelPath,
       '-f', wavPath,
       '-l', language || 'auto',
+      '-t', String(Math.min(16, os.availableParallelism?.() || os.cpus().length || 4)),
       '-nt',
       '--no-prints',
     ];

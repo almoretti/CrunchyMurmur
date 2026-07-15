@@ -7,6 +7,11 @@ Versioning and the Keep a Changelog structure.
 
 ### Added
 
+- A pinned, bundled whisper.cpp runtime and persistent local Whisper sessions through a supervised `whisper-server`, including model preloading, shared meeting/dictation reuse, timing diagnostics, idle cleanup, and a safe bundled `whisper-cli` fallback.
+- Parakeet V3 as the recommended fast local engine for 25 European languages, powered by a bundled persistent Rust `transcribe-rs` helper on Windows, macOS, and Linux.
+- Verified direct model downloads from Hugging Face with pinned file sizes and SHA-256 checksums.
+- Pre-inference rejection for recordings that are too short or effectively silent, preventing common silence hallucinations.
+- Local acceleration readiness in Engine settings, translated across every supported interface language.
 - Safe one-command Windows, macOS, and Linux source bootstraps that build an exact GitHub commit without requiring Git.
 - Open-source project documentation, branded README feature icons, support policy, roadmap, getting-started guide, and update/troubleshooting guides.
 - Release-time validation that every platform updater manifest references artifacts that were actually built.
@@ -21,6 +26,8 @@ Versioning and the Keep a Changelog structure.
 - Text-editing surfaces now render Markdown directly while preserving the existing Markdown and autosave storage formats.
 - Window chrome, scrollbars, cards, controls, editor surfaces, and the recording overlay now follow the saved appearance preference across Windows, macOS, and Linux.
 - Replaced the placeholder in-app waveform glyph and legacy orange/blue package variants with one palette-aligned five-bar app mark across title bar, tray, Windows, macOS, and Linux artifacts.
+- Reframed Engine settings around complementary Parakeet, Whisper, and Groq choices, with language-coverage guidance and accurate model speed/accuracy labels.
+- Windows ARM64 packages use the verified x64 local transcription helpers through the operating system's built-in emulation, matching the existing Whisper compatibility strategy.
 
 ## [1.0.0] - 2026-07-10
 

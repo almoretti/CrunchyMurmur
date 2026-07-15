@@ -45,7 +45,13 @@ function timestamp(seconds) {
     : `${minutes}:${String(secs).padStart(2, '0')}`;
 }
 
-async function transcribeMeeting({ tracks, settings, signal, onProgress = () => {} }) {
+async function transcribeMeeting({
+  tracks,
+  settings,
+  signal,
+  onProgress = () => {},
+  localTranscriber = transcribeWav,
+}) {
   const work = [];
   for (const track of tracks) {
     for (const chunk of splitWav(track.filename)) work.push({ ...chunk, speaker: track.speaker });
@@ -58,7 +64,7 @@ async function transcribeMeeting({ tracks, settings, signal, onProgress = () => 
       onProgress({ progress: index / work.length, stage: `Transcribing ${item.speaker.toLowerCase()} audio ${index + 1} of ${work.length}` });
       const text = settings.engineKind === 'groq'
         ? await transcribeWithGroq(item.filename, settings, { signal })
-        : await transcribeWav(item.filename, settings, { signal });
+        : await localTranscriber(item.filename, settings, { signal });
       if (text.trim()) lines.push(`**[${timestamp(item.startSeconds)}] [${item.speaker}]** ${text.trim()}`);
     }
     onProgress({ progress: 1, stage: 'Complete' });

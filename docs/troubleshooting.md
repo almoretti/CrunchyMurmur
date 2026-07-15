@@ -12,7 +12,8 @@
 
 - Use **General → Microphone → Test** and confirm the intended device is selected.
 - Check operating-system microphone permission.
-- For local transcription, verify the `whisper-cli` path and GGML model path.
+- For Parakeet, download Parakeet V3 under **Engine → Local models** and select **Use this**. For Whisper, verify the GGML model path and clear the custom `whisper-cli` field to return to the bundled runtime.
+- In **Engine**, check the bundled-runtime and local-acceleration status lines. If persistent startup fails, the bundled CLI fallback remains functional and the diagnostic log records the server error.
 - For Groq, verify the API key and network connection.
 - Speak long enough for the selected model to detect speech, then inspect masked diagnostics.
 
@@ -28,6 +29,14 @@ The transcript remains on the clipboard when automatic paste is unavailable.
 ## Linux AppImage does not launch
 
 Some distributions require a FUSE compatibility package. You can also use the Debian package on Debian-derived systems. Launching the AppImage from a terminal can reveal a missing shared library or desktop dependency.
+
+## The first local transcription is slower than later ones
+
+The first request loads the selected model into memory. Parakeet normally loads in a few seconds and remains in the bundled Rust helper. Whisper is heavier and remains in `whisper-server` until the app has been idle for 15 minutes. Changing the model or local executable causes one new load. If every Whisper request is slow, check the Engine status and logs for a CLI fallback or a `whisper-server` startup failure.
+
+## A short recording produces no transcription
+
+CrunchyMurmur rejects recordings shorter than half a second and clips whose signal is effectively silent. Check the selected microphone and input level in **General**; this guard intentionally prevents silence from becoming fabricated text.
 
 ## An update check fails
 

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { splitWav, timestamp } = require('../src/meeting-transcriber');
+const { splitWav, timestamp, transcribeMeeting } = require('../src/meeting-transcriber');
 
 function testWav(seconds) {
   const samples = 16_000 * seconds;
@@ -28,4 +28,30 @@ test('meeting WAVs split into timestamped chunks', (t) => {
   assert.deepEqual(chunks.map((chunk) => chunk.startSeconds), [0, 2]);
   assert.equal(timestamp(0), '0:00');
   assert.equal(timestamp(3661), '1:01:01');
+});
+
+test('meeting tracks use the shared local transcription service', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-meeting-service-'));
+  const mic = path.join(dir, 'mic.wav');
+  const system = path.join(dir, 'system.wav');
+  fs.writeFileSync(mic, testWav(1));
+  fs.writeFileSync(system, testWav(1));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const calls = [];
+  const result = await transcribeMeeting({
+    tracks: [
+      { filename: mic, speaker: 'YOU' },
+      { filename: system, speaker: 'OTHERS' },
+    ],
+    settings: { engineKind: 'local' },
+    localTranscriber: async (filename) => {
+      calls.push(filename);
+      return calls.length === 1 ? 'My contribution' : 'Their contribution';
+    },
+  });
+
+  assert.equal(calls.length, 2);
+  assert.match(result, /\[YOU\].*My contribution/);
+  assert.match(result, /\[OTHERS\].*Their contribution/);
 });

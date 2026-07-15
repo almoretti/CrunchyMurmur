@@ -44,7 +44,7 @@ async function command(target, method, params = {}) {
     socket.onerror = () => { clearTimeout(timer); reject(new Error('Renderer debugging connection failed.')); };
   });
   const result = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Renderer evaluation timed out.')), 5_000);
+    const timer = setTimeout(() => reject(new Error('Renderer evaluation timed out.')), 15_000);
     socket.onmessage = ({ data }) => {
       const message = JSON.parse(data);
       if (message.id !== 1) return;
@@ -130,6 +130,15 @@ async function evaluate(target, expression) {
       await painted();
 
       document.querySelector('[data-tab="engine"]').click();
+      window.i18n.setLocale('en', 'en');
+      for (let attempt = 0; attempt < 50 && document.getElementById('parakeetReadiness').textContent.includes('Checking'); attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      const parakeetRuntimeStatus = document.getElementById('parakeetReadiness').textContent;
+      document.querySelector('input[name="engineKind"][value="local"]').click();
+      for (let attempt = 0; attempt < 50 && document.getElementById('cliReadiness').textContent.includes('Checking'); attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
       const tab = document.getElementById('tab-engine');
       const visible = (element) => element.getClientRects().length > 0;
       const cards = [...tab.querySelectorAll('.card')].filter(visible);
@@ -146,6 +155,29 @@ async function evaluate(target, expression) {
       const minimumModuleHeight = Math.min(...modules.map((module) => module.getBoundingClientRect().height));
       const modulesCentered = modules.every((module) => getComputedStyle(module).alignItems === 'center');
       const minimumControlHeight = Math.min(...controls.map((control) => control.getBoundingClientRect().height));
+      const localSetup = document.getElementById('localSetup');
+      const localStatuses = [...localSetup.querySelectorAll('span')];
+      const localStatusRects = localStatuses.map((status) => status.getBoundingClientRect());
+      const localSetupLayout = {
+        contained: localSetup.scrollWidth <= localSetup.clientWidth + 1,
+        minimumStatusWidth: Math.min(...localStatusRects.map((rect) => rect.width)),
+        maximumStatusHeight: Math.max(...localStatusRects.map((rect) => rect.height)),
+        aligned: localStatusRects.every((rect) => Math.abs(rect.left - localStatusRects[0].left) < 2),
+      };
+      const bundledRuntimeStatus = document.getElementById('cliReadiness').textContent;
+      const persistentRuntimeStatus = document.getElementById('localBackendReadiness').textContent;
+      const expectedModelCount = (await window.wisper.modelsCatalog()).length;
+      let modelQualities = [];
+      for (let attempt = 0; attempt < 50; attempt++) {
+        modelQualities = [...document.querySelectorAll('.model-card .meta')].map((meta) => meta.textContent);
+        if (modelQualities.length === expectedModelCount
+            && modelQualities.every((text) => text && !/\{\d+\}/.test(text))) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (modelQualities.length !== expectedModelCount
+          || modelQualities.some((text) => !text || /\{\d+\}/.test(text))) {
+        throw new Error('Model metadata did not become ready: ' + JSON.stringify(modelQualities));
+      }
 
       document.querySelector('[data-tab="templates"]').click();
       const templateTextarea = document.getElementById('templateInstructions');
@@ -165,7 +197,8 @@ async function evaluate(target, expression) {
       templateEditor.setValue(originalTemplate);
       return {
         liveModifier, incompleteKey, completedChord, macChord, contained, editorRegression, lightTheme, darkTheme,
-        cardsClip, minimumModuleHeight, modulesCentered, minimumControlHeight,
+        cardsClip, minimumModuleHeight, modulesCentered, minimumControlHeight, localSetupLayout,
+        parakeetRuntimeStatus, bundledRuntimeStatus, persistentRuntimeStatus, modelQualities,
       };
     })()`);
     if (!/Ctrl/.test(regression.liveModifier) || !/K/.test(regression.incompleteKey)
@@ -177,8 +210,18 @@ async function evaluate(target, expression) {
       throw new Error(`Packaged theme regression: ${JSON.stringify(regression)}`);
     }
     if (!regression.contained || regression.cardsClip || regression.minimumModuleHeight < 34
-        || !regression.modulesCentered || regression.minimumControlHeight < 36) {
+        || !regression.modulesCentered || regression.minimumControlHeight < 36
+        || !regression.localSetupLayout.contained || regression.localSetupLayout.minimumStatusWidth < 240
+        || regression.localSetupLayout.maximumStatusHeight > 44 || !regression.localSetupLayout.aligned
+        || !regression.parakeetRuntimeStatus.includes('Download Parakeet V3')
+        || !regression.bundledRuntimeStatus.includes('Bundled whisper.cpp is ready')
+        || !regression.persistentRuntimeStatus.includes('Persistent acceleration is available')) {
       throw new Error(`Packaged card layout regression: ${JSON.stringify(regression)}`);
+    }
+    if (!regression.modelQualities.some((text) => text.includes('Speed: Fastest') && text.includes('Accuracy: Lowest'))
+        || !regression.modelQualities.some((text) => text.includes('Speed: Fast') && text.includes('Accuracy: Excellent'))
+        || regression.modelQualities.some((text) => /\{\d+\}/.test(text))) {
+      throw new Error(`Packaged model rating regression: ${JSON.stringify(regression.modelQualities)}`);
     }
     const editor = regression.editorRegression;
     if (editor.mounted !== 3 || !/Packaged editor$/.test(editor.heading) || editor.strong !== 'Safe Markdown'

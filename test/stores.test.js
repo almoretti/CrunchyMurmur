@@ -41,6 +41,13 @@ test('whisper-cli discovery includes Homebrew and validates a compatible executa
   });
   assert.deepEqual(valid, { valid: true, path: '/opt/homebrew/bin/whisper-cli', version: 'whisper-cli 1.7.4' });
 
+  const currentRelease = await cli.validateWhisperCli('/opt/homebrew/bin/whisper-cli', {
+    platform: 'darwin',
+    stat: async () => ({ isFile: () => true, mode: 0o755 }),
+    run: () => ({ status: 1, stdout: '', stderr: 'error: unknown argument: --version\nusage: whisper-cli [options]' }),
+  });
+  assert.equal(currentRelease.valid, true);
+
   const discovered = await cli.discoverWhisperCli({
     platform: 'darwin', env: { HOME: '/Users/test', PATH: '' },
     validate: async (candidate) => candidate === '/usr/local/bin/whisper-cli'

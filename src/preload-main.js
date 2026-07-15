@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('wisper', {
   pickFile:       (filters) => ipcRenderer.invoke('settings:pick-file', filters),
   whisperCliStatus: (path) => ipcRenderer.invoke('whisper-cli:status', path),
   localModelStatus: (path) => ipcRenderer.invoke('local-model:status', path),
+  localEngineStatus: (whisperCliPath, modelPath) => ipcRenderer.invoke('local-engine:status', { whisperCliPath, modelPath }),
+  nativeEngineStatus: (parakeetModelPath) => ipcRenderer.invoke('native-engine:status', { parakeetModelPath }),
 
   getHistory:     () => ipcRenderer.invoke('history:get'),
   getHistoryStats:() => ipcRenderer.invoke('history:stats'),

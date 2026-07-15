@@ -20,13 +20,13 @@ Read [`run-from-source.ps1`](../scripts/source/run-from-source.ps1) or [`run-fro
 
 ## What the scripts do
 
-1. Require Node.js 22.12 or newer, npm, and the platform archive tools.
+1. Require Node.js 22.12 or newer, npm, the stable Rust toolchain, a native C/C++ linker, and the platform archive tools.
 2. Resolve the requested GitHub branch, tag, or commit to an exact 40-character commit SHA.
 3. Download that immutable commit archive over HTTPS. Git is not required.
 4. Extract into a new staging directory beside the persistent source directory.
 5. Run `npm ci`, `npm run check`, and `npm run release:check` against the staging tree.
 6. Record the built SHA in `.source-commit`.
-7. Replace the previous source tree only after validation succeeds, then launch with `npm start`.
+7. Replace the previous source tree only after validation succeeds, then build the Rust transcription helper and launch with `npm start`.
 
 Application data lives outside the source directory and is preserved when the source is rebuilt.
 
@@ -55,6 +55,8 @@ curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/script
 `--skip-checks` / `-SkipChecks` exists for diagnostics but is not recommended. Environment variables `CRUNCHYMURMUR_REF`, `CRUNCHYMURMUR_SOURCE_DIR`, and `CRUNCHYMURMUR_REPOSITORY` can set defaults.
 
 ## Manual development checkout
+
+Install the stable [Rust toolchain](https://rustup.rs/) first. Windows also needs the Visual Studio Build Tools **Desktop development with C++** workload; macOS needs Xcode Command Line Tools; Linux needs GCC and the usual build essentials. Release installers already contain the compiled helper and do not require these developer tools.
 
 Use a normal clone when contributing so Git can track your work:
 

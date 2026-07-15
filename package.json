@@ -3,7 +3,7 @@
   "productName": "CrunchyMurmur",
   "desktopName": "CrunchyMurmur",
   "version": "1.0.0",
-  "description": "Cross-platform Whisper dictation, meeting transcription, activity statistics, and AI notes for Windows, macOS, and Linux.",
+  "description": "Cross-platform local voice dictation, meeting transcription, activity statistics, and AI notes for Windows, macOS, and Linux.",
   "author": "almoretti and contributors",
   "license": "MIT",
   "homepage": "https://github.com/almoretti/CrunchyMurmur#readme",
@@ -21,7 +21,8 @@
   "private": true,
   "scripts": {
     "build:editor": "node scripts/build-editor.js",
-    "start": "npm run build:editor && node scripts/ensure-macos-native.js && electron .",
+    "build:transcriber": "node scripts/prepare-transcriber-runtime.js",
+    "start": "npm run build:editor && npm run build:transcriber && node scripts/ensure-macos-native.js && electron .",
     "dev:permissions": "electron scripts/dev-macos-permissions.js",
     "lint": "npm run build:editor && node scripts/check-js.js",
     "test": "node --test test/*.test.js",
@@ -32,10 +33,16 @@
     "verify:update-manifests": "node scripts/verify-update-manifest.js",
     "check": "npm run lint && npm test && npm run check:docs && npm run check:i18n",
     "release:check": "node scripts/check-release.js",
-    "pack:win": "npm run build:editor && electron-builder --dir --win --x64",
-    "build:win": "npm run build:editor && electron-builder --win",
-    "build:mac": "npm run build:editor && bash scripts/prepare-macos-icon.sh && bash scripts/build-macos-native.sh && electron-builder --mac",
-    "build:linux": "npm run build:editor && bash scripts/prepare-linux-icons.sh && electron-builder --linux --publish never && node scripts/normalize-linux-artifacts.js"
+    "prepare:whisper:win": "node scripts/prepare-whisper-runtime.js --platform win32 --arch all",
+    "prepare:whisper:mac": "node scripts/prepare-whisper-runtime.js --platform darwin --arch universal",
+    "prepare:whisper:linux": "node scripts/prepare-whisper-runtime.js --platform linux --arch all",
+    "prepare:transcriber:win": "node scripts/prepare-transcriber-runtime.js --platform win32 --arch all",
+    "prepare:transcriber:mac": "node scripts/prepare-transcriber-runtime.js --platform darwin --arch universal",
+    "prepare:transcriber:linux": "node scripts/prepare-transcriber-runtime.js --platform linux --arch all",
+    "pack:win": "npm run build:editor && node scripts/prepare-whisper-runtime.js --platform win32 --arch x64 && node scripts/prepare-transcriber-runtime.js --platform win32 --arch x64 && electron-builder --dir --win --x64",
+    "build:win": "npm run build:editor && npm run prepare:whisper:win && npm run prepare:transcriber:win && electron-builder --win",
+    "build:mac": "npm run build:editor && bash scripts/prepare-macos-icon.sh && bash scripts/build-macos-native.sh && npm run prepare:whisper:mac && npm run prepare:transcriber:mac && electron-builder --mac",
+    "build:linux": "npm run build:editor && bash scripts/prepare-linux-icons.sh && npm run prepare:whisper:linux && npm run prepare:transcriber:linux && electron-builder --linux --publish never && node scripts/normalize-linux-artifacts.js"
   },
   "dependencies": {
     "electron-log": "^5.4.4",
@@ -85,6 +92,14 @@
       {
         "from": "docs/THIRD_PARTY_NOTICES.md",
         "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "build/whisper-runtime/${os}-${arch}",
+        "to": "native/whisper"
+      },
+      {
+        "from": "build/transcriber-runtime/${os}-${arch}",
+        "to": "native/transcriber"
       }
     ],
     "asar": true,
@@ -129,6 +144,14 @@
         {
           "from": "build/native/CrunchyMurmurNative",
           "to": "native/CrunchyMurmurNative"
+        },
+        {
+          "from": "build/whisper-runtime/${os}-${arch}",
+          "to": "native/whisper"
+        },
+        {
+          "from": "build/transcriber-runtime/${os}-${arch}",
+          "to": "native/transcriber"
         }
       ],
       "target": [
@@ -178,7 +201,7 @@
       "icon": "build/icons",
       "category": "Utility",
       "synopsis": "Private voice dictation and AI notes",
-      "description": "Cross-platform Whisper dictation, meeting transcription, activity statistics, and AI-generated notes.",
+      "description": "Cross-platform local voice dictation, meeting transcription, activity statistics, and AI-generated notes.",
       "maintainer": "almoretti",
       "vendor": "CrunchyMurmur",
       "desktop": {
