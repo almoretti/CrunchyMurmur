@@ -144,6 +144,9 @@ async function evaluate(target, expression) {
       for (let attempt = 0; attempt < 50 && document.getElementById('localBackendReadiness').textContent.includes('Checking'); attempt++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
+      if (document.getElementById('localBackendReadiness').textContent.includes('Checking')) {
+        throw new Error('Local acceleration status did not settle within the readiness timeout.');
+      }
       const tab = document.getElementById('tab-engine');
       const visible = (element) => element.getClientRects().length > 0;
       const cards = [...tab.querySelectorAll('.card')].filter(visible);
