@@ -139,6 +139,14 @@ async function evaluate(target, expression) {
       for (let attempt = 0; attempt < 50 && document.getElementById('cliReadiness').textContent.includes('Checking'); attempt++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
+      // The acceleration status resolves after a further IPC round-trip once
+      // the cli status has settled, so it needs its own wait.
+      for (let attempt = 0; attempt < 50 && document.getElementById('localBackendReadiness').textContent.includes('Checking'); attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (document.getElementById('localBackendReadiness').textContent.includes('Checking')) {
+        throw new Error('Local acceleration status did not settle within the readiness timeout.');
+      }
       const tab = document.getElementById('tab-engine');
       const visible = (element) => element.getClientRects().length > 0;
       const cards = [...tab.querySelectorAll('.card')].filter(visible);

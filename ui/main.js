@@ -313,6 +313,27 @@ async function downloadModel(id) {
   }
   await refreshCatalog();
   await populateInstalledPicker();
+  if (result.ok) await autoSelectDownloadedModel(id, result.path);
+}
+
+// Downloading the only model of a family is an unambiguous choice — wire it
+// up so the engine card doesn't keep asking for a download that just
+// finished. Only fills the blank; never overrides an existing selection.
+async function autoSelectDownloadedModel(id, modelPath) {
+  const family = catalog.find((m) => m.id === id)?.family;
+  if (family !== 'parakeet' || !modelPath || parakeetModelPathEl.value.trim()) return;
+  parakeetModelPathEl.value = modelPath;
+  try {
+    window.__lastSettings = await window.wisper.saveSettings({ parakeetModelPath: modelPath });
+  } catch {
+    // Saving can be rejected while another engine's setup is incomplete;
+    // the path stays in the field and persists with the next engine save.
+  }
+  if (currentEngineKind() === 'parakeet') await refreshParakeetReadiness();
+}
+
+function currentEngineKind() {
+  return document.querySelector('input[name="engineKind"]:checked')?.value || 'parakeet';
 }
 
 function useModel(id, modelPath, family = 'whisper') {
@@ -344,6 +365,9 @@ window.wisper.onModelProgress(({ id, bytesDone, bytesTotal }) => {
 window.wisper.onModelsChanged(async () => {
   await refreshCatalog();
   await populateInstalledPicker();
+  // Model installs and deletes change engine readiness (e.g. the configured
+  // Parakeet model was just downloaded or removed) — keep the card honest.
+  if (currentEngineKind() === 'parakeet') void refreshParakeetReadiness();
 });
 
 openModelsFolderBtn.addEventListener('click', () => window.wisper.modelsOpenDir());
