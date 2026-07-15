@@ -149,3 +149,29 @@ test('bundled runtime is used when no external whisper executable is configured'
   assert.equal(await service.transcribe(wavPath, { whisperCliPath: '', modelPath, language: 'en' }), 'bundled result');
   assert.deepEqual(launches, ['bundled-server']);
 });
+
+test('cancelled inference rearms idle shutdown for the persistent server', async () => {
+  const child = fakeChild();
+  const service = new LocalTranscriptionService({
+    findServer: () => 'whisper-server',
+    spawnProcess: () => child,
+    choosePort: async () => 43127,
+    readFile: async () => Buffer.from('audio'),
+    idleTimeoutMs: 5,
+    fetchImpl: async (_url, options = {}) => {
+      if (!options.method) return new Response('ready');
+      return new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(new Error('cancelled')), { once: true });
+      });
+    },
+  });
+  const controller = new AbortController();
+  const pending = service.transcribe('sample.wav', {
+    whisperCliPath: 'whisper-cli', modelPath: 'model.bin', language: 'en',
+  }, { signal: controller.signal });
+  await new Promise((resolve) => setImmediate(resolve));
+  controller.abort();
+  await assert.rejects(pending, /cancelled/i);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(child.killed, true);
+});

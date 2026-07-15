@@ -166,10 +166,18 @@ async function evaluate(target, expression) {
       };
       const bundledRuntimeStatus = document.getElementById('cliReadiness').textContent;
       const persistentRuntimeStatus = document.getElementById('localBackendReadiness').textContent;
-      for (let attempt = 0; attempt < 50 && !document.querySelector('.model-card .meta'); attempt++) {
+      const expectedModelCount = (await window.wisper.modelsCatalog()).length;
+      let modelQualities = [];
+      for (let attempt = 0; attempt < 50; attempt++) {
+        modelQualities = [...document.querySelectorAll('.model-card .meta')].map((meta) => meta.textContent);
+        if (modelQualities.length === expectedModelCount
+            && modelQualities.every((text) => text && !/\{\d+\}/.test(text))) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      const modelQualities = [...document.querySelectorAll('.model-card .meta')].map((meta) => meta.textContent);
+      if (modelQualities.length !== expectedModelCount
+          || modelQualities.some((text) => !text || /\{\d+\}/.test(text))) {
+        throw new Error('Model metadata did not become ready: ' + JSON.stringify(modelQualities));
+      }
 
       document.querySelector('[data-tab="templates"]').click();
       const templateTextarea = document.getElementById('templateInstructions');

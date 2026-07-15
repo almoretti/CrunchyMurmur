@@ -22,6 +22,7 @@ class NativeTranscriptionService {
     this.pending = null;
     this.modelPath = '';
     this.startPromise = null;
+    this.startModelPath = '';
     this.loadTimeoutMs = loadTimeoutMs;
     this.inferenceTimeoutMs = inferenceTimeoutMs;
     this.stats = {
@@ -42,9 +43,24 @@ class NativeTranscriptionService {
     const modelPath = String(parakeetModelPath || '').trim();
     if (!modelPath) throw new Error('Download Parakeet V3 before using this engine.');
     if (this.stats.ready && this.modelPath === modelPath) return this.diagnostics();
-    if (this.startPromise) return this.startPromise;
-    this.startPromise = this.#start(modelPath, signal).finally(() => { this.startPromise = null; });
-    return this.startPromise;
+    while (this.startPromise) {
+      if (this.startModelPath === modelPath) return this.startPromise;
+      const pendingStart = this.startPromise;
+      try { await pendingStart; } catch {}
+      if (signal?.aborted) throw new Error('Transcription cancelled.');
+      if (this.stats.ready && this.modelPath === modelPath) return this.diagnostics();
+    }
+    const startPromise = this.#start(modelPath, signal);
+    this.startPromise = startPromise;
+    this.startModelPath = modelPath;
+    try {
+      return await startPromise;
+    } finally {
+      if (this.startPromise === startPromise) {
+        this.startPromise = null;
+        this.startModelPath = '';
+      }
+    }
   }
 
   async #start(modelPath, signal) {

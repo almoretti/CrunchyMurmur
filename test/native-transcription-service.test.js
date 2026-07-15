@@ -59,3 +59,24 @@ test('native transcription times out and restarts an unresponsive helper', async
   );
   assert.equal(child.killed, true);
 });
+
+test('concurrent preparation never reuses a different model load', async () => {
+  const first = fakeHelper();
+  first.stdin.write = (_line, callback) => callback?.();
+  const second = fakeHelper();
+  const children = [first, second];
+  const service = new NativeTranscriptionService({
+    resolveExecutable: () => 'helper',
+    spawnProcess: () => children.shift(),
+  });
+  const loadingFirst = service.prepare({ parakeetModelPath: 'model-a' });
+  await new Promise((resolve) => setImmediate(resolve));
+  const loadingSecond = service.prepare({ parakeetModelPath: 'model-b' });
+  first.stdout.write(`${JSON.stringify({ ok: true, loadMs: 1 })}\n`);
+  await loadingFirst;
+  const result = await loadingSecond;
+  assert.equal(result.modelPath, 'model-b');
+  assert.equal(service.diagnostics().modelPath, 'model-b');
+  assert.equal(children.length, 0);
+  service.dispose();
+});

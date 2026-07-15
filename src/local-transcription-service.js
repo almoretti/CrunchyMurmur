@@ -157,7 +157,10 @@ class LocalTranscriptionService {
         this.logger.info?.(`[local-transcription] backend=whisper-server inferenceMs=${this.stats.lastInferenceMs}`);
         return String(payload.text || '').trim();
       } catch (error) {
-        if (signal?.aborted) throw error;
+        if (signal?.aborted) {
+          if (this.session) this.#armIdleTimer();
+          throw error;
+        }
         this.stats.fallbacks += 1;
         this.stats.lastError = error.message || String(error);
         this.failedSession = { key: sessionKey, retryAfter: this.now() + this.retryBackoffMs };
