@@ -8,16 +8,6 @@ let ctrlDown = false;
 let metaDown = false;
 let chordActive = false;
 let macHelper = null;
-const E2E_RELEASE_EVENT = 'crunchymurmur:e2e-hotkey-release';
-
-function releaseWindowsChord() {
-  ctrlDown = false;
-  metaDown = false;
-  if (!chordActive) return false;
-  chordActive = false;
-  windowsHook?.onUp();
-  return true;
-}
 
 function isWindowsModifierChord(accelerator) {
   if (process.platform !== 'win32') return false;
@@ -29,7 +19,6 @@ function isWindowsModifierChord(accelerator) {
 }
 
 function stop() {
-  app.removeListener(E2E_RELEASE_EVENT, releaseWindowsChord);
   globalShortcut.unregisterAll();
   if (macHelper) {
     try { macHelper.kill(); } catch {}
@@ -85,10 +74,10 @@ function registerWindowsModifierChord(onDown, onUp) {
     if (ctrlKeys.has(event.keycode)) ctrlDown = false;
     if (metaKeys.has(event.keycode)) metaDown = false;
     if (chordActive && (!ctrlDown || !metaDown)) {
-      releaseWindowsChord();
+      chordActive = false;
+      onUp();
     }
   });
-  if (process.env.CRUNCHYMURMUR_E2E === '1') app.on(E2E_RELEASE_EVENT, releaseWindowsChord);
   uIOhook.start();
 }
 

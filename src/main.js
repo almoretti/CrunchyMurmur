@@ -1236,6 +1236,9 @@ app.whenReady().then(() => {
       systemPreferences.isTrustedAccessibilityClient(true);
     }
     if (!nativeHotkeyDisabled) registerDictationShortcut(settings.load().hotkey);
+    if (process.env.CRUNCHYMURMUR_E2E === '1') {
+      app.on('crunchymurmur:e2e-hotkey-release', endDictation);
+    }
   } catch (err) {
     console.error('[main] global hotkey listener failed:', err);
     tray.setToolTip('CrunchyMurmur — hotkey unavailable');
