@@ -115,7 +115,6 @@ class NativeTranscriptionService {
         this.#failPending(new Error('Local transcription engine timed out.'));
         this.#terminateChild();
       }, timeoutMs) : null;
-      timer?.unref?.();
       this.pending = { resolve, reject, timer, cleanup: () => signal?.removeEventListener('abort', abort) };
       if (signal?.aborted) return abort();
       signal?.addEventListener('abort', abort, { once: true });
