@@ -166,6 +166,9 @@ async function evaluate(target, expression) {
       };
       const bundledRuntimeStatus = document.getElementById('cliReadiness').textContent;
       const persistentRuntimeStatus = document.getElementById('localBackendReadiness').textContent;
+      for (let attempt = 0; attempt < 50 && !document.querySelector('.model-card .meta'); attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
       const modelQualities = [...document.querySelectorAll('.model-card .meta')].map((meta) => meta.textContent);
 
       document.querySelector('[data-tab="templates"]').click();

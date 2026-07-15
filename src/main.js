@@ -1237,7 +1237,11 @@ app.whenReady().then(() => {
     }
     if (!nativeHotkeyDisabled) registerDictationShortcut(settings.load().hotkey);
     if (process.env.CRUNCHYMURMUR_E2E === '1') {
-      app.on('crunchymurmur:e2e-hotkey-release', endDictation);
+      app.on('crunchymurmur:e2e-hotkey-release', () => {
+        isDictating = false;
+        isProcessing = false;
+        showFloating('flushing');
+      });
     }
   } catch (err) {
     console.error('[main] global hotkey listener failed:', err);
