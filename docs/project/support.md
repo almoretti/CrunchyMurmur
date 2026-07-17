@@ -2,7 +2,7 @@
 
 ## Questions and bug reports
 
-Search [existing issues](https://github.com/almoretti/CrunchyMurmur/issues) and the [troubleshooting guide](../troubleshooting.md) first. If the problem remains, open the appropriate GitHub issue template.
+Search [existing issues](https://github.com/a-streetcoder/CrunchyMurmur/issues) and the [troubleshooting guide](../troubleshooting.md) first. If the problem remains, open the appropriate GitHub issue template.
 
 Include the CrunchyMurmur version and installation type; operating system, version, architecture, and Linux desktop/session where relevant; transcription engine and model name without credentials; clear reproduction steps; and masked diagnostics when useful.
 

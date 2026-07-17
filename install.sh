@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repository="${CRUNCHYMURMUR_REPOSITORY:-almoretti/CrunchyMurmur}"
+repository="${CRUNCHYMURMUR_REPOSITORY:-a-streetcoder/CrunchyMurmur}"
 base="https://github.com/$repository/releases/latest/download"
 os="$(uname -s)"
 machine="$(uname -m)"

@@ -20,7 +20,7 @@ The marketing website in `site/` is a separate English-only surface and is not p
 
 `site/` contains the public landing page, deployed to Railway as its own project (service `crunchymurmur-site`, auto-deployed from GitHub `main` with root directory `/site` and watch paths `/site/**`; `railway up` inside `site/` remains a manual override). It deliberately depends on repository facts. When you change any of the following, update `site/` in the same change:
 
-- **Repository owner/name** (`almoretti/CrunchyMurmur`): hardcoded in `site/index.html` links and `site/app.js` (`REPO`). Renaming or moving the repo breaks every download link and the release lookup.
+- **Repository owner/name** (`a-streetcoder/CrunchyMurmur`): hardcoded in `site/index.html` links and `site/app.js` (`REPO`). Renaming or moving the repo breaks every download link and the release lookup.
 - **Release artifact names**: `site/app.js` matches release assets against the electron-builder `artifactName` pattern `${productName}-${os}-${arch}.${ext}` from `package.json`, plus the renames in `scripts/normalize-linux-artifacts.js` (e.g. `CrunchyMurmur-win-x64.exe`, `CrunchyMurmur-mac-universal.dmg`, `CrunchyMurmur-linux-x64.AppImage`). Changing `productName`, `artifactName`, targets, or the normalize script must be mirrored in `ASSET_MATCHERS`.
 - **Terminal installers**: the site shows the same commands as the README Install section (`install.ps1`, `install.sh` fetched raw from `main`). Moving or renaming those scripts breaks the copy-paste commands on the site.
 - **Platform support table**: the table in `site/index.html` mirrors `docs/platform-support.md`. Keep them in sync when platform capabilities change.

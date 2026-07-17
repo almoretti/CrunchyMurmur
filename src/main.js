@@ -458,7 +458,7 @@ function createApplicationMenu() {
           }),
         },
         { label: 'Privacy', click: () => shell.openPath(legalDocumentPath('privacy')) },
-        { label: 'Report an Issue…', click: () => shell.openExternal('https://github.com/almoretti/CrunchyMurmur/issues') },
+        { label: 'Report an Issue…', click: () => shell.openExternal('https://github.com/a-streetcoder/CrunchyMurmur/issues') },
       ],
     },
   ];

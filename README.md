@@ -7,15 +7,15 @@
 
   Press a shortcut, speak, and keep working. CrunchyMurmur runs on Windows, macOS, and Linux, with fast local Parakeet, broad-language Whisper, or optional cloud transcription.
 
-  [![Latest release](https://img.shields.io/github/v/release/almoretti/CrunchyMurmur?display_name=tag&sort=semver)](https://github.com/almoretti/CrunchyMurmur/releases/latest)
-  [![Downloads](https://img.shields.io/github/downloads/almoretti/CrunchyMurmur/total)](https://github.com/almoretti/CrunchyMurmur/releases)
-  [![CI](https://github.com/almoretti/CrunchyMurmur/actions/workflows/ci.yml/badge.svg)](https://github.com/almoretti/CrunchyMurmur/actions/workflows/ci.yml)
-  [![CodeQL](https://github.com/almoretti/CrunchyMurmur/actions/workflows/codeql.yml/badge.svg)](https://github.com/almoretti/CrunchyMurmur/actions/workflows/codeql.yml)
-  [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/almoretti/CrunchyMurmur?utm_source=oss&utm_medium=github&utm_campaign=almoretti%2FCrunchyMurmur&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
+  [![Latest release](https://img.shields.io/github/v/release/a-streetcoder/CrunchyMurmur?display_name=tag&sort=semver)](https://github.com/a-streetcoder/CrunchyMurmur/releases/latest)
+  [![Downloads](https://img.shields.io/github/downloads/a-streetcoder/CrunchyMurmur/total)](https://github.com/a-streetcoder/CrunchyMurmur/releases)
+  [![CI](https://github.com/a-streetcoder/CrunchyMurmur/actions/workflows/ci.yml/badge.svg)](https://github.com/a-streetcoder/CrunchyMurmur/actions/workflows/ci.yml)
+  [![CodeQL](https://github.com/a-streetcoder/CrunchyMurmur/actions/workflows/codeql.yml/badge.svg)](https://github.com/a-streetcoder/CrunchyMurmur/actions/workflows/codeql.yml)
+  [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/a-streetcoder/CrunchyMurmur?utm_source=oss&utm_medium=github&utm_campaign=a-streetcoder%2FCrunchyMurmur&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
   [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-256351)](docs/platform-support.md)
   [![License: MIT](https://img.shields.io/badge/license-MIT-7EB880)](LICENSE)
 
-  [Website](https://crunchymurmur.com/) · [Download](https://github.com/almoretti/CrunchyMurmur/releases/latest) · [Documentation](docs/README.md) · [Report a bug](https://github.com/almoretti/CrunchyMurmur/issues/new/choose) · [Security](.github/SECURITY.md)
+  [Website](https://crunchymurmur.com/) · [Download](https://github.com/a-streetcoder/CrunchyMurmur/releases/latest) · [Documentation](docs/README.md) · [Report a bug](https://github.com/a-streetcoder/CrunchyMurmur/issues/new/choose) · [Security](.github/SECURITY.md)
 </div>
 
 ![CrunchyMurmur dashboard with live dictation active](docs/images/hero.png)
@@ -53,18 +53,18 @@ Notes are ordinary Markdown files in your Documents folder, so they remain porta
 
 ## Install
 
-Download the latest signed package from [GitHub Releases](https://github.com/almoretti/CrunchyMurmur/releases/latest), or use the verified terminal installer.
+Download the latest signed package from [GitHub Releases](https://github.com/a-streetcoder/CrunchyMurmur/releases/latest), or use the verified terminal installer.
 
 **Windows — PowerShell**
 
 ```powershell
-irm https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/install.ps1 | iex
 ```
 
 **macOS or Linux**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/install.sh | sh
 ```
 
 The scripts detect your operating system and architecture, download the latest release, and verify it against the published SHA-256 digest before installation. See [Getting started](docs/getting-started.md) for manual packages and first-run setup.
@@ -118,13 +118,13 @@ Requires Node.js 22.12 or newer, npm, the stable Rust toolchain, and a native C/
 **Windows — PowerShell**
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.ps1)))
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/scripts/source/run-from-source.ps1)))
 ```
 
 **macOS or Linux**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh
+curl -fsSL https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh
 ```
 
 The source is kept in a user-owned application-data directory, so running the command again safely rebuilds from the latest protected `main`. The previous working source tree is replaced only after the new commit passes dependency installation and validation. Read the scripts before piping them to a shell; options and manual commands are documented in [Building from source](docs/building-from-source.md).
@@ -132,7 +132,7 @@ The source is kept in a user-owned application-data directory, so running the co
 Manual development setup remains available:
 
 ```sh
-git clone https://github.com/almoretti/CrunchyMurmur.git
+git clone https://github.com/a-streetcoder/CrunchyMurmur.git
 cd CrunchyMurmur
 npm ci
 npm run check

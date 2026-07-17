@@ -48,7 +48,7 @@ The release workflow keeps these names stable for a future website:
 - `install.ps1`
 - `install.sh`
 
-Prefix any name with `https://github.com/almoretti/CrunchyMurmur/releases/latest/download/` for a website download link.
+Prefix any name with `https://github.com/a-streetcoder/CrunchyMurmur/releases/latest/download/` for a website download link.
 
 ## Verification
 

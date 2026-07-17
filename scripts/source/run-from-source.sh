@@ -1,14 +1,14 @@
 #!/bin/sh
 # CrunchyMurmur source bootstrap for macOS and Linux.
 #
-#   curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh
 #
 # Downloads an exact commit archive from GitHub, installs locked dependencies,
 # validates the checkout, and launches CrunchyMurmur. Git is not required.
 
 set -eu
 
-REPOSITORY="${CRUNCHYMURMUR_REPOSITORY:-almoretti/CrunchyMurmur}"
+REPOSITORY="${CRUNCHYMURMUR_REPOSITORY:-a-streetcoder/CrunchyMurmur}"
 REF="${CRUNCHYMURMUR_REF:-main}"
 DESTINATION="${CRUNCHYMURMUR_SOURCE_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/crunchymurmur-source}"
 LAUNCH=1
