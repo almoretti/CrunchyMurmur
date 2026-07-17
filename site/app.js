@@ -12,7 +12,7 @@
 (function () {
   'use strict';
 
-  const REPO = 'almoretti/CrunchyMurmur';
+  const REPO = 'a-streetcoder/CrunchyMurmur';
   const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
   const API_LATEST = `https://api.github.com/repos/${REPO}/releases/latest`;
 

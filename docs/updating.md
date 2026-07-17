@@ -21,13 +21,13 @@ Run the same terminal installer again. It resolves the latest release and verifi
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/install.ps1 | iex
 ```
 
 macOS or Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/install.sh | sh
 ```
 
 This is also the supported update path for Debian packages. App data is preserved across normal upgrades.

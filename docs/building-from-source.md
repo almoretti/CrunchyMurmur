@@ -7,13 +7,13 @@ CrunchyMurmur provides source bootstraps for people who want to run the protecte
 Windows PowerShell:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.ps1)))
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/scripts/source/run-from-source.ps1)))
 ```
 
 macOS or Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh
+curl -fsSL https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh
 ```
 
 Read [`run-from-source.ps1`](../scripts/source/run-from-source.ps1) or [`run-from-source.sh`](../scripts/source/run-from-source.sh), including their history, before piping either script to a shell.
@@ -49,7 +49,7 @@ macOS or Linux:
 When using a pipe, pass shell options after `sh -s --`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh -s -- --no-launch
+curl -fsSL https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/scripts/source/run-from-source.sh | sh -s -- --no-launch
 ```
 
 `--skip-checks` / `-SkipChecks` exists for diagnostics but is not recommended. Environment variables `CRUNCHYMURMUR_REF`, `CRUNCHYMURMUR_SOURCE_DIR`, and `CRUNCHYMURMUR_REPOSITORY` can set defaults.
@@ -61,7 +61,7 @@ Install the stable [Rust toolchain](https://rustup.rs/) first. Windows also need
 Use a normal clone when contributing so Git can track your work:
 
 ```sh
-git clone https://github.com/almoretti/CrunchyMurmur.git
+git clone https://github.com/a-streetcoder/CrunchyMurmur.git
 cd CrunchyMurmur
 npm ci
 npm run check

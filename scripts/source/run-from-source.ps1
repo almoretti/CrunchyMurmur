@@ -1,6 +1,6 @@
 # CrunchyMurmur source bootstrap for Windows PowerShell.
 #
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/almoretti/CrunchyMurmur/main/scripts/source/run-from-source.ps1)))
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/scripts/source/run-from-source.ps1)))
 #
 # Downloads an exact commit archive from GitHub, installs locked dependencies,
 # validates the checkout, and launches CrunchyMurmur. Git is not required.
@@ -11,7 +11,7 @@ param(
   [string]$Directory = $(if ($env:CRUNCHYMURMUR_SOURCE_DIR) { $env:CRUNCHYMURMUR_SOURCE_DIR } else { Join-Path $env:LOCALAPPDATA 'CrunchyMurmur\source' }),
   [switch]$NoLaunch,
   [switch]$SkipChecks,
-  [string]$Repository = $(if ($env:CRUNCHYMURMUR_REPOSITORY) { $env:CRUNCHYMURMUR_REPOSITORY } else { 'almoretti/CrunchyMurmur' })
+  [string]$Repository = $(if ($env:CRUNCHYMURMUR_REPOSITORY) { $env:CRUNCHYMURMUR_REPOSITORY } else { 'a-streetcoder/CrunchyMurmur' })
 )
 
 $ErrorActionPreference = 'Stop'

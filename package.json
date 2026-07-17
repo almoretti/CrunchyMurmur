@@ -6,13 +6,13 @@
   "description": "Cross-platform local voice dictation, meeting transcription, activity statistics, and AI notes for Windows, macOS, and Linux.",
   "author": "almoretti and contributors",
   "license": "MIT",
-  "homepage": "https://github.com/almoretti/CrunchyMurmur#readme",
+  "homepage": "https://github.com/a-streetcoder/CrunchyMurmur#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/almoretti/CrunchyMurmur.git"
+    "url": "git+https://github.com/a-streetcoder/CrunchyMurmur.git"
   },
   "bugs": {
-    "url": "https://github.com/almoretti/CrunchyMurmur/issues"
+    "url": "https://github.com/a-streetcoder/CrunchyMurmur/issues"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -29,9 +29,10 @@
     "test:e2e": "npm run build:editor && node --test test/e2e/electron.test.js",
     "check:docs": "node scripts/check-doc-links.js",
     "check:i18n": "node scripts/check-i18n.js",
+    "check:repo": "node scripts/check-repository-links.js",
     "smoke:packaged": "node scripts/smoke-packaged.js",
     "verify:update-manifests": "node scripts/verify-update-manifest.js",
-    "check": "npm run lint && npm test && npm run check:docs && npm run check:i18n",
+    "check": "npm run lint && npm test && npm run check:docs && npm run check:i18n && npm run check:repo",
     "release:check": "node scripts/check-release.js",
     "prepare:whisper:win": "node scripts/prepare-whisper-runtime.js --platform win32 --arch all",
     "prepare:whisper:mac": "node scripts/prepare-whisper-runtime.js --platform darwin --arch universal",
@@ -108,7 +109,7 @@
     "artifactName": "${productName}-${os}-${arch}.${ext}",
     "publish": {
       "provider": "github",
-      "owner": "almoretti",
+      "owner": "a-streetcoder",
       "repo": "CrunchyMurmur",
       "releaseType": "release"
     },

@@ -14,7 +14,7 @@ const required = [
   'docs/project/support.md', 'docs/project/roadmap.md', 'docs/project/status.md',
   'docs/legal/README.md', 'docs/project/README.md', 'assets/README.md',
   '.github/CODE_OF_CONDUCT.md', '.github/CONTRIBUTING.md',
-  'scripts/check-doc-links.js',
+  'scripts/check-doc-links.js', 'scripts/check-repository-links.js',
   'scripts/source/run-from-source.ps1', 'scripts/source/run-from-source.sh',
   'docs/building-from-source.md',
 ];
@@ -30,6 +30,7 @@ for (const filename of ['PRIVACY.md', 'TERMS.md', 'ROADMAP.md', 'STATUS.md', 'SU
 }
 if (fs.existsSync(path.join(root, 'assets', 'New assets'))) failures.push('Legacy design exports must not ship in assets/New assets.');
 if (!pkg.build?.publish || pkg.build.publish.provider !== 'github') failures.push('GitHub publish provider is not configured.');
+if (pkg.build?.publish?.owner !== 'a-streetcoder' || pkg.build?.publish?.repo !== 'CrunchyMurmur') failures.push('GitHub updater repository is not configured for a-streetcoder/CrunchyMurmur.');
 if (!pkg.dependencies?.['electron-updater']) failures.push('electron-updater is not installed.');
 if (pkg.dependencies?.['node-global-key-listener']) failures.push('Archived node-global-key-listener must not ship.');
 if (!pkg.dependencies?.['uiohook-napi']) failures.push('Windows Ctrl + Win support dependency is missing.');
