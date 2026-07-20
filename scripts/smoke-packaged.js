@@ -11,12 +11,19 @@ if (!executable || !fs.existsSync(executable)) {
 
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-packaged-smoke-'));
 const port = 9400 + (process.pid % 400);
-const child = spawn(path.resolve(executable), [
+const launchArguments = [
   '--show',
   `--user-data-dir=${userData}`,
   `--remote-debugging-port=${port}`,
   '--remote-allow-origins=*',
-], { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+];
+// GitHub's unpacked Linux test directory cannot give chrome-sandbox root
+// ownership and mode 4755. Installed AppImages and debs keep their normal
+// sandbox; only this isolated CI smoke process bypasses it.
+if (process.platform === 'linux' && process.env.CI) launchArguments.push('--no-sandbox');
+const child = spawn(path.resolve(executable), launchArguments, {
+  stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true,
+});
 let startupError = '';
 child.stderr.setEncoding('utf8');
 child.stderr.on('data', (chunk) => {
