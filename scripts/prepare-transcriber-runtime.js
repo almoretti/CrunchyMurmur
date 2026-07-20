@@ -126,20 +126,70 @@ function copyRuntime(platform, arch, source, runtimeArch = arch) {
       fs.copyFileSync(sourceDll, path.join(target, dll));
     }
   }
+  if (platform === 'darwin' && process.env.CRUNCHYMURMUR_ONNX_RUNTIME_LIB) {
+    const libraryRoot = process.env.CRUNCHYMURMUR_ONNX_RUNTIME_LIB;
+    const bundled = new Map();
+    const pending = [executable];
+    let foundOnnxRuntime = false;
+    while (pending.length) {
+      const binary = pending.shift();
+      const linked = spawnSync('otool', ['-L', binary], { encoding: 'utf8' });
+      if (linked.status !== 0) throw new Error(`Could not inspect macOS transcriber libraries: ${linked.stderr}`);
+      const dependencies = linked.stdout.split(/\r?\n/).slice(1)
+        .map((line) => line.trim().split(/\s+/)[0])
+        .filter(Boolean);
+      for (const dependency of dependencies) {
+        const filename = path.basename(dependency);
+        if (filename.startsWith('libonnxruntime')) foundOnnxRuntime = true;
+        const candidates = [dependency, path.join(libraryRoot, filename)];
+        const library = candidates.find((candidate) => path.isAbsolute(candidate) && fs.existsSync(candidate));
+        if (!library || dependency.startsWith('/System/') || dependency.startsWith('/usr/lib/')) continue;
+        const resolved = fs.realpathSync(library);
+        let destination = bundled.get(resolved);
+        if (!destination) {
+          destination = path.join(target, filename);
+          fs.copyFileSync(resolved, destination);
+          run('install_name_tool', ['-id', `@loader_path/${filename}`, destination]);
+          bundled.set(resolved, destination);
+          pending.push(destination);
+        }
+        run('install_name_tool', ['-change', dependency, `@loader_path/${path.basename(destination)}`, binary]);
+      }
+    }
+    if (!foundOnnxRuntime) throw new Error('The Intel macOS transcriber is not linked to the expected ONNX Runtime library.');
+  }
   if (platform !== 'win32') fs.chmodSync(executable, 0o755);
+}
+
+function assembleMacUniversal() {
+  const filename = executableName('darwin');
+  const x64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-x64', filename);
+  const arm64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-arm64', filename);
+  for (const source of [x64, arm64]) {
+    if (!fs.existsSync(source)) throw new Error(`Missing architecture-specific macOS transcriber: ${source}`);
+  }
+  const target = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-universal');
+  fs.mkdirSync(target, { recursive: true });
+  const output = path.join(target, filename);
+  run('lipo', ['-create', x64, arm64, '-output', output]);
+  for (const runtime of [path.dirname(x64), path.dirname(arm64)]) {
+    for (const entry of fs.readdirSync(runtime)) {
+      if (entry.endsWith('.dylib')) fs.copyFileSync(path.join(runtime, entry), path.join(target, entry));
+    }
+  }
+  fs.chmodSync(output, 0o755);
 }
 
 (async () => {
   const platform = argument('platform', process.platform);
   const requestedArch = argument('arch', process.arch);
   if (platform === 'darwin' && requestedArch === 'universal') {
-    const x64 = build(platform, 'x64');
-    const arm64 = build(platform, 'arm64');
-    const target = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-universal');
-    fs.mkdirSync(target, { recursive: true });
-    const output = path.join(target, executableName(platform));
-    run('lipo', ['-create', x64, arm64, '-output', output]);
-    fs.chmodSync(output, 0o755);
+    const filename = executableName(platform);
+    const x64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-x64', filename);
+    const arm64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-arm64', filename);
+    if (!fs.existsSync(x64)) copyRuntime(platform, 'x64', build(platform, 'x64'));
+    if (!fs.existsSync(arm64)) copyRuntime(platform, 'arm64', build(platform, 'arm64'));
+    assembleMacUniversal();
   } else {
     const arches = requestedArch === 'all' ? ['x64', 'arm64'] : [requestedArch];
     for (const arch of arches) {

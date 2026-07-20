@@ -44,6 +44,8 @@ if (!/^\d+\.\d+\.\d+$/.test(pkg.version) || pkg.version === '0.0.0') failures.pu
 if (lock.packages?.['']?.version !== pkg.version) failures.push('package-lock.json version does not match package.json.');
 if (!pkg.build?.mac?.notarize) failures.push('macOS notarization is not required by the build configuration.');
 if (!releaseWorkflow.includes('forceCodeSigning=true')) failures.push('Release workflow does not require Windows code signing.');
+if (!releaseWorkflow.includes('macos-15-intel')) failures.push('Release workflow does not build the Intel macOS transcriber on a native Intel runner.');
+if (!releaseWorkflow.includes('macos-transcriber-x64') || !releaseWorkflow.includes('macos-transcriber-arm64')) failures.push('Release workflow does not assemble both macOS transcriber architectures.');
 for (const secret of [
   'APPLE_DEVELOPER_ID_CERTIFICATE',
   'APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD',
