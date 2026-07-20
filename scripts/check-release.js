@@ -11,6 +11,7 @@ const required = [
   'assets/brand-mark.svg', 'assets/brand-mark.png', 'assets/icon-palette.ico',
   'assets/tray-palette.png', 'scripts/build-brand-assets.py',
   'scripts/verify-update-manifest.js', 'docs/README.md', 'docs/updating.md',
+  'scripts/verify-macos-package-runtimes.js',
   'docs/project/support.md', 'docs/project/roadmap.md', 'docs/project/status.md',
   'docs/legal/README.md', 'docs/project/README.md', 'assets/README.md',
   '.github/CODE_OF_CONDUCT.md', '.github/CONTRIBUTING.md',
@@ -21,6 +22,7 @@ const required = [
 const failures = [];
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
 const releaseWorkflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'release.yml'), 'utf8');
+const ciWorkflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
 
 for (const filename of required) {
   if (!fs.existsSync(path.join(root, filename))) failures.push(`Missing ${filename}`);
@@ -50,6 +52,8 @@ if (pkg.build?.mac?.x64ArchFiles !== expectedMacX64Files) failures.push('macOS u
 if (!releaseWorkflow.includes('--config.forceCodeSigning=true')) failures.push('Release workflow does not require Windows code signing with a valid electron-builder option.');
 if (!releaseWorkflow.includes('macos-15-intel')) failures.push('Release workflow does not build the Intel macOS transcriber on a native Intel runner.');
 if (!releaseWorkflow.includes('macos-transcriber-x64') || !releaseWorkflow.includes('macos-transcriber-arm64')) failures.push('Release workflow does not assemble both macOS transcriber architectures.');
+if (!releaseWorkflow.includes('verify-macos-package-runtimes.js')) failures.push('Release workflow does not verify staged macOS runtime architectures.');
+if (!ciWorkflow.includes('package-macos-universal') || !ciWorkflow.includes('verify-macos-package-runtimes.js')) failures.push('CI does not build and verify the universal macOS package.');
 for (const secret of [
   'APPLE_DEVELOPER_ID_CERTIFICATE',
   'APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD',
