@@ -23,7 +23,11 @@ test('Nightly versions require a complete semantic-version prefix', () => {
   assert.equal(isNightlyVersion('01.002.3-nightly.20260721.42'), false);
   assert.equal(isNightlyVersion('1.2.3-nightly.20260721.01'), false);
   assert.equal(isNightlyVersion('1.2.3-nightly.02060721.1'), false);
+  assert.equal(isNightlyVersion('1.2.3-nightly.20261340.1'), false);
+  assert.equal(isNightlyVersion('1.2.3-nightly.20260231.1'), false);
+  assert.equal(isNightlyVersion('1.2.3-nightly.20260228.1'), true);
   assert.equal(isStableVersion('01.2.3'), false);
   assert.equal(isStableVersion('0.2.3'), true);
   assert.throws(() => metadataForRelease('v01.002.3-nightly.20260721.42', '0.1.0'), /Invalid release tag/);
+  assert.throws(() => metadataForRelease('v1.2.3-nightly.20260231.1', '0.1.0'), /Invalid release tag/);
 });
