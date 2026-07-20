@@ -120,6 +120,18 @@ jobs:
           name: macos-transcriber-arm64
           path: build/transcriber-runtime/mac-arm64
       - run: npm run prepare:transcriber:mac
+      - name: Verify native macOS package architectures
+        run: |
+          set -euo pipefail
+          test "$(lipo -archs build/transcriber-runtime/mac-x64/crunchymurmur-transcriber)" = "x86_64"
+          test "$(lipo -archs build/transcriber-runtime/mac-arm64/crunchymurmur-transcriber)" = "arm64"
+          lipo -archs build/whisper-runtime/mac-x64/whisper-cli | grep -q 'x86_64 arm64'
+          lipo -archs build/whisper-runtime/mac-arm64/whisper-cli | grep -q 'x86_64 arm64'
+          for library in build/transcriber-runtime/mac-x64/*.dylib; do
+            counterpart="build/transcriber-runtime/mac-arm64/$(basename "$library")"
+            test -f "$counterpart"
+            cmp "$library" "$counterpart"
+          done
       - run: npm run test:e2e
         env:
           CRUNCHYMURMUR_DISABLE_NATIVE_HOTKEY: '1'

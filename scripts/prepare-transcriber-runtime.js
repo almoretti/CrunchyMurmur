@@ -177,6 +177,9 @@ function assembleMacUniversal() {
       if (entry.endsWith('.dylib')) fs.copyFileSync(path.join(runtime, entry), path.join(target, entry));
     }
   }
+  for (const entry of fs.readdirSync(path.dirname(x64))) {
+    if (entry.endsWith('.dylib')) fs.copyFileSync(path.join(path.dirname(x64), entry), path.join(path.dirname(arm64), entry));
+  }
   fs.chmodSync(output, 0o755);
 }
 

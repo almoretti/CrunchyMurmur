@@ -186,6 +186,14 @@ async function prepareUnix(platform, arch) {
     else if (platform === 'darwin' || platform === 'linux') await prepareUnix(platform, arch);
     else throw new Error(`Unsupported platform: ${platform}`);
   }
+  if (platform === 'darwin' && requestedArch === 'universal') {
+    const universal = path.join(ROOT, 'build', 'whisper-runtime', 'mac-universal');
+    for (const arch of ['x64', 'arm64']) {
+      const target = path.join(ROOT, 'build', 'whisper-runtime', `mac-${arch}`);
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.cpSync(universal, target, { recursive: true });
+    }
+  }
   console.log(`Prepared whisper.cpp ${VERSION} runtime for ${platform}: ${arches.join(', ')}.`);
 })().catch((error) => {
   console.error(error.stack || error.message || error);
