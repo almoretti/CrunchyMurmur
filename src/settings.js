@@ -27,6 +27,8 @@ const DEFAULTS = {
   hotkey: defaultHotkey(),
   hotkeyCustomized: 'false',
   autoUpdate: 'true',
+  updateChannel: 'stable', // stable | nightly
+  allowUpdateDowngrade: 'false', // confirmed Nightly -> Stable replacement is pending
   audioRetentionPolicy: 'never', // never | after_transcription | 1 | 7 | 30
   aiFormatEnabled: 'false',
   groqFormatModel: 'llama-3.1-8b-instant',
@@ -100,6 +102,8 @@ function encryptKey(plain) {
 function load() {
   const raw = readRaw();
   const cfg = { ...DEFAULTS, ...raw };
+  if (!['stable', 'nightly'].includes(cfg.updateChannel)) cfg.updateChannel = 'stable';
+  if (!['true', 'false'].includes(cfg.allowUpdateDowngrade)) cfg.allowUpdateDowngrade = 'false';
   if (!raw.audioRetentionPolicy && raw.meetingRetentionDays) {
     cfg.audioRetentionPolicy = raw.meetingRetentionDays === '0' ? 'never' : raw.meetingRetentionDays;
   }

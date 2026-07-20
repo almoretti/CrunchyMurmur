@@ -3,6 +3,15 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+
+env:
+  RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+  UPDATE_CHANNEL: ${{ contains(inputs.release_tag || github.ref_name, '-nightly.') && 'nightly' || 'latest' }}
 
 permissions:
   contents: read
@@ -12,10 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: npm
+      - run: node scripts/prepare-release-version.js "$RELEASE_TAG"
       - run: npm ci
       - run: npm run build:editor
       - run: npm run check
@@ -31,10 +43,13 @@ jobs:
       CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: npm
+      - run: node scripts/prepare-release-version.js "$env:RELEASE_TAG"
       - run: npm ci
       - name: Require Windows signing credentials
         shell: pwsh
@@ -46,7 +61,7 @@ jobs:
       - run: npm run prepare:whisper:win
       - run: npm run prepare:transcriber:win
       - run: npx electron-builder --win --publish never --config.forceCodeSigning=true
-      - run: node scripts/verify-update-manifest.js dist/latest.yml
+      - run: node scripts/verify-update-manifest.js "dist/${{ env.UPDATE_CHANNEL }}.yml"
       - run: npm run smoke:packaged -- dist\win-unpacked\CrunchyMurmur.exe
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -54,7 +69,7 @@ jobs:
           path: |
             dist/*.exe
             dist/*.blockmap
-            dist/latest*.yml
+            dist/${{ env.UPDATE_CHANNEL }}*.yml
           if-no-files-found: error
 
   macos-transcriber:
@@ -69,10 +84,13 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: npm
+      - run: node scripts/prepare-release-version.js "$RELEASE_TAG"
       - run: npm ci
       - if: matrix.arch == 'x64'
         run: brew install onnxruntime
@@ -102,10 +120,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: npm
+      - run: node scripts/prepare-release-version.js "$RELEASE_TAG"
       - run: npm ci
       - run: npm run build:editor
       - run: bash scripts/prepare-macos-icon.sh
@@ -158,7 +179,7 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npx electron-builder --mac --publish never
-      - run: node scripts/verify-update-manifest.js dist/latest-mac.yml
+      - run: node scripts/verify-update-manifest.js "dist/${{ env.UPDATE_CHANNEL }}-mac.yml"
       - run: npm run smoke:packaged -- dist/mac-universal/CrunchyMurmur.app/Contents/MacOS/CrunchyMurmur
         env:
           CRUNCHYMURMUR_DISABLE_NATIVE_HOTKEY: '1'
@@ -169,7 +190,7 @@ jobs:
             dist/*.dmg
             dist/*.zip
             dist/*.blockmap
-            dist/latest*.yml
+            dist/${{ env.UPDATE_CHANNEL }}*.yml
           if-no-files-found: error
 
   linux:
@@ -177,15 +198,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
+      - run: node scripts/prepare-release-version.js "$RELEASE_TAG"
       - run: npm ci
       - run: sudo apt-get update && sudo apt-get install -y imagemagick cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
       - run: xvfb-run --auto-servernum npm run test:e2e
       - run: npm run build:linux
-      - run: node scripts/verify-update-manifest.js dist/latest-linux.yml
+      - run: node scripts/verify-update-manifest.js "dist/${{ env.UPDATE_CHANNEL }}-linux.yml"
       - run: xvfb-run --auto-servernum npm run smoke:packaged -- dist/linux-unpacked/crunchymurmur
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -194,7 +218,7 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/*.blockmap
-            dist/latest*.yml
+            dist/${{ env.UPDATE_CHANNEL }}*.yml
           if-no-files-found: error
 
   publish:
@@ -206,6 +230,8 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
@@ -232,7 +258,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" release-assets/* \
+          PRERELEASE_ARGS=()
+          if [[ "$UPDATE_CHANNEL" == "nightly" ]]; then PRERELEASE_ARGS+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" release-assets/* \
             --verify-tag \
             --generate-notes \
-            --title "CrunchyMurmur ${GITHUB_REF_NAME#v}"
+            --title "CrunchyMurmur ${RELEASE_TAG#v}" \
+            "${PRERELEASE_ARGS[@]}"

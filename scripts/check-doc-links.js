@@ -8,7 +8,7 @@ const failures = [];
 function markdownFiles(directory) {
   const files = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue;
+    if (entry.isDirectory() && (ignoredDirectories.has(entry.name) || /^dist(?:-|$)/.test(entry.name))) continue;
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) files.push(...markdownFiles(filename));
     else if (entry.isFile() && entry.name.endsWith('.md')) files.push(filename);

@@ -1,9 +1,13 @@
 const { app, dialog } = require('electron');
 const log = require('electron-log/main');
 const { autoUpdater } = require('electron-updater');
+const { applyUpdateChannelPolicy } = require('./update-channel');
 
 let status = { state: 'idle', message: 'Updates have not been checked yet.' };
 let notify = () => {};
+let getPreferences = () => ({});
+let onDowngradeConsumed = () => {};
+const downgradeRetryDelays = [0, 100, 500];
 
 function setStatus(state, message, extra = {}) {
   status = { state, message, ...extra };
@@ -23,13 +27,18 @@ function friendlyError(error) {
   return firstLine.length > 220 ? `${firstLine.slice(0, 217)}…` : firstLine;
 }
 
-function init({ onStatus } = {}) {
+function configure(preferences = getPreferences()) {
+  return applyUpdateChannelPolicy(autoUpdater, preferences);
+}
+
+function init({ onStatus, getUpdatePreferences, onUpdateDowngradeConsumed } = {}) {
   notify = typeof onStatus === 'function' ? onStatus : () => {};
+  getPreferences = typeof getUpdatePreferences === 'function' ? getUpdatePreferences : () => ({});
+  onDowngradeConsumed = typeof onUpdateDowngradeConsumed === 'function' ? onUpdateDowngradeConsumed : () => {};
   autoUpdater.logger = log;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.allowPrerelease = false;
-  autoUpdater.allowDowngrade = false;
+  configure();
   autoUpdater.fullChangelog = false;
 
   autoUpdater.on('checking-for-update', () => setStatus('checking', 'Checking for updates…'));
@@ -41,6 +50,26 @@ function init({ onStatus } = {}) {
     setStatus('error', friendlyError(err));
   });
   autoUpdater.on('update-downloaded', async (info) => {
+    if (autoUpdater.allowDowngrade) {
+      let persistenceError;
+      for (const delay of downgradeRetryDelays) {
+        if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+        try {
+          await onDowngradeConsumed();
+          persistenceError = null;
+          break;
+        } catch (error) {
+          persistenceError = error;
+          log.error('[updater] failed to clear confirmed downgrade:', error);
+        }
+      }
+      if (persistenceError) {
+        autoUpdater.allowDowngrade = false;
+        autoUpdater.autoInstallOnAppQuit = false;
+        setStatus('error', friendlyError(persistenceError));
+        return;
+      }
+    }
     setStatus('ready', `CrunchyMurmur ${info.version} is ready to install.`, { version: info.version });
     const result = await dialog.showMessageBox({
       type: 'info',
@@ -65,6 +94,7 @@ async function check() {
     return status;
   }
   try {
+    configure();
     await autoUpdater.checkForUpdates();
   } catch (error) {
     if (status.state !== 'error') setStatus('error', friendlyError(error));
@@ -74,4 +104,4 @@ async function check() {
 
 function getStatus() { return status; }
 
-module.exports = { init, check, getStatus };
+module.exports = { init, configure, check, getStatus };

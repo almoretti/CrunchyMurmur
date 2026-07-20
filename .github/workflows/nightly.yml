@@ -1,0 +1,48 @@
+name: Nightly
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to publish the generated Nightly tag.
+    outputs:
+      release_tag: ${{ steps.tag.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: main
+      - id: tag
+        name: Create the Nightly tag
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          TAG="v${MAJOR}.$((MINOR + 1)).0-nightly.$(date -u +%Y%m%d).${GITHUB_RUN_NUMBER}"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG" || true
+          if git rev-parse --verify --quiet "$TAG^{commit}" >/dev/null; then
+            test "$(git rev-parse "$TAG^{commit}")" = "$(git rev-parse HEAD)" || {
+              echo "Existing tag $TAG points to a different commit." >&2
+              exit 1
+            }
+          else
+            git tag -a "$TAG" -m "CrunchyMurmur $TAG"
+            git push origin "$TAG"
+          fi
+          echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: tag
+    permissions:
+      contents: write # Required to publish release assets.
+      id-token: write # Required for provenance identity.
+      attestations: write # Required to publish build attestations.
+    uses: ./.github/workflows/release.yml
+    with:
+      release_tag: ${{ needs.tag.outputs.release_tag }}
+    secrets: inherit

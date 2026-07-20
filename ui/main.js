@@ -1572,6 +1572,7 @@ const useFnHotkeyBtn = document.getElementById('useFnHotkey');
 const themeInputs = [...document.querySelectorAll('input[name="theme"]')];
 const themeHintEl = document.getElementById('themeHint');
 const autoUpdateEl = document.getElementById('autoUpdate');
+const updateChannelEl = document.getElementById('updateChannel');
 const audioRetentionPolicyEl = document.getElementById('audioRetentionPolicy');
 const aiFormatEnabledEl = document.getElementById('aiFormatEnabled');
 const groqFormatModelEl = document.getElementById('groqFormatModel');
@@ -2098,6 +2099,31 @@ saveGeneralBtn.addEventListener('click', async () => {
   }
 });
 
+updateChannelEl.addEventListener('change', async () => {
+  const previous = window.__lastSettings?.updateChannel || 'stable';
+  const next = updateChannelEl.value;
+  let confirmDowngrade = false;
+  if (previous === 'nightly' && next === 'stable') {
+    confirmDowngrade = window.confirm(window.i18n.t('Switch to Stable? If your Nightly version is newer, the Stable version will replace it after the next update check.'));
+    if (!confirmDowngrade) { updateChannelEl.value = previous; return; }
+  }
+  try {
+    const cfg = await window.wisper.setUpdateChannel(next, confirmDowngrade);
+    window.__lastSettings = cfg;
+  } catch (error) {
+    updateChannelEl.value = previous;
+    generalSaveStatusEl.style.color = 'var(--danger)';
+    generalSaveStatusEl.textContent = error.message || String(error);
+    return;
+  }
+  try {
+    renderUpdateStatus(await window.wisper.checkForUpdates());
+  } catch (error) {
+    generalSaveStatusEl.style.color = 'var(--danger)';
+    generalSaveStatusEl.textContent = error.message || String(error);
+  }
+});
+
 uiLocaleEl.addEventListener('change', async () => {
   window.i18n.setLocale(uiLocaleEl.value, window.__lastSettings?.systemLocale);
   const cfg = await window.wisper.saveSettings({ uiLocale: uiLocaleEl.value });
@@ -2312,6 +2338,7 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
     : hotkeyEl.value === 'Control+Super' ? 'Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.'
       : 'Use your global shortcut anywhere to dictate.';
   autoUpdateEl.value = cfg.autoUpdate || 'true';
+  updateChannelEl.value = cfg.updateChannel || 'stable';
   const theme = ['system', 'light', 'dark'].includes(cfg.theme) ? cfg.theme : 'system';
   const themeInput = themeInputs.find((input) => input.value === theme);
   if (themeInput) themeInput.checked = true;
