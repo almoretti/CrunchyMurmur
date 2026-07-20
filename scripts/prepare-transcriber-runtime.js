@@ -129,17 +129,30 @@ function copyRuntime(platform, arch, source, runtimeArch = arch) {
   if (platform !== 'win32') fs.chmodSync(executable, 0o755);
 }
 
+function assembleMacUniversal() {
+  const filename = executableName('darwin');
+  const x64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-x64', filename);
+  const arm64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-arm64', filename);
+  for (const source of [x64, arm64]) {
+    if (!fs.existsSync(source)) throw new Error(`Missing architecture-specific macOS transcriber: ${source}`);
+  }
+  const target = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-universal');
+  fs.mkdirSync(target, { recursive: true });
+  const output = path.join(target, filename);
+  run('lipo', ['-create', x64, arm64, '-output', output]);
+  fs.chmodSync(output, 0o755);
+}
+
 (async () => {
   const platform = argument('platform', process.platform);
   const requestedArch = argument('arch', process.arch);
   if (platform === 'darwin' && requestedArch === 'universal') {
-    const x64 = build(platform, 'x64');
-    const arm64 = build(platform, 'arm64');
-    const target = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-universal');
-    fs.mkdirSync(target, { recursive: true });
-    const output = path.join(target, executableName(platform));
-    run('lipo', ['-create', x64, arm64, '-output', output]);
-    fs.chmodSync(output, 0o755);
+    const filename = executableName(platform);
+    const x64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-x64', filename);
+    const arm64 = path.join(ROOT, 'build', 'transcriber-runtime', 'mac-arm64', filename);
+    if (!fs.existsSync(x64)) copyRuntime(platform, 'x64', build(platform, 'x64'));
+    if (!fs.existsSync(arm64)) copyRuntime(platform, 'arm64', build(platform, 'arm64'));
+    assembleMacUniversal();
   } else {
     const arches = requestedArch === 'all' ? ['x64', 'arm64'] : [requestedArch];
     for (const arch of arches) {
