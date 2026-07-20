@@ -155,7 +155,7 @@
           "to": "native/transcriber"
         }
       ],
-      "x64ArchFiles": "Contents/Resources/native/transcriber/*.dylib",
+      "x64ArchFiles": "Contents/Resources/{native/{transcriber,whisper}/**,app.asar.unpacked/node_modules/uiohook-napi/prebuilds/darwin-*/uiohook-napi.node}",
       "target": [
         {
           "target": "dmg",
