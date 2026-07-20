@@ -10,11 +10,14 @@ Configure these GitHub Actions secrets:
 
 - `WIN_CSC_LINK`: base64-encoded Windows code-signing certificate or a supported secure URL.
 - `WIN_CSC_KEY_PASSWORD`: certificate password.
-- `MAC_CSC_LINK`: base64-encoded Apple Developer ID Application certificate.
-- `MAC_CSC_KEY_PASSWORD`: certificate password.
-- `APPLE_ID`: Apple account used for notarization.
-- `APPLE_APP_SPECIFIC_PASSWORD`: app-specific password for that account.
+- `APPLE_DEVELOPER_ID_CERTIFICATE`: base64-encoded Apple Developer ID Application certificate.
+- `APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD`: certificate password.
 - `APPLE_TEAM_ID`: Apple Developer team identifier.
+- `APPLE_NOTARY_API_KEY`: base64-encoded App Store Connect API private key (`.p8`).
+- `APPLE_NOTARY_KEY_ID`: App Store Connect API key identifier.
+- `APPLE_NOTARY_ISSUER_ID`: App Store Connect API issuer identifier.
+
+The Apple credentials may be organisation-level secrets restricted to this repository. The workflow writes the notarisation key to the macOS runner only for the signed build and does not persist it as an artifact.
 
 Enable GitHub private vulnerability reporting, require pull requests and CI on `main`, enable Dependabot security updates, and restrict who may create `v*` tags. Use a GitHub Environment with required reviewers for the release secrets if the repository's plan supports it.
 
