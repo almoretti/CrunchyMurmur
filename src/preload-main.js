@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('wisper', {
 
   copyText:       (text) => ipcRenderer.invoke('clipboard:write', text),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  setUpdateChannel: (channel, confirmDowngrade = false) => ipcRenderer.invoke('update:set-channel', { channel, confirmDowngrade }),
   getUpdateStatus: () => ipcRenderer.invoke('update:status'),
   onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, status) => cb(status)),
   openLogs:       () => ipcRenderer.invoke('support:open-logs'),

@@ -36,6 +36,12 @@ Enable GitHub private vulnerability reporting, require pull requests and CI on `
 
 Do not manually replace assets on a published release. Fix the source and publish a new patch version.
 
+## Nightly procedure
+
+The Nightly workflow runs daily and can also be started manually from GitHub Actions. It tags the current `main` commit with the next-minor prerelease format `vX.Y.0-nightly.YYYYMMDD.RUN`, then calls the same cross-platform signing, notarisation, testing, checksum, SBOM, and attestation pipeline as Stable. The resulting GitHub Release is marked as a prerelease and publishes `nightly` updater manifests. It does not replace GitHub's latest Stable release or the downloads shown on the website.
+
+Nightly packages are never created locally, so signing credentials remain confined to GitHub Actions. Published Nightly assets remain immutable and auditable like Stable releases.
+
 ## Stable download URLs
 
 The release workflow keeps these names stable for a future website:
@@ -61,4 +67,4 @@ Prefix any name with `https://github.com/a-streetcoder/CrunchyMurmur/releases/la
 - macOS: run `codesign --verify --deep --strict`, `spctl --assess --type execute`, and `xcrun stapler validate` against the installed application/package.
 - Linux and all platforms: compare the artifact SHA-256 with `SHA256SUMS` and verify the GitHub attestation with GitHub CLI.
 - Confirm the app's updater discovers the release and applies it from the previous stable version.
-- Confirm the updater ignores prereleases and never offers a downgrade. Debian packages update by rerunning the terminal installer.
+- Confirm Stable ignores prereleases, Nightly discovers the latest Nightly prerelease, and returning to Stable requires explicit confirmation. Debian packages update by rerunning the Stable terminal installer.

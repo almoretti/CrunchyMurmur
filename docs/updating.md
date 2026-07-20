@@ -4,19 +4,20 @@ GitHub Releases is the only update source. CrunchyMurmur does not use an app sto
 
 ## Automatic updates
 
-Packaged Windows, macOS, and Linux AppImage builds check the latest stable GitHub Release. When a newer compatible version exists, the app downloads it in the background and asks before restarting to install it.
+Packaged Windows, macOS, and Linux AppImage builds use the channel selected under **General → Update channel**. Stable is the default. Nightly is an opt-in stream of signed prerelease builds for testing work before it reaches Stable. When a newer compatible version exists, the app downloads it in the background and asks before restarting to install it.
 
-- Prereleases are ignored.
-- Downgrades are rejected.
+- Stable ignores prereleases and rejects downgrades by default.
+- Nightly follows prereleases whose version uses the `nightly` identifier.
+- Returning from Nightly to Stable requires confirmation and authorises the Stable replacement download. Downgrades are disabled again after that download completes.
 - Choosing **Later** keeps the downloaded update ready for a later restart.
 - Development builds do not check for updates.
 - Debian packages use manual updates because they do not run from an AppImage update context.
 
-Use **General → Automatic updates → Check now** to request a check and read the current status.
+Use **General → Automatic updates → Check now** to request a check and read the current status. Changing channels also checks immediately.
 
 ## Manual updates
 
-Run the same terminal installer again. It resolves the latest release and verifies the downloaded package against `SHA256SUMS` before installing it.
+Run the same terminal installer again. It resolves the latest Stable release and verifies the downloaded package against `SHA256SUMS` before installing it. Terminal installers do not install Nightly builds.
 
 Windows PowerShell:
 

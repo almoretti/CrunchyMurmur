@@ -18,6 +18,7 @@ const required = [
   'scripts/check-doc-links.js', 'scripts/check-repository-links.js',
   'scripts/source/run-from-source.ps1', 'scripts/source/run-from-source.sh',
   'docs/building-from-source.md',
+  '.github/workflows/nightly.yml', 'scripts/prepare-release-version.js',
 ];
 const failures = [];
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
@@ -42,7 +43,10 @@ if (!extraResources.some((entry) => entry.from === 'docs/legal/privacy.md' && en
 if (!extraResources.some((entry) => entry.from === 'docs/legal/terms.md' && entry.to === 'TERMS.md')) failures.push('Packaged terms document mapping is missing.');
 if (pkg.desktopName !== 'CrunchyMurmur') failures.push('Linux desktop window association is not configured.');
 if (!pkg.scripts?.['build:linux']?.includes('normalize-linux-artifacts')) failures.push('Linux release artifacts are not normalized to stable x64 names.');
-if (!/^\d+\.\d+\.\d+$/.test(pkg.version) || pkg.version === '0.0.0') failures.push('Stable releases must use a non-zero semantic version without a prerelease suffix.');
+const releaseTag = process.env.RELEASE_TAG || (process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : '');
+const nightlyBuild = /-nightly\.\d{8}\.\d+$/.test(pkg.version);
+if (!/^\d+\.\d+\.\d+$/.test(pkg.version) && !nightlyBuild) failures.push('Release version must be stable semantic versioning or the supported Nightly format.');
+if (pkg.version === '0.0.0') failures.push('Release version must be non-zero.');
 if (lock.packages?.['']?.version !== pkg.version) failures.push('package-lock.json version does not match package.json.');
 if (!pkg.build?.mac?.notarize) failures.push('macOS notarization is not required by the build configuration.');
 const macResources = pkg.build?.mac?.extraResources || [];
@@ -70,16 +74,18 @@ for (const legacySecret of ['MAC_CSC_LINK', 'MAC_CSC_KEY_PASSWORD', 'APPLE_ID', 
 if (!releaseWorkflow.includes('attest-build-provenance')) failures.push('Release workflow does not generate provenance attestations.');
 if ((releaseWorkflow.match(/verify-update-manifest\.js/g) || []).length !== 3) failures.push('Every platform release must verify its updater manifest.');
 
-const updaterSource = fs.readFileSync(path.join(root, 'src', 'updater.js'), 'utf8');
-if (!updaterSource.includes('allowPrerelease = false')) failures.push('Stable updater must reject prereleases.');
-if (!updaterSource.includes('allowDowngrade = false')) failures.push('Stable updater must reject downgrades.');
+const updateChannelSource = fs.readFileSync(path.join(root, 'src', 'update-channel.js'), 'utf8');
+if (!updateChannelSource.includes("channel: updateChannel === 'nightly' ? 'nightly' : 'latest'")) failures.push('Updater channel policy is missing.');
+if (!updateChannelSource.includes("allowDowngrade: updateChannel === 'stable' && allowDowngradeOnce === true")) failures.push('Stable rollback safety policy is missing.');
 
-const tag = process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : '';
+const tag = releaseTag;
 if (tag && tag !== `v${pkg.version}`) failures.push(`Tag ${tag} does not match package version v${pkg.version}.`);
 
 if (process.env.CI) {
-  const dirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim();
-  if (dirty) failures.push('Release checkout is dirty.');
+  const dirtyLines = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+  const allowed = nightlyBuild ? new Set(['package.json', 'package-lock.json']) : new Set();
+  const dirty = dirtyLines.filter((line) => !allowed.has(line.slice(3)));
+  if (dirty.length) failures.push('Release checkout is dirty.');
 }
 
 if (failures.length) {

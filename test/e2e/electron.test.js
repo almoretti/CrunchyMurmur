@@ -332,6 +332,8 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.equal(layout.tabFits, true, 'General tab has horizontal overflow');
   assert.equal(Math.max(...layout.cardWidths) - Math.min(...layout.cardWidths), 0, 'General cards have inconsistent widths');
   assert.equal(layout.statusContained, true, 'update status escaped its card');
+  assert.deepEqual(await page.locator('#updateChannel option').allTextContents(), ['Stable', 'Nightly']);
+  assert.equal(await page.locator('#updateChannel').inputValue(), 'stable');
   assert.equal((await page.locator('#appDetails').textContent()).startsWith(`CrunchyMurmur ${appVersion} · `), true);
   assert.equal(await page.locator('#deleteData').isVisible(), true);
   assert.equal(await page.locator('#audioRetentionPolicy option').count(), 5);

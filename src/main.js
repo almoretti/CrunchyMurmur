@@ -692,6 +692,8 @@ async function validateParakeetModel(modelPath) {
 
 handle('settings:save', async (_e, partial) => {
   const changes = { ...(partial || {}) };
+  delete changes.updateChannel;
+  delete changes.allowUpdateDowngrade;
   const current = settings.load();
   const prospective = { ...current, ...changes };
   const localConfigChanged = ['engineKind', 'whisperCliPath', 'modelPath', 'parakeetModelPath']
@@ -796,6 +798,20 @@ handle('history:remove', (_e, id) => { history.remove(id); broadcastHistory(); r
 handle('history:clear', () => { history.clear(); broadcastHistory(); return []; });
 handle('clipboard:write', (_e, text) => { clipboard.writeText(String(text || '').slice(0, 5_000_000)); return true; });
 handle('update:check', () => updater.check());
+handle('update:set-channel', (_e, payload = {}) => {
+  const current = settings.load();
+  const channel = payload.channel === 'nightly' ? 'nightly' : 'stable';
+  const requiresConfirmation = current.updateChannel === 'nightly' && channel === 'stable';
+  if (requiresConfirmation && payload.confirmDowngrade !== true) {
+    throw new Error('Switching from Nightly to Stable requires confirmation.');
+  }
+  const saved = settings.save({
+    updateChannel: channel,
+    allowUpdateDowngrade: requiresConfirmation ? 'true' : 'false',
+  });
+  updater.configure(saved);
+  return shortcutMetadata(saved);
+});
 handle('update:status', () => updater.getStatus());
 handle('support:open-logs', () => shell.showItemInFolder(log.transports.file.getFile().path));
 handle('support:diagnostics', () => ({
@@ -1221,7 +1237,11 @@ app.whenReady().then(() => {
     }
   }, { useSystemPicker: process.platform === 'darwin' });
   createFloatingWindow();
-  updater.init({ onStatus: sendUpdateStatus });
+  updater.init({
+    onStatus: sendUpdateStatus,
+    getUpdatePreferences: () => settings.load(),
+    onUpdateDowngradeConsumed: () => settings.save({ allowUpdateDowngrade: 'false' }),
+  });
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
     const audioOnly = !details?.mediaTypes || details.mediaTypes.every((type) => type === 'audio');
     const trusted = isTrustedWebContents(webContents);
