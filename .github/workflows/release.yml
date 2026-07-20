@@ -45,7 +45,7 @@ jobs:
       - run: npm run build:editor
       - run: npm run prepare:whisper:win
       - run: npm run prepare:transcriber:win
-      - run: npx electron-builder --win --publish never -c.forceCodeSigning=true
+      - run: npx electron-builder --win --publish never --config.forceCodeSigning=true
       - run: node scripts/verify-update-manifest.js dist/latest.yml
       - run: npm run smoke:packaged -- dist\win-unpacked\CrunchyMurmur.exe
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

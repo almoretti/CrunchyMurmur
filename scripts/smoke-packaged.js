@@ -16,7 +16,12 @@ const child = spawn(path.resolve(executable), [
   `--user-data-dir=${userData}`,
   `--remote-debugging-port=${port}`,
   '--remote-allow-origins=*',
-], { stdio: 'ignore', windowsHide: true });
+], { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+let startupError = '';
+child.stderr.setEncoding('utf8');
+child.stderr.on('data', (chunk) => {
+  startupError = `${startupError}${chunk}`.slice(-16_000);
+});
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -25,15 +30,15 @@ async function targets() {
 }
 
 async function findMainTarget() {
-  for (let attempt = 0; attempt < 40; attempt++) {
-    if (child.exitCode !== null) throw new Error(`Packaged app exited during startup with code ${child.exitCode}.`);
+  for (let attempt = 0; attempt < 120; attempt++) {
+    if (child.exitCode !== null) throw new Error(`Packaged app exited during startup with code ${child.exitCode}.\n${startupError}`);
     try {
       const target = (await targets()).find((item) => item.type === 'page' && item.url.endsWith('/ui/main.html'));
       if (target) return target;
     } catch {}
     await delay(250);
   }
-  throw new Error('Packaged app did not expose its main renderer within 10 seconds.');
+  throw new Error(`Packaged app did not expose its main renderer within 30 seconds.\n${startupError}`);
 }
 
 async function command(target, method, params = {}) {

@@ -43,7 +43,11 @@ if (!pkg.scripts?.['build:linux']?.includes('normalize-linux-artifacts')) failur
 if (!/^\d+\.\d+\.\d+$/.test(pkg.version) || pkg.version === '0.0.0') failures.push('Stable releases must use a non-zero semantic version without a prerelease suffix.');
 if (lock.packages?.['']?.version !== pkg.version) failures.push('package-lock.json version does not match package.json.');
 if (!pkg.build?.mac?.notarize) failures.push('macOS notarization is not required by the build configuration.');
-if (!releaseWorkflow.includes('forceCodeSigning=true')) failures.push('Release workflow does not require Windows code signing.');
+const macResources = pkg.build?.mac?.extraResources || [];
+if (!macResources.some((entry) => entry.from === 'build/whisper-runtime/mac-universal')) failures.push('macOS package does not use the assembled universal whisper runtime.');
+if (!macResources.some((entry) => entry.from === 'build/transcriber-runtime/mac-universal')) failures.push('macOS package does not use the assembled universal transcriber runtime.');
+if (pkg.build?.mac?.x64ArchFiles !== 'Contents/Resources/native/transcriber/*.dylib') failures.push('macOS universal packaging does not permit the bundled Intel ONNX support libraries.');
+if (!releaseWorkflow.includes('--config.forceCodeSigning=true')) failures.push('Release workflow does not require Windows code signing with a valid electron-builder option.');
 if (!releaseWorkflow.includes('macos-15-intel')) failures.push('Release workflow does not build the Intel macOS transcriber on a native Intel runner.');
 if (!releaseWorkflow.includes('macos-transcriber-x64') || !releaseWorkflow.includes('macos-transcriber-arm64')) failures.push('Release workflow does not assemble both macOS transcriber architectures.');
 for (const secret of [
