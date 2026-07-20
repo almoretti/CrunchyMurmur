@@ -147,14 +147,15 @@
           "to": "native/CrunchyMurmurNative"
         },
         {
-          "from": "build/whisper-runtime/${os}-${arch}",
+          "from": "build/whisper-runtime/mac-universal",
           "to": "native/whisper"
         },
         {
-          "from": "build/transcriber-runtime/${os}-${arch}",
+          "from": "build/transcriber-runtime/mac-universal",
           "to": "native/transcriber"
         }
       ],
+      "x64ArchFiles": "Contents/Resources/native/transcriber/*.dylib",
       "target": [
         {
           "target": "dmg",
