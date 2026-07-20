@@ -90,3 +90,37 @@ jobs:
         run: |
           find build/transcriber-runtime/mac-x64 -name 'libonnxruntime*.dylib' -print -quit | grep -q .
           ! otool -L build/transcriber-runtime/mac-x64/* | grep -E '/usr/local/(Cellar|opt)/'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-macos-transcriber-x64
+          path: build/transcriber-runtime/mac-x64/
+          if-no-files-found: error
+
+  package-macos-universal:
+    needs: package-macos-intel-transcriber
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:editor
+      - run: bash scripts/prepare-macos-icon.sh
+      - run: bash scripts/build-macos-native.sh
+      - run: npm run prepare:whisper:mac
+      - run: node scripts/prepare-transcriber-runtime.js --platform darwin --arch arm64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ci-macos-transcriber-x64
+          path: build/transcriber-runtime/mac-x64
+      - run: npm run prepare:transcriber:mac
+      - run: node scripts/verify-macos-package-runtimes.js
+      - name: Build unsigned universal macOS app
+        run: npx electron-builder --mac --universal --dir --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: npm run smoke:packaged -- dist/mac-universal/CrunchyMurmur.app/Contents/MacOS/CrunchyMurmur
+        env:
+          CRUNCHYMURMUR_DISABLE_NATIVE_HOTKEY: '1'

@@ -120,6 +120,8 @@ jobs:
           name: macos-transcriber-arm64
           path: build/transcriber-runtime/mac-arm64
       - run: npm run prepare:transcriber:mac
+      - name: Verify native macOS package architectures
+        run: node scripts/verify-macos-package-runtimes.js
       - run: npm run test:e2e
         env:
           CRUNCHYMURMUR_DISABLE_NATIVE_HOTKEY: '1'
