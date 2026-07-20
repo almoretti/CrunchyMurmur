@@ -74,11 +74,27 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node scripts/prepare-transcriber-runtime.js --platform darwin --arch ${{ matrix.arch }}
+      - if: matrix.arch == 'x64'
+        run: brew install onnxruntime
+      - name: Build Intel transcriber with Homebrew ONNX Runtime
+        if: matrix.arch == 'x64'
+        run: node scripts/prepare-transcriber-runtime.js --platform darwin --arch x64
+        env:
+          ORT_LIB_PATH: /usr/local/opt/onnxruntime/lib
+          ORT_PREFER_DYNAMIC_LINK: '1'
+          CRUNCHYMURMUR_ONNX_RUNTIME_LIB: /usr/local/opt/onnxruntime/lib
+      - name: Build Apple Silicon transcriber
+        if: matrix.arch == 'arm64'
+        run: node scripts/prepare-transcriber-runtime.js --platform darwin --arch arm64
+      - name: Verify the bundled Intel runtime is portable
+        if: matrix.arch == 'x64'
+        run: |
+          find build/transcriber-runtime/mac-x64 -name 'libonnxruntime*.dylib' -print -quit | grep -q .
+          ! otool -L build/transcriber-runtime/mac-x64/* | grep -E '/usr/local/(Cellar|opt)/'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: macos-transcriber-${{ matrix.arch }}
-          path: build/transcriber-runtime/mac-${{ matrix.arch }}/crunchymurmur-transcriber
+          path: build/transcriber-runtime/mac-${{ matrix.arch }}/
           if-no-files-found: error
 
   macos:

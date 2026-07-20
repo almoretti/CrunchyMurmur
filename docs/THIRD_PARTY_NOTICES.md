@@ -10,6 +10,10 @@ CrunchyMurmur includes a native helper built with [transcribe-rs](https://github
 
 The optional Parakeet V3 model is downloaded from the [ONNX export](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx) and is licensed under CC BY 4.0. The [source model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) supports 25 European languages.
 
+## ONNX Runtime
+
+The macOS Intel package includes [Microsoft ONNX Runtime](https://github.com/microsoft/onnxruntime), Copyright Microsoft Corporation, licensed under the MIT License. The applicable licence text is included with the distributed application.
+
 ## Muya
 
 Muya is the Markdown editor extracted from [MarkText](https://github.com/marktext/marktext) and distributed as [`@muyajs/core`](https://www.npmjs.com/package/@muyajs/core).

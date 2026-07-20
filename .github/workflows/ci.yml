@@ -79,4 +79,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node scripts/prepare-transcriber-runtime.js --platform darwin --arch x64
+      - run: brew install onnxruntime
+      - name: Build Intel transcriber with Homebrew ONNX Runtime
+        run: node scripts/prepare-transcriber-runtime.js --platform darwin --arch x64
+        env:
+          ORT_LIB_PATH: /usr/local/opt/onnxruntime/lib
+          ORT_PREFER_DYNAMIC_LINK: '1'
+          CRUNCHYMURMUR_ONNX_RUNTIME_LIB: /usr/local/opt/onnxruntime/lib
+      - name: Verify the bundled Intel runtime is portable
+        run: |
+          find build/transcriber-runtime/mac-x64 -name 'libonnxruntime*.dylib' -print -quit | grep -q .
+          ! otool -L build/transcriber-runtime/mac-x64/* | grep -E '/usr/local/(Cellar|opt)/'
