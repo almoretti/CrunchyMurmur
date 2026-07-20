@@ -1,7 +1,7 @@
 # CrunchyMurmur website
 
-Static landing page for CrunchyMurmur, deployed to Railway from this subfolder
-(`railway up` is run inside `site/`, so only this directory is the build context).
+Static landing page for CrunchyMurmur, deployed to Railway with `/site` as the
+configured service root.
 
 Before changing anything here, read the **Website** section of the repository
 [AGENTS.md](../AGENTS.md): the page is deliberately coupled to the GitHub
@@ -58,5 +58,9 @@ and auto-deploys from GitHub `main` (root directory `/site`, watch paths
 override from `site/`:
 
 ```sh
-railway up --detach --service crunchymurmur-site
+railway up .. --path-as-root --detach --service crunchymurmur-site
 ```
+
+The parent path and `--path-as-root` preserve the repository-level `/site`
+prefix expected by the Railway service while retaining the project link stored
+for this local `site/` directory.
