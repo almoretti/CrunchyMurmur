@@ -44,6 +44,19 @@ if (pkg.version.startsWith('0.')) failures.push('Stable releases must use versio
 if (lock.packages?.['']?.version !== pkg.version) failures.push('package-lock.json version does not match package.json.');
 if (!pkg.build?.mac?.notarize) failures.push('macOS notarization is not required by the build configuration.');
 if (!releaseWorkflow.includes('forceCodeSigning=true')) failures.push('Release workflow does not require Windows code signing.');
+for (const secret of [
+  'APPLE_DEVELOPER_ID_CERTIFICATE',
+  'APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD',
+  'APPLE_TEAM_ID',
+  'APPLE_NOTARY_API_KEY',
+  'APPLE_NOTARY_KEY_ID',
+  'APPLE_NOTARY_ISSUER_ID',
+]) {
+  if (!releaseWorkflow.includes(`secrets.${secret}`)) failures.push(`Release workflow does not use ${secret}.`);
+}
+for (const legacySecret of ['MAC_CSC_LINK', 'MAC_CSC_KEY_PASSWORD', 'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD']) {
+  if (releaseWorkflow.includes(`secrets.${legacySecret}`)) failures.push(`Release workflow still uses legacy secret ${legacySecret}.`);
+}
 if (!releaseWorkflow.includes('attest-build-provenance')) failures.push('Release workflow does not generate provenance attestations.');
 if ((releaseWorkflow.match(/verify-update-manifest\.js/g) || []).length !== 3) failures.push('Every platform release must verify its updater manifest.');
 
