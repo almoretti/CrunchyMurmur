@@ -5,6 +5,18 @@ Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-21
+
+### Added
+
+- Stable and Nightly update channels in General settings, translated across every supported interface language.
+- Signed scheduled and manually triggered Nightly prereleases for Windows, macOS, and Linux through the existing GitHub release pipeline.
+
+### Changed
+
+- Returning from Nightly to Stable now requires explicit confirmation and limits downgrade permission to the confirmed Stable replacement.
+- Release validation now enforces canonical semantic versions, real Nightly calendar dates, idempotent Nightly tags, and publication of channel-specific updater manifests.
+
 ## [0.1.0] - 2026-07-20
 
 ### Added

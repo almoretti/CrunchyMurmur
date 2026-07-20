@@ -2,7 +2,7 @@
   "name": "crunchymurmur",
   "productName": "CrunchyMurmur",
   "desktopName": "CrunchyMurmur",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cross-platform local voice dictation, meeting transcription, activity statistics, and AI notes for Windows, macOS, and Linux.",
   "author": "almoretti and contributors",
   "license": "MIT",
