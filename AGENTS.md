@@ -18,7 +18,7 @@ The marketing website in `site/` is a separate English-only surface and is not p
 
 ## Website (`site/`) is coupled to this repository
 
-`site/` contains the public landing page, deployed to Railway as its own project (service `crunchymurmur-site`, auto-deployed from GitHub `main` with root directory `/site` and watch paths `/site/**`; `railway up` inside `site/` remains a manual override). It deliberately depends on repository facts. When you change any of the following, update `site/` in the same change:
+`site/` contains the public landing page, deployed to Railway as its own project (service `crunchymurmur-site`, auto-deployed from GitHub `main` with root directory `/site` and watch paths `/site/**`; from inside `site/`, use `railway up .. --path-as-root --detach --service crunchymurmur-site` as the manual override so Railway still receives the repository-level `/site` prefix). It deliberately depends on repository facts. When you change any of the following, update `site/` in the same change:
 
 - **Repository owner/name** (`a-streetcoder/CrunchyMurmur`): hardcoded in `site/index.html` links and `site/app.js` (`REPO`). Renaming or moving the repo breaks every download link and the release lookup.
 - **Release artifact names**: `site/app.js` matches release assets against the electron-builder `artifactName` pattern `${productName}-${os}-${arch}.${ext}` from `package.json`, plus the renames in `scripts/normalize-linux-artifacts.js` (e.g. `CrunchyMurmur-win-x64.exe`, `CrunchyMurmur-mac-universal.dmg`, `CrunchyMurmur-linux-x64.AppImage`). Changing `productName`, `artifactName`, targets, or the normalize script must be mirrored in `ASSET_MATCHERS`.
