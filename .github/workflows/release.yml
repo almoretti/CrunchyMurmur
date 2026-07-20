@@ -61,8 +61,8 @@ jobs:
     needs: validate
     runs-on: macos-latest
     env:
-      CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+      CSC_LINK: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE }}
+      CSC_KEY_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -84,7 +84,7 @@ jobs:
       - name: Require Apple signing and notarization credentials
         run: |
           test -n "$CSC_LINK" && test -n "$CSC_KEY_PASSWORD" && test -n "$APPLE_ID" && test -n "$APPLE_APP_SPECIFIC_PASSWORD" && test -n "$APPLE_TEAM_ID" || {
-            echo 'MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID secrets are required.' >&2
+            echo 'APPLE_DEVELOPER_ID_CERTIFICATE, APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID secrets are required.' >&2
             exit 1
           }
       - run: npx electron-builder --mac --publish never
