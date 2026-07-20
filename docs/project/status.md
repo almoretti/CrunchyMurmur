@@ -32,13 +32,13 @@ Automated gates include JavaScript syntax validation, store/security unit tests,
 - Cloud and CLI integrations remain subject to their providers' availability, terms, and pricing.
 - Uninstallers preserve app data. Users can export or delete it from General settings before uninstalling.
 
-## Remaining release blockers outside source control
+## Release trust status
 
-The source and workflow are release-ready, but a public stable release must not be created until all of these external conditions are met:
+The source and workflow are release-ready with the following external trust conditions:
 
-- trusted Windows code-signing credentials are configured in GitHub Actions;
+- Windows packages use a temporary self-signed publisher certificate valid through 10 July 2027; SmartScreen may warn until it is replaced by a publicly trusted certificate;
 - Apple Developer ID signing and notarization credentials are configured;
-- signed packages pass the clean-device matrix in the [release guide](../releasing.md).
+- published packages must pass the clean-device matrix in the [release guide](../releasing.md).
 
 The repository is public, private vulnerability reporting is enabled, and `main` is protected by cross-platform CI, packaged Windows, and CodeQL checks.
 

@@ -5,6 +5,8 @@ Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-20
+
 ### Added
 
 - A pinned, bundled whisper.cpp runtime and persistent local Whisper sessions through a supervised `whisper-server`, including model preloading, shared meeting/dictation reuse, timing diagnostics, idle cleanup, and a safe bundled `whisper-cli` fallback.
@@ -28,10 +30,9 @@ Versioning and the Keep a Changelog structure.
 - Replaced the placeholder in-app waveform glyph and legacy orange/blue package variants with one palette-aligned five-bar app mark across title bar, tray, Windows, macOS, and Linux artifacts.
 - Reframed Engine settings around complementary Parakeet, Whisper, and Groq choices, with language-coverage guidance and accurate model speed/accuracy labels.
 - Windows ARM64 packages use the verified x64 local transcription helpers through the operating system's built-in emulation, matching the existing Whisper compatibility strategy.
+- Windows installers use a temporary self-signed publisher certificate, valid through 10 July 2027, while the project completes publicly trusted code-signing onboarding.
 
-## [1.0.0] - 2026-07-10
-
-### Added
+### Initial production foundation
 
 - Automated syntax and store/security tests.
 - Cross-platform CI, Electron smoke tests, and open-source contribution and security policies.
@@ -48,7 +49,7 @@ Versioning and the Keep a Changelog structure.
 - Permission status and audio-only meeting retention controls.
 - Linux Electron UI coverage and stable x64 AppImage/Debian artifact names.
 
-### Changed
+### Foundation changes
 
 - Hardened IPC, navigation, permissions, AI CLI isolation, secret handling,
   file persistence, calendar fetching, and model download validation.

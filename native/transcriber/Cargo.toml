@@ -1,6 +1,6 @@
 [package]
 name = "crunchymurmur-transcriber"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2024"
 license = "MIT"
 description = "Bundled local transcription helper for CrunchyMurmur"
@@ -15,4 +15,3 @@ transcribe-rs = { version = "=0.3.11", features = ["onnx"] }
 lto = "thin"
 codegen-units = 1
 strip = true
-

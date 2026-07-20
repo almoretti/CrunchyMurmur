@@ -40,7 +40,7 @@ if (!extraResources.some((entry) => entry.from === 'docs/legal/privacy.md' && en
 if (!extraResources.some((entry) => entry.from === 'docs/legal/terms.md' && entry.to === 'TERMS.md')) failures.push('Packaged terms document mapping is missing.');
 if (pkg.desktopName !== 'CrunchyMurmur') failures.push('Linux desktop window association is not configured.');
 if (!pkg.scripts?.['build:linux']?.includes('normalize-linux-artifacts')) failures.push('Linux release artifacts are not normalized to stable x64 names.');
-if (pkg.version.startsWith('0.')) failures.push('Stable releases must use version 1.0.0 or newer.');
+if (!/^\d+\.\d+\.\d+$/.test(pkg.version) || pkg.version === '0.0.0') failures.push('Stable releases must use a non-zero semantic version without a prerelease suffix.');
 if (lock.packages?.['']?.version !== pkg.version) failures.push('package-lock.json version does not match package.json.');
 if (!pkg.build?.mac?.notarize) failures.push('macOS notarization is not required by the build configuration.');
 if (!releaseWorkflow.includes('forceCodeSigning=true')) failures.push('Release workflow does not require Windows code signing.');

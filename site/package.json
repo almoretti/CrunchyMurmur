@@ -1,6 +1,6 @@
 {
   "name": "crunchymurmur-site",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Landing page for CrunchyMurmur, deployed to Railway from this subfolder.",
   "scripts": {
