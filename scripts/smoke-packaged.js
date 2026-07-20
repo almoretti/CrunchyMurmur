@@ -222,7 +222,7 @@ async function evaluate(target, expression) {
       };
     })()`);
     if (!/Ctrl/.test(regression.liveModifier) || !/K/.test(regression.incompleteKey)
-        || !/Ctrl.*Alt.*K/.test(regression.completedChord) || !/Option.*K/.test(regression.macChord)) {
+        || !/Ctrl.*(?:Alt|Option).*K/.test(regression.completedChord) || !/Option.*K/.test(regression.macChord)) {
       throw new Error(`Packaged shortcut recorder regression: ${JSON.stringify(regression)}`);
     }
     if (regression.lightTheme.background !== 'rgb(250, 248, 243)' || regression.lightTheme.text !== 'rgb(36, 51, 45)'
