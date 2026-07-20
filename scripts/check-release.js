@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { isNightlyVersion } = require('./release-version');
+const { isNightlyVersion, isStableVersion } = require('./release-version');
 
 const root = path.resolve(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -46,7 +46,7 @@ if (pkg.desktopName !== 'CrunchyMurmur') failures.push('Linux desktop window ass
 if (!pkg.scripts?.['build:linux']?.includes('normalize-linux-artifacts')) failures.push('Linux release artifacts are not normalized to stable x64 names.');
 const releaseTag = process.env.RELEASE_TAG || (process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : '');
 const nightlyBuild = isNightlyVersion(pkg.version);
-if (!/^\d+\.\d+\.\d+$/.test(pkg.version) && !nightlyBuild) failures.push('Release version must be stable semantic versioning or the supported Nightly format.');
+if (!isStableVersion(pkg.version) && !nightlyBuild) failures.push('Release version must be stable semantic versioning or the supported Nightly format.');
 if (pkg.version === '0.0.0') failures.push('Release version must be non-zero.');
 if (lock.packages?.['']?.version !== pkg.version) failures.push('package-lock.json version does not match package.json.');
 if (!pkg.build?.mac?.notarize) failures.push('macOS notarization is not required by the build configuration.');

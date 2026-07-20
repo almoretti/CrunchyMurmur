@@ -7,6 +7,7 @@ let status = { state: 'idle', message: 'Updates have not been checked yet.' };
 let notify = () => {};
 let getPreferences = () => ({});
 let onDowngradeConsumed = () => {};
+const downgradeRetryDelays = [0, 100, 500];
 
 function setStatus(state, message, extra = {}) {
   status = { state, message, ...extra };
@@ -50,10 +51,23 @@ function init({ onStatus, getUpdatePreferences, onUpdateDowngradeConsumed } = {}
   });
   autoUpdater.on('update-downloaded', async (info) => {
     if (autoUpdater.allowDowngrade) {
-      try {
-        await onDowngradeConsumed();
-      } catch (error) {
-        log.error('[updater] failed to clear confirmed downgrade:', error);
+      let persistenceError;
+      for (const delay of downgradeRetryDelays) {
+        if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+        try {
+          await onDowngradeConsumed();
+          persistenceError = null;
+          break;
+        } catch (error) {
+          persistenceError = error;
+          log.error('[updater] failed to clear confirmed downgrade:', error);
+        }
+      }
+      if (persistenceError) {
+        autoUpdater.allowDowngrade = false;
+        autoUpdater.autoInstallOnAppQuit = false;
+        setStatus('error', friendlyError(persistenceError));
+        return;
       }
     }
     setStatus('ready', `CrunchyMurmur ${info.version} is ready to install.`, { version: info.version });
