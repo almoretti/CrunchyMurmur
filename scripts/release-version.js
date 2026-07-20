@@ -1,7 +1,8 @@
 const SEMVER_NUMBER = '(?:0|[1-9]\\d*)';
 const STABLE_VERSION = new RegExp(`^${SEMVER_NUMBER}\\.${SEMVER_NUMBER}\\.${SEMVER_NUMBER}$`);
-const NIGHTLY_VERSION = new RegExp(`^${SEMVER_NUMBER}\\.${SEMVER_NUMBER}\\.${SEMVER_NUMBER}-nightly\\.\\d{8}\\.\\d+$`);
-const RELEASE_TAG = new RegExp(`^v(${SEMVER_NUMBER}\\.${SEMVER_NUMBER}\\.${SEMVER_NUMBER})(-nightly\\.\\d{8}\\.\\d+)?$`);
+const NIGHTLY_SUFFIX = `nightly\\.[1-9]\\d{7}\\.${SEMVER_NUMBER}`;
+const NIGHTLY_VERSION = new RegExp(`^${SEMVER_NUMBER}\\.${SEMVER_NUMBER}\\.${SEMVER_NUMBER}-${NIGHTLY_SUFFIX}$`);
+const RELEASE_TAG = new RegExp(`^v(${SEMVER_NUMBER}\\.${SEMVER_NUMBER}\\.${SEMVER_NUMBER})(-${NIGHTLY_SUFFIX})?$`);
 
 function isNightlyVersion(version) {
   return NIGHTLY_VERSION.test(String(version || ''));
