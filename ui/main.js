@@ -2110,9 +2110,15 @@ updateChannelEl.addEventListener('change', async () => {
   try {
     const cfg = await window.wisper.setUpdateChannel(next, confirmDowngrade);
     window.__lastSettings = cfg;
-    renderUpdateStatus(await window.wisper.checkForUpdates());
   } catch (error) {
     updateChannelEl.value = previous;
+    generalSaveStatusEl.style.color = 'var(--danger)';
+    generalSaveStatusEl.textContent = error.message || String(error);
+    return;
+  }
+  try {
+    renderUpdateStatus(await window.wisper.checkForUpdates());
+  } catch (error) {
     generalSaveStatusEl.style.color = 'var(--danger)';
     generalSaveStatusEl.textContent = error.message || String(error);
   }

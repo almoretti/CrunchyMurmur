@@ -49,7 +49,13 @@ function init({ onStatus, getUpdatePreferences, onUpdateDowngradeConsumed } = {}
     setStatus('error', friendlyError(err));
   });
   autoUpdater.on('update-downloaded', async (info) => {
-    if (autoUpdater.allowDowngrade) onDowngradeConsumed();
+    if (autoUpdater.allowDowngrade) {
+      try {
+        await onDowngradeConsumed();
+      } catch (error) {
+        log.error('[updater] failed to clear confirmed downgrade:', error);
+      }
+    }
     setStatus('ready', `CrunchyMurmur ${info.version} is ready to install.`, { version: info.version });
     const result = await dialog.showMessageBox({
       type: 'info',

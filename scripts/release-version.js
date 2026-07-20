@@ -1,3 +1,7 @@
+function isNightlyVersion(version) {
+  return /^\d+\.\d+\.\d+-nightly\.\d{8}\.\d+$/.test(String(version || ''));
+}
+
 function metadataForRelease(tag, repositoryVersion) {
   const value = String(tag || '');
   const match = value.match(/^v(\d+\.\d+\.\d+)(-nightly\.\d{8}\.\d+)?$/);
@@ -9,4 +13,4 @@ function metadataForRelease(tag, repositoryVersion) {
   return { version: value.slice(1), channel: prerelease ? 'nightly' : 'latest', prerelease };
 }
 
-module.exports = { metadataForRelease };
+module.exports = { isNightlyVersion, metadataForRelease };
