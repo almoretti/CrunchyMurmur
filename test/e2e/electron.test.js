@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { _electron: electron } = require('@playwright/test');
+const { version: appVersion } = require('../../package.json');
 
 test('desktop shell opens and exposes stable settings controls', { timeout: 30_000 }, async (t) => {
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-e2e-'));
@@ -331,7 +332,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.equal(layout.tabFits, true, 'General tab has horizontal overflow');
   assert.equal(Math.max(...layout.cardWidths) - Math.min(...layout.cardWidths), 0, 'General cards have inconsistent widths');
   assert.equal(layout.statusContained, true, 'update status escaped its card');
-  assert.match(await page.locator('#appDetails').textContent(), /CrunchyMurmur 1\.0\.0/);
+  assert.equal((await page.locator('#appDetails').textContent()).startsWith(`CrunchyMurmur ${appVersion} · `), true);
   assert.equal(await page.locator('#deleteData').isVisible(), true);
   assert.equal(await page.locator('#audioRetentionPolicy option').count(), 5);
   assert.equal(await page.locator('#permissionsList .permission-row').count(), 5);

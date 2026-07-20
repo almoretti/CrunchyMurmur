@@ -53,7 +53,7 @@ Notes are ordinary Markdown files in your Documents folder, so they remain porta
 
 ## Install
 
-Download the latest signed package from [GitHub Releases](https://github.com/a-streetcoder/CrunchyMurmur/releases/latest), or use the verified terminal installer.
+Download the latest package from [GitHub Releases](https://github.com/a-streetcoder/CrunchyMurmur/releases/latest), or use the verified terminal installer.
 
 **Windows — PowerShell**
 
@@ -69,7 +69,7 @@ curl -fsSL https://raw.githubusercontent.com/a-streetcoder/CrunchyMurmur/main/in
 
 The scripts detect your operating system and architecture, download the latest release, and verify it against the published SHA-256 digest before installation. See [Getting started](docs/getting-started.md) for manual packages and first-run setup.
 
-> CrunchyMurmur is preparing its first public signed release. Until one appears on the Releases page, build from source; the terminal installer and in-app updater intentionally refuse unpublished builds.
+> **Windows trust notice:** Windows installers are Authenticode-signed with the temporary self-signed publisher certificate `CN=CrunchyMurmur Temporary Self-Signed Publisher`, valid through 10 July 2027. SmartScreen may warn because the certificate is not issued by a publicly trusted certificate authority. Verify `SHA256SUMS` and the GitHub provenance attestation before installing. macOS packages are Developer ID signed and notarized.
 
 ## Choose where transcription happens
 

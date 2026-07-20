@@ -8,7 +8,7 @@ Use a package from the latest GitHub Release or the verified terminal installer 
 - macOS: open the universal DMG and copy CrunchyMurmur to Applications.
 - Linux: use the x64 or ARM64 AppImage, or install the matching Debian package.
 
-Production Windows and macOS artifacts are signed; macOS artifacts are notarized. Every release includes `SHA256SUMS`, an SPDX SBOM, and GitHub provenance attestations.
+macOS artifacts are Developer ID signed and notarized. Windows artifacts are Authenticode-signed with the temporary self-signed publisher certificate `CN=CrunchyMurmur Temporary Self-Signed Publisher`, valid through 10 July 2027; SmartScreen may warn because it is not issued by a publicly trusted certificate authority. Every release includes `SHA256SUMS`, an SPDX SBOM, and GitHub provenance attestations so downloads can be verified independently.
 
 ## 2. Choose a transcription engine
 

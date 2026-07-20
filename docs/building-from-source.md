@@ -35,14 +35,14 @@ Application data lives outside the source directory and is preserved when the so
 PowerShell:
 
 ```powershell
-./scripts/source/run-from-source.ps1 -Ref v1.0.0 -NoLaunch
+./scripts/source/run-from-source.ps1 -Ref v0.1.0 -NoLaunch
 ./scripts/source/run-from-source.ps1 -Directory 'D:\Apps\CrunchyMurmurSource' -NoLaunch
 ```
 
 macOS or Linux:
 
 ```sh
-./scripts/source/run-from-source.sh --ref v1.0.0 --no-launch
+./scripts/source/run-from-source.sh --ref v0.1.0 --no-launch
 ./scripts/source/run-from-source.sh --directory "$HOME/Applications/CrunchyMurmurSource" --no-launch
 ```
 

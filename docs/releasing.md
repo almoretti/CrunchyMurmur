@@ -19,6 +19,8 @@ Configure these GitHub Actions secrets:
 
 The Apple credentials may be organisation-level secrets restricted to this repository. The workflow writes the notarisation key to the macOS runner only for the signed build and does not persist it as an artifact.
 
+The initial Windows certificate is the temporary self-signed publisher `CN=CrunchyMurmur Temporary Self-Signed Publisher`, valid through 10 July 2027. Replace it with a publicly trusted code-signing certificate before expiry. Until then, release notes and download pages must disclose that SmartScreen may warn and direct users to the published checksums and provenance attestations.
+
 Enable GitHub private vulnerability reporting, require pull requests and CI on `main`, enable Dependabot security updates, and restrict who may create `v*` tags. Use a GitHub Environment with required reviewers for the release secrets if the repository's plan supports it.
 
 ## Release procedure
@@ -26,7 +28,7 @@ Enable GitHub private vulnerability reporting, require pull requests and CI on `
 1. Update `CHANGELOG.md` and set the same stable version in `package.json` and `package-lock.json`.
 2. Run `npm ci`, `npm run check`, `npm audit --audit-level=high`, and `npm run release:check` from a clean checkout. CI also parses both source bootstraps on their native shells.
 3. Merge the reviewed release commit to `main`.
-4. Create and push the matching annotated tag, for example `v1.0.0`.
+4. Create and push the matching annotated tag, for example `v0.1.0`.
 5. The Release workflow validates the tag/version pair, builds and signs Windows x64/arm64, signs and notarizes macOS universal, and builds Linux x64/arm64 AppImage and Debian packages.
 6. Each platform job verifies that its updater manifest references files that were actually built.
 7. The publish job creates an SPDX SBOM and `SHA256SUMS`, generates GitHub build-provenance attestations, and publishes the immutable GitHub Release.
@@ -55,7 +57,7 @@ Prefix any name with `https://github.com/a-streetcoder/CrunchyMurmur/releases/la
 
 ## Verification
 
-- Windows: inspect Authenticode with `Get-AuthenticodeSignature` and confirm a valid trusted signer.
+- Windows: inspect Authenticode with `Get-AuthenticodeSignature`, confirm the expected `CrunchyMurmur Temporary Self-Signed Publisher` subject and 10 July 2027 expiry, and verify the file digest against `SHA256SUMS`. A clean machine may report the self-signed chain as untrusted even when the signature and digest are intact.
 - macOS: run `codesign --verify --deep --strict`, `spctl --assess --type execute`, and `xcrun stapler validate` against the installed application/package.
 - Linux and all platforms: compare the artifact SHA-256 with `SHA256SUMS` and verify the GitHub attestation with GitHub CLI.
 - Confirm the app's updater discovers the release and applies it from the previous stable version.

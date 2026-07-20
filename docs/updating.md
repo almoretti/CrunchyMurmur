@@ -34,4 +34,4 @@ This is also the supported update path for Debian packages. App data is preserve
 
 ## Trust and verification
 
-Each release includes signed packages where supported, `SHA256SUMS`, an SPDX SBOM, GitHub build-provenance attestations, and updater manifests checked against the uploaded files before publication. Release assets are immutable by policy: a bad release is corrected with a newer patch release rather than silently replacing files.
+Each release includes signed packages where supported, `SHA256SUMS`, an SPDX SBOM, GitHub build-provenance attestations, and updater manifests checked against the uploaded files before publication. Until 10 July 2027, Windows packages use a temporary self-signed publisher certificate and may trigger SmartScreen warnings; verify the checksum and provenance before installing. Release assets are immutable by policy: a bad release is corrected with a newer patch release rather than silently replacing files.
