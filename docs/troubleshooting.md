@@ -42,6 +42,7 @@ CrunchyMurmur rejects recordings shorter than half a second and clips whose sign
 
 - Confirm that a public stable release exists and GitHub is reachable.
 - Prereleases are intentionally ignored.
+- On Windows 0.1.0 or 0.1.1, a “not signed by the application owner” error for the temporary publisher requires one manual upgrade to 0.1.2 or later. See [Updating](updating.md#windows-012-bootstrap).
 - Debian packages update by rerunning the terminal installer.
 - Check **General → Automatic updates** for the bounded status message.
 

@@ -5,6 +5,12 @@ Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-21
+
+### Fixed
+
+- Windows updates signed by the pinned temporary publisher certificate can now install automatically even when Windows reports its self-signed trust chain as unknown. Electron's trusted-signature verification remains the primary path, and unsigned, altered, expired, or differently signed packages remain blocked.
+
 ## [0.1.1] - 2026-07-21
 
 ### Added
