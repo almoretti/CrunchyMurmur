@@ -92,6 +92,8 @@ test('Windows signature inspection asks PowerShell for bounded certificate metad
   assert.equal(invocation.command, 'powershell.exe');
   assert.deepEqual(invocation.args.slice(0, 4), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass']);
   assert.equal(invocation.args[4], '-EncodedCommand');
+  const script = Buffer.from(invocation.args[5], 'base64').toString('utf16le');
+  assert.ok(script.includes("-LiteralPath 'C:\\Downloads\\Owner''s update.exe'"));
   assert.equal(invocation.options.windowsHide, true);
   assert.equal(invocation.options.timeout, 15_000);
   assert.deepEqual(inspected, {
