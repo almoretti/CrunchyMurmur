@@ -21,6 +21,8 @@ The Apple credentials may be organisation-level secrets restricted to this repos
 
 The initial Windows certificate is the temporary self-signed publisher `CN=CrunchyMurmur Temporary Self-Signed Publisher`, valid through 10 July 2027. Replace it with a publicly trusted code-signing certificate before expiry. Until then, release notes and download pages must disclose that SmartScreen may warn and direct users to the published checksums and provenance attestations.
 
+Starting with 0.1.2, the Windows updater has a narrowly scoped fallback for certificate fingerprint `44C466EA973008A8D4C3B18775795AC9549810F2` because Windows reports its untrusted self-signed chain as `UnknownError`. Electron's normal trusted-signature verifier always runs first. Keep the pinned fingerprint aligned with the release secret, never broaden the fallback to a publisher name alone, and remove the fallback when the temporary certificate is replaced. Users on 0.1.0 or 0.1.1 must install 0.1.2 manually once before automatic updates can resume.
+
 Enable GitHub private vulnerability reporting, require pull requests and CI on `main`, enable Dependabot security updates, and restrict who may create `v*` tags. Use a GitHub Environment with required reviewers for the release secrets if the repository's plan supports it.
 
 ## Release procedure

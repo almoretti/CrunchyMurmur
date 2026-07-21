@@ -15,6 +15,12 @@ Packaged Windows, macOS, and Linux AppImage builds use the channel selected unde
 
 Use **General → Automatic updates → Check now** to request a check and read the current status. Changing channels also checks immediately.
 
+### Windows 0.1.2 bootstrap
+
+Versions 0.1.0 and 0.1.1 cannot automatically install a Windows update signed with the temporary self-signed certificate because Electron treats the untrusted certificate chain as a publisher mismatch. Install 0.1.2 once using the Windows terminal installer or the installer from GitHub Releases. Automatic updates work again from 0.1.2 onward.
+
+The 0.1.2 updater keeps Electron's normal trusted-certificate verification as its primary path. Its temporary fallback accepts only the exact CrunchyMurmur certificate fingerprint, expected publisher subject, matching installer path, valid certificate dates, and Windows' `UnknownError` trust-chain state. Unsigned installers, altered signatures, expired certificates, and any other signer remain blocked. The fallback will be removed after migration to a publicly trusted Windows certificate.
+
 ## Manual updates
 
 Run the same terminal installer again. It resolves the latest Stable release and verifies the downloaded package against `SHA256SUMS` before installing it. Terminal installers do not install Nightly builds.

@@ -2,6 +2,7 @@ const { app, dialog } = require('electron');
 const log = require('electron-log/main');
 const { autoUpdater } = require('electron-updater');
 const { applyUpdateChannelPolicy } = require('./update-channel');
+const { installWindowsUpdateSignatureVerifier } = require('./windows-update-signature');
 
 let status = { state: 'idle', message: 'Updates have not been checked yet.' };
 let notify = () => {};
@@ -38,6 +39,7 @@ function init({ onStatus, getUpdatePreferences, onUpdateDowngradeConsumed } = {}
   autoUpdater.logger = log;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  installWindowsUpdateSignatureVerifier(autoUpdater, { logger: log });
   configure();
   autoUpdater.fullChangelog = false;
 
