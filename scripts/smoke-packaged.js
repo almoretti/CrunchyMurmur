@@ -160,7 +160,7 @@ async function evaluate(target, expression) {
       if (document.getElementById('localBackendReadiness').textContent.includes('Checking')) {
         throw new Error('Local acceleration status did not settle within the readiness timeout.');
       }
-      const tab = document.getElementById('tab-engine');
+      const tab = document.getElementById('settings-transcription');
       const visible = (element) => element.getClientRects().length > 0;
       const cards = [...tab.querySelectorAll('.card')].filter(visible);
       const modules = [...tab.querySelectorAll('.engine-radio .radio')].filter(visible);
