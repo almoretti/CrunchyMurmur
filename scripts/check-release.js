@@ -83,7 +83,9 @@ const tag = releaseTag;
 if (tag && tag !== `v${pkg.version}`) failures.push(`Tag ${tag} does not match package version v${pkg.version}.`);
 
 if (process.env.CI) {
-  const dirtyLines = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+  // No trim() on the whole output: it would eat the leading status space
+  // of the first porcelain line and misalign the path slice below.
+  const dirtyLines = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).split(/\r?\n/).filter((line) => line.trim());
   const allowed = nightlyBuild ? new Set(['package.json', 'package-lock.json']) : new Set();
   const dirty = dirtyLines.filter((line) => !allowed.has(line.slice(3)));
   if (dirty.length) failures.push(`Release checkout is dirty: ${dirty.join(' | ')}`);
