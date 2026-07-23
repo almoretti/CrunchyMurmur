@@ -977,6 +977,7 @@ const aiNotesSendBtn = document.getElementById('aiNotesSendBtn');
 let meetingsList = [];
 let selectedMeeting = null;
 let activeMeetingId = null; // currently-recording meeting (if any)
+let generatingNotesForMeetingId = null; // meeting with AI-note generation in flight
 let mtgMediaStream = null;
 let mtgAudioCtx = null;
 let mtgProcessor = null;
@@ -1048,6 +1049,15 @@ function renderMeetingDetail() {
   aiNotesMeetingBtn.hidden = isRecording || !selectedMeeting.transcript;
   meetingTemplateSelect.hidden = aiNotesMeetingBtn.hidden && !selectedMeeting.aiNotes;
   populateMeetingTemplateSelect();
+  // Generation state is rendered (not toggled imperatively) so switching
+  // meetings mid-generation shows each meeting's own state.
+  const generatingHere = generatingNotesForMeetingId === selectedMeeting.id;
+  aiNotesMeetingBtn.disabled = generatingHere;
+  aiNotesRegenBtn.disabled = generatingHere;
+  meetingTemplateSelect.disabled = generatingHere;
+  aiNotesMeetingBtn.textContent = generatingHere ? window.i18n.t('Generating…') : window.i18n.t('Generate');
+  if (generatingHere) meetingAiNotesEmptyEl.textContent = window.i18n.t('Generating AI notes with the selected template…');
+  else if (meetingAiNotesEmptyEl.innerHTML !== meetingAiNotesEmptyHtml) meetingAiNotesEmptyEl.innerHTML = meetingAiNotesEmptyHtml;
   deleteMeetingBtn.hidden = isRecording;
 
   if (isRecording) {
@@ -1394,29 +1404,24 @@ window.wisper.onMeetingTranscriptionProgress((progress) => {
 });
 
 async function generateMeetingAINotes() {
-  if (!selectedMeeting) return;
-  // The template comes from the inline picker next to Generate.
+  if (!selectedMeeting || generatingNotesForMeetingId) return;
+  // The template comes from the inline picker next to Generate. The meeting
+  // id is captured so a user switching meetings while generation is in
+  // flight never has the stale result clobber the newly selected meeting.
+  const meetingId = selectedMeeting.id;
   const templateId = meetingTemplateSelect.value;
-  const previousLabel = aiNotesMeetingBtn.textContent;
-  aiNotesMeetingBtn.disabled = true;
-  aiNotesRegenBtn.disabled = true;
-  aiNotesMeetingBtn.textContent = window.i18n.t('Generating…');
-  meetingAiNotesEmptyEl.textContent = window.i18n.t('Generating AI notes with the selected template…');
+  generatingNotesForMeetingId = meetingId;
+  renderMeetingDetail();
   try {
-    const r = await window.wisper.meetingsGenerateAINotes(selectedMeeting.id, templateId);
+    const r = await window.wisper.meetingsGenerateAINotes(meetingId, templateId);
     if (!r.ok) {
       alert(window.i18n.t('Generation failed: {0}', { 0: r.error }));
       return;
     }
-    selectedMeeting = r.meeting;
-    renderMeetingsAll();
+    if (selectedMeeting?.id === meetingId) selectedMeeting = r.meeting;
   } finally {
-    aiNotesMeetingBtn.disabled = false;
-    aiNotesRegenBtn.disabled = false;
-    aiNotesMeetingBtn.textContent = previousLabel;
-    meetingAiNotesEmptyEl.textContent = '';
-    // Restore the localised empty-state copy for the next render.
-    meetingAiNotesEmptyEl.innerHTML = meetingAiNotesEmptyHtml;
+    generatingNotesForMeetingId = null;
+    renderMeetingsAll();
   }
 }
 
