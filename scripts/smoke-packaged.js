@@ -110,7 +110,8 @@ async function evaluate(target, expression) {
       if (!window.__lastSettings) throw new Error('Renderer settings did not finish loading.');
       const keyText = () => document.getElementById('hotkeyDisplay').innerText;
       const painted = () => new Promise((resolve) => setTimeout(resolve, 75));
-      document.querySelector('[data-tab="general"]').click();
+      document.querySelector('[data-tab="settings"]').click();
+      document.querySelector('.settings-nav-item[data-settings-section="general"]').click();
       document.getElementById('recordHotkey').click();
       window.dispatchEvent(new KeyboardEvent('keydown', { key:'Control', code:'ControlLeft', ctrlKey:true, bubbles:true, cancelable:true }));
       const liveModifier = keyText();
@@ -141,7 +142,7 @@ async function evaluate(target, expression) {
       await window.wisper.saveSettings({ theme: 'system' });
       await painted();
 
-      document.querySelector('[data-tab="engine"]').click();
+      document.querySelector('.settings-nav-item[data-settings-section="transcription"]').click();
       window.i18n.setLocale('en', 'en');
       for (let attempt = 0; attempt < 50 && document.getElementById('parakeetReadiness').textContent.includes('Checking'); attempt++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -159,7 +160,7 @@ async function evaluate(target, expression) {
       if (document.getElementById('localBackendReadiness').textContent.includes('Checking')) {
         throw new Error('Local acceleration status did not settle within the readiness timeout.');
       }
-      const tab = document.getElementById('tab-engine');
+      const tab = document.getElementById('settings-transcription');
       const visible = (element) => element.getClientRects().length > 0;
       const cards = [...tab.querySelectorAll('.card')].filter(visible);
       const modules = [...tab.querySelectorAll('.engine-radio .radio')].filter(visible);
@@ -199,7 +200,7 @@ async function evaluate(target, expression) {
         throw new Error('Model metadata did not become ready: ' + JSON.stringify(modelQualities));
       }
 
-      document.querySelector('[data-tab="templates"]').click();
+      document.querySelector('.settings-nav-item[data-settings-section="templates"]').click();
       const templateTextarea = document.getElementById('templateInstructions');
       const templateEditor = templateTextarea.__crunchyEditor;
       const originalTemplate = templateEditor.getValue();

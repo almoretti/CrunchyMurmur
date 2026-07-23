@@ -27,14 +27,12 @@
         <button type="button" class="nav-item" data-tab="history" data-i18n="Recordings">Recordings</button>
         <button type="button" class="nav-item" data-tab="meetings" data-i18n="Meetings">Meetings</button>
         <button type="button" class="nav-item" data-tab="notes" data-i18n="Notes">Notes</button>
-
-        <div class="nav-section-title">Configuration</div>
-        <button type="button" class="nav-item" data-tab="templates" data-i18n="Templates">Templates</button>
-        <button type="button" class="nav-item" data-tab="engine" data-i18n="Engine">Engine</button>
-        <button type="button" class="nav-item" data-tab="general" data-i18n="General">General</button>
       </nav>
       <div class="hint" id="sidebarHint">
         Hold <kbd>Ctrl</kbd>+<kbd>Win</kbd> anywhere to dictate.
+      </div>
+      <div class="sidebar-footer">
+        <button type="button" class="nav-item nav-settings" data-tab="settings" data-i18n="Settings">Settings</button>
       </div>
     </aside>
 
@@ -126,6 +124,7 @@
             <div class="meeting-section">
               <div class="meeting-section-head">
                 <h3>AI notes</h3>
+                <select id="meetingTemplateSelect" class="meeting-template-select" aria-label="AI notes template" hidden></select>
                 <button id="aiNotesMeetingBtn" class="primary-button" hidden>Generate</button>
               </div>
               <div id="meetingAiNotesBox" class="meeting-ai-box">
@@ -209,7 +208,21 @@
       </section>
 
       <!-- Templates -->
-      <section id="tab-templates" class="tab templates-tab">
+      <!-- Settings -->
+      <section id="tab-settings" class="tab settings-tab">
+        <nav class="settings-nav" aria-label="Settings sections">
+          <button type="button" class="settings-nav-item active" data-settings-section="general" data-i18n="General">General</button>
+          <button type="button" class="settings-nav-item" data-settings-section="appearance" data-i18n="Appearance">Appearance</button>
+          <button type="button" class="settings-nav-item" data-settings-section="audio" data-i18n="Audio and language">Audio and language</button>
+          <button type="button" class="settings-nav-item" data-settings-section="transcription" data-i18n="Transcription">Transcription</button>
+          <button type="button" class="settings-nav-item" data-settings-section="formatting" data-i18n="AI formatting">AI formatting</button>
+          <button type="button" class="settings-nav-item" data-settings-section="ai-notes" data-i18n="AI notes">AI notes</button>
+          <button type="button" class="settings-nav-item" data-settings-section="templates" data-i18n="Templates">Templates</button>
+          <button type="button" class="settings-nav-item" data-settings-section="data" data-i18n="Data and privacy">Data and privacy</button>
+        </nav>
+        <div class="settings-body">
+
+      <div id="settings-templates" class="settings-section templates-tab">
         <aside class="templates-list-pane">
           <header class="notes-pane-header"><span>AI Notes templates</span></header>
           <ul id="templatesList" class="templates-list"></ul>
@@ -242,10 +255,10 @@
             <p>Choose a template on the left to edit its name, description, and prompt instructions. Edits save as overrides — you can always revert to the bundled default.</p>
           </div>
         </main>
-      </section>
+      </div>
 
-      <!-- Engine -->
-      <section id="tab-engine" class="tab">
+      <!-- Transcription -->
+      <div id="settings-transcription" class="settings-section">
         <div class="settings-pane">
           <h2 id="engineTranscription" data-i18n="Transcription">Transcription</h2>
           <p class="muted">
@@ -353,8 +366,13 @@
             </div>
             <div id="modelsList" class="models-list"></div>
           </section>
+        </div>
+      </div>
 
-          <h2 id="engineAiNotes" data-i18n="AI Notes" style="margin-top:24px">AI Notes</h2>
+      <!-- AI notes -->
+      <div id="settings-ai-notes" class="settings-section">
+        <div class="settings-pane">
+          <h2 id="engineAiNotes" data-i18n="AI Notes">AI Notes</h2>
           <p class="muted">
             Provider used to generate summaries from your recordings (and meetings, when those land).
             Right-click any recording → <em>Generate AI note</em> to produce a Markdown note saved to
@@ -451,12 +469,12 @@
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       <!-- General -->
-      <section id="tab-general" class="tab">
+      <div id="settings-general" class="settings-section active">
         <div class="settings-pane">
-          <h2>General</h2>
+          <h2 data-i18n="General">General</h2>
 
           <div class="card">
             <label for="uiLocale" data-i18n="Application language">Application language</label>
@@ -473,6 +491,49 @@
           </div>
 
           <div class="card" style="margin-top:12px">
+            <label>Dictation shortcut</label>
+            <input id="hotkey" type="hidden">
+            <div class="row">
+              <div id="hotkeyDisplay" class="hotkey-display" aria-live="polite"></div>
+              <button id="recordHotkey" class="text-button" type="button">Record shortcut</button>
+              <button id="useFnHotkey" class="text-button" type="button" hidden>Use Fn</button>
+            </div>
+            <p id="hotkeyHint" class="muted small">
+              Click Record shortcut, then press the keys you want to use.
+            </p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <label for="updateChannel">Update channel</label>
+            <select id="updateChannel">
+              <option value="stable">Stable</option>
+              <option value="nightly">Nightly</option>
+            </select>
+            <p class="muted small">Nightly receives prerelease builds for testing. They may be less reliable.</p>
+            <label for="autoUpdate">Automatic updates</label>
+            <select id="autoUpdate">
+              <option value="true">Check and download updates automatically</option>
+              <option value="false">Manual checks only</option>
+            </select>
+            <div id="updateStatus" class="update-status" data-state="idle">Updates have not been checked yet.</div>
+            <div class="row update-actions">
+              <button id="checkUpdates" class="text-button" type="button">Check now</button>
+            </div>
+          </div>
+
+          <div class="row end">
+            <span class="muted small general-save-status"></span>
+            <button class="primary-button save-general" data-i18n="Save">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div id="settings-appearance" class="settings-section">
+        <div class="settings-pane">
+          <h2 data-i18n="Appearance">Appearance</h2>
+
+          <div class="card">
             <label>Appearance</label>
             <div id="themeOptions" class="theme-options" role="radiogroup" aria-label="Colour theme">
               <label class="theme-option">
@@ -500,7 +561,19 @@
             <p id="themeHint" class="muted small">System mode follows your operating-system appearance automatically.</p>
           </div>
 
-          <div class="card" style="margin-top:12px">
+          <div class="row end">
+            <span class="muted small general-save-status"></span>
+            <button class="primary-button save-general" data-i18n="Save">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio & language -->
+      <div id="settings-audio" class="settings-section">
+        <div class="settings-pane">
+          <h2 data-i18n="Audio and language">Audio and language</h2>
+
+          <div class="card">
             <label>Microphone</label>
             <div class="row">
               <select id="micDeviceId" style="flex:1">
@@ -545,7 +618,19 @@
             </p>
           </div>
 
-          <div class="card" style="margin-top:12px">
+          <div class="row end">
+            <span class="muted small general-save-status"></span>
+            <button class="primary-button save-general" data-i18n="Save">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI formatting -->
+      <div id="settings-formatting" class="settings-section">
+        <div class="settings-pane">
+          <h2 data-i18n="AI formatting">AI formatting</h2>
+
+          <div class="card">
             <label for="aiFormatEnabled">AI formatting</label>
             <p class="muted small" data-i18n="AI formatting removes filler words and false starts, fixes punctuation and capitalization, and turns spoken lists into bullets. It does not change the intended meaning.">AI formatting removes filler words and false starts, fixes punctuation and capitalization, and turns spoken lists into bullets. It does not change the intended meaning.</p>
             <select id="aiFormatEnabled">
@@ -570,37 +655,27 @@
           </div>
 
           <div class="card" style="margin-top:12px">
-            <label>Dictation shortcut</label>
-            <input id="hotkey" type="hidden">
+            <label for="aiFormatSystemPrompt" data-i18n="Formatting instructions">Formatting instructions</label>
+            <p class="muted small" data-i18n="These are the system instructions the AI receives when cleaning up your dictation. Edit them to change how transcripts are formatted. Leave empty to use the built-in default shown as a placeholder.">These are the system instructions the AI receives when cleaning up your dictation. Edit them to change how transcripts are formatted. Leave empty to use the built-in default shown as a placeholder.</p>
+            <textarea id="aiFormatSystemPrompt" class="prompt-textarea" spellcheck="false"></textarea>
             <div class="row">
-              <div id="hotkeyDisplay" class="hotkey-display" aria-live="polite"></div>
-              <button id="recordHotkey" class="text-button" type="button">Record shortcut</button>
-              <button id="useFnHotkey" class="text-button" type="button" hidden>Use Fn</button>
-            </div>
-            <p id="hotkeyHint" class="muted small">
-              Click Record shortcut, then press the keys you want to use.
-            </p>
-          </div>
-
-          <div class="card" style="margin-top:12px">
-            <label for="updateChannel">Update channel</label>
-            <select id="updateChannel">
-              <option value="stable">Stable</option>
-              <option value="nightly">Nightly</option>
-            </select>
-            <p class="muted small">Nightly receives prerelease builds for testing. They may be less reliable.</p>
-            <label for="autoUpdate">Automatic updates</label>
-            <select id="autoUpdate">
-              <option value="true">Check and download updates automatically</option>
-              <option value="false">Manual checks only</option>
-            </select>
-            <div id="updateStatus" class="update-status" data-state="idle">Updates have not been checked yet.</div>
-            <div class="row update-actions">
-              <button id="checkUpdates" class="text-button" type="button">Check now</button>
+              <button id="resetFormatPrompt" class="text-button" type="button" data-i18n="Reset to default">Reset to default</button>
             </div>
           </div>
 
-          <div class="card" style="margin-top:12px">
+          <div class="row end">
+            <span class="muted small general-save-status"></span>
+            <button class="primary-button save-general" data-i18n="Save">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data & privacy -->
+      <div id="settings-data" class="settings-section">
+        <div class="settings-pane">
+          <h2 data-i18n="Data and privacy">Data and privacy</h2>
+
+          <div class="card">
             <label>Permissions</label>
             <div id="permissionsList" class="permissions-list"></div>
             <p class="muted small">macOS uses Microphone for recording, Audio Capture for call audio, Accessibility and Input Monitoring for Fn push-to-talk, and Calendar for upcoming meetings.</p>
@@ -641,9 +716,12 @@
           </div>
 
           <div class="row end">
-            <span id="generalSaveStatus" class="muted small"></span>
-            <button id="saveGeneral" class="primary-button">Save</button>
+            <span class="muted small general-save-status"></span>
+            <button class="primary-button save-general" data-i18n="Save">Save</button>
           </div>
+        </div>
+      </div>
+
         </div>
       </section>
     </main>

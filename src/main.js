@@ -547,6 +547,9 @@ function shortcutMetadata(cfg = settings.load()) {
     arch: process.arch,
     version: app.getVersion(),
     systemLocale,
+    // Shown in settings so users can see (and start from) the built-in
+    // formatter instructions when customising their own.
+    aiFormatSystemPromptDefault: dictationFormatter.SYSTEM_PROMPT,
     accessibilityTrusted: process.platform !== 'darwin' || systemPreferences.isTrustedAccessibilityClient(false),
   };
 }

@@ -33,6 +33,7 @@ const DEFAULTS = {
   aiFormatEnabled: 'false',
   groqFormatModel: 'llama-3.1-8b-instant',
   aiFormatFallback: 'raw', // raw | anthropic
+  aiFormatSystemPrompt: '', // '' = use the built-in formatter prompt
 
   // AI Notes
   aiNotesProvider: 'anthropic',  // 'anthropic' | 'openai' (claudeCode/codex coming later)

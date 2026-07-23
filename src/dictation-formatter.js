@@ -11,16 +11,24 @@ Rules:
 - Leave short phrases and commands as plain text.
 - Output only the formatted text, with no preamble.`;
 
+// The user can override the formatter instructions in settings; an empty or
+// whitespace-only value falls back to the built-in prompt.
+function effectiveSystemPrompt(settings) {
+  const custom = String(settings.aiFormatSystemPrompt || '').trim();
+  return custom || SYSTEM_PROMPT;
+}
+
 async function format(text, settings) {
   const original = String(text || '').trim();
   if (!original || settings.aiFormatEnabled !== 'true') return original;
+  const systemPrompt = effectiveSystemPrompt(settings);
   try {
     if (settings.groqApiKey) {
       return await groq.generate({
         apiKey: settings.groqApiKey,
         model: settings.groqFormatModel || 'llama-3.1-8b-instant',
         prompt: original,
-        systemPrompt: SYSTEM_PROMPT,
+        systemPrompt,
         maxTokens: 1024,
       });
     }
@@ -28,7 +36,7 @@ async function format(text, settings) {
       return await anthropic.generate({
         apiKey: settings.anthropicApiKey,
         model: 'claude-haiku-4-5',
-        prompt: `${SYSTEM_PROMPT}\n\nRaw transcript:\n${original}`,
+        prompt: `${systemPrompt}\n\nRaw transcript:\n${original}`,
       });
     }
   } catch (error) {
@@ -37,4 +45,4 @@ async function format(text, settings) {
   return original;
 }
 
-module.exports = { format, SYSTEM_PROMPT };
+module.exports = { format, effectiveSystemPrompt, SYSTEM_PROMPT };
