@@ -86,7 +86,7 @@ if (process.env.CI) {
   const dirtyLines = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
   const allowed = nightlyBuild ? new Set(['package.json', 'package-lock.json']) : new Set();
   const dirty = dirtyLines.filter((line) => !allowed.has(line.slice(3)));
-  if (dirty.length) failures.push('Release checkout is dirty.');
+  if (dirty.length) failures.push(`Release checkout is dirty: ${dirty.join(' | ')}`);
 }
 
 if (failures.length) {
