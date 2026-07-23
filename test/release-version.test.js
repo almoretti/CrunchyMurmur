@@ -57,12 +57,16 @@ test('preparing a stable release leaves the default latest channel untouched', (
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'crunchymurmur-release-'));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const original = { version: '0.2.0', build: { publish: { provider: 'github', owner: 'a-streetcoder', repo: 'CrunchyMurmur', releaseType: 'release' } } };
-  fs.writeFileSync(path.join(base, 'package.json'), JSON.stringify(original));
-  fs.writeFileSync(path.join(base, 'package-lock.json'), JSON.stringify({ version: '0.2.0', packages: { '': { version: '0.2.0' } } }));
+  const packageContents = JSON.stringify(original);
+  const lockContents = JSON.stringify({ version: '0.2.0', packages: { '': { version: '0.2.0' } } });
+  fs.writeFileSync(path.join(base, 'package.json'), packageContents);
+  fs.writeFileSync(path.join(base, 'package-lock.json'), lockContents);
 
   const metadata = prepareReleaseVersion(base, 'v0.2.0');
   assert.deepEqual(metadata, { version: '0.2.0', channel: 'latest', prerelease: false });
   // Stable releases must not rewrite the checkout — electron-builder's
-  // default "latest" channel applies.
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(base, 'package.json'), 'utf8')), original);
+  // default "latest" channel applies. Compare raw text so even a
+  // formatting-only rewrite fails the test.
+  assert.equal(fs.readFileSync(path.join(base, 'package.json'), 'utf8'), packageContents);
+  assert.equal(fs.readFileSync(path.join(base, 'package-lock.json'), 'utf8'), lockContents);
 });
