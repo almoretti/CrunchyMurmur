@@ -1,15 +1,31 @@
-// Tab switching
+// Tab switching. Settings is a single tab with its own horizontal section
+// nav; the pre-unification tab names (general/engine/templates) are kept as
+// aliases so existing jump links and callers keep working.
+function switchSettingsSection(section, anchorId = '') {
+  document.querySelectorAll('.settings-nav-item').forEach((button) => button.classList.toggle('active', button.dataset.settingsSection === section));
+  document.querySelectorAll('.settings-section').forEach((s) => s.classList.toggle('active', s.id === 'settings-' + section));
+  if (anchorId) requestAnimationFrame(() => document.getElementById(anchorId)?.scrollIntoView({ block: 'start' }));
+  else document.querySelector('.settings-body')?.scrollTo(0, 0);
+}
 function switchTab(tab, engineSection = '') {
+  const legacySettings = {
+    general: 'general',
+    templates: 'templates',
+    engine: engineSection === 'ai-notes' ? 'ai-notes' : 'transcription',
+  };
+  if (legacySettings[tab]) {
+    switchTab('settings');
+    switchSettingsSection(legacySettings[tab], tab === 'engine' && engineSection === 'models' ? 'engineModels' : '');
+    return;
+  }
   document.querySelectorAll('.nav-item').forEach((button) => button.classList.toggle('active', button.dataset.tab === tab));
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + tab));
-  if (tab === 'engine') {
-    const target = engineSection === 'models' ? document.getElementById('engineModels')
-      : engineSection === 'ai-notes' ? document.getElementById('engineAiNotes') : document.getElementById('engineTranscription');
-    requestAnimationFrame(() => target?.scrollIntoView({ block: 'start' }));
-  }
 }
 document.querySelectorAll('.nav-item').forEach((btn) => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn.dataset.engineSection || ''));
+});
+document.querySelectorAll('.settings-nav-item').forEach((btn) => {
+  btn.addEventListener('click', () => switchSettingsSection(btn.dataset.settingsSection));
 });
 // Allow inline links to jump tabs (e.g. Settings → "Models" hint).
 document.addEventListener('click', (e) => {
@@ -921,7 +937,27 @@ const stopMeetingBtn = document.getElementById('stopMeetingBtn');
 const transcribeMeetingBtn = document.getElementById('transcribeMeetingBtn');
 const cancelTranscriptionBtn = document.getElementById('cancelTranscriptionBtn');
 const aiNotesMeetingBtn = document.getElementById('aiNotesMeetingBtn');
+const meetingTemplateSelect = document.getElementById('meetingTemplateSelect');
 const deleteMeetingBtn = document.getElementById('deleteMeetingBtn');
+
+// Inline template picker next to Generate: pick the template first, then
+// generate — previously the choice was hidden behind a popup.
+function populateMeetingTemplateSelect() {
+  // Re-rendering must not clobber an in-progress user choice, but switching
+  // to another meeting starts from that meeting's stored template.
+  const sameMeeting = meetingTemplateSelect.dataset.meetingId === selectedMeeting?.id;
+  const previous = sameMeeting ? meetingTemplateSelect.value : '';
+  meetingTemplateSelect.dataset.meetingId = selectedMeeting?.id || '';
+  meetingTemplateSelect.innerHTML = '';
+  for (const t of templatesCatalog) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name;
+    meetingTemplateSelect.appendChild(opt);
+  }
+  const preferred = previous || selectedMeeting?.aiTemplateId;
+  if (preferred && templatesCatalog.some((t) => t.id === preferred)) meetingTemplateSelect.value = preferred;
+}
 const meetingUserNotesEl = document.getElementById('meetingUserNotes');
 const meetingNotesEditor = window.CrunchyEditor.mount(meetingUserNotesEl, {
   stats: '#meetingNotesStats',
@@ -932,6 +968,7 @@ const meetingTranscriptEl = document.getElementById('meetingTranscript');
 const meetingTranscriptEmptyEl = document.getElementById('meetingTranscriptEmpty');
 const meetingAiNotesEl = document.getElementById('meetingAiNotes');
 const meetingAiNotesEmptyEl = document.getElementById('meetingAiNotesEmpty');
+const meetingAiNotesEmptyHtml = meetingAiNotesEmptyEl.innerHTML;
 const meetingAiActionsEl = document.getElementById('meetingAiNotesActions');
 const aiNotesCopyBtn = document.getElementById('aiNotesCopyBtn');
 const aiNotesRegenBtn = document.getElementById('aiNotesRegenBtn');
@@ -1009,6 +1046,8 @@ function renderMeetingDetail() {
   stopMeetingBtn.disabled = mtgStopPending;
   transcribeMeetingBtn.hidden = isRecording || (!selectedMeeting.hasMicAudio && !selectedMeeting.hasSystemAudio) || Boolean(selectedMeeting.transcript);
   aiNotesMeetingBtn.hidden = isRecording || !selectedMeeting.transcript;
+  meetingTemplateSelect.hidden = aiNotesMeetingBtn.hidden && !selectedMeeting.aiNotes;
+  populateMeetingTemplateSelect();
   deleteMeetingBtn.hidden = isRecording;
 
   if (isRecording) {
@@ -1250,7 +1289,7 @@ aiNotesCopyBtn.addEventListener('click', async () => {
 
 aiNotesRegenBtn.addEventListener('click', () => {
   if (!selectedMeeting?.transcript) return;
-  // Reuse the same template-picker popover the first generation uses.
+  // Re-generates with whichever template is selected in the inline picker.
   generateMeetingAINotes();
 });
 
@@ -1356,50 +1395,29 @@ window.wisper.onMeetingTranscriptionProgress((progress) => {
 
 async function generateMeetingAINotes() {
   if (!selectedMeeting) return;
-  // Pick template via a small popup, same as Recordings.
-  const popup = document.createElement('div');
-  popup.id = 'ai-note-popup';
-  popup.className = 'ai-note-popup';
-  popup.style.left = '50%';
-  popup.style.top = '120px';
-  popup.style.transform = 'translateX(-50%)';
-  popup.innerHTML = `
-    <div class="ai-pop-header">AI notes for this meeting</div>
-    <label class="ai-pop-label">Template</label>
-    <select id="aiPopMeetingTemplate"></select>
-    <div class="ai-pop-actions">
-      <button class="text-button" id="aiPopMeetingCancel">Cancel</button>
-      <button class="primary-button" id="aiPopMeetingGenerate">Generate</button>
-    </div>
-    <div class="ai-pop-status" id="aiPopMeetingStatus"></div>
-  `;
-  document.body.appendChild(popup);
-  const sel = popup.querySelector('#aiPopMeetingTemplate');
-  for (const t of templatesCatalog) {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.name;
-    if (selectedMeeting.aiTemplateId === t.id) opt.selected = true;
-    sel.appendChild(opt);
-  }
-  const close = () => popup.remove();
-  popup.querySelector('#aiPopMeetingCancel').addEventListener('click', close);
-  popup.querySelector('#aiPopMeetingGenerate').addEventListener('click', async () => {
-    const status = popup.querySelector('#aiPopMeetingStatus');
-    const btn = popup.querySelector('#aiPopMeetingGenerate');
-    status.textContent = 'Generating…';
-    btn.disabled = true;
-    const r = await window.wisper.meetingsGenerateAINotes(selectedMeeting.id, sel.value);
+  // The template comes from the inline picker next to Generate.
+  const templateId = meetingTemplateSelect.value;
+  const previousLabel = aiNotesMeetingBtn.textContent;
+  aiNotesMeetingBtn.disabled = true;
+  aiNotesRegenBtn.disabled = true;
+  aiNotesMeetingBtn.textContent = window.i18n.t('Generating…');
+  meetingAiNotesEmptyEl.textContent = window.i18n.t('Generating AI notes with the selected template…');
+  try {
+    const r = await window.wisper.meetingsGenerateAINotes(selectedMeeting.id, templateId);
     if (!r.ok) {
-      status.textContent = '';
-      alert('Generation failed: ' + r.error);
-      btn.disabled = false;
+      alert(window.i18n.t('Generation failed: {0}', { 0: r.error }));
       return;
     }
     selectedMeeting = r.meeting;
     renderMeetingsAll();
-    close();
-  });
+  } finally {
+    aiNotesMeetingBtn.disabled = false;
+    aiNotesRegenBtn.disabled = false;
+    aiNotesMeetingBtn.textContent = previousLabel;
+    meetingAiNotesEmptyEl.textContent = '';
+    // Restore the localised empty-state copy for the next render.
+    meetingAiNotesEmptyEl.innerHTML = meetingAiNotesEmptyHtml;
+  }
 }
 
 startMeetingBtn.addEventListener('click', startMeeting);
@@ -1450,8 +1468,8 @@ function openAINotePopup(recordingId, x, y) {
     (provider === 'openai' && cfg.openaiApiKey) ||
     (provider === 'groq' && cfg.groqApiKey);
   if (!keyOk) {
-    if (confirm('No API key on file for the AI Notes provider. Open the Engine tab to add one?')) {
-      switchTab('engine');
+    if (confirm(window.i18n.t('No API key on file for the AI Notes provider. Open AI notes settings to add one?'))) {
+      switchTab('engine', 'ai-notes');
     }
     return;
   }
@@ -1577,11 +1595,24 @@ const audioRetentionPolicyEl = document.getElementById('audioRetentionPolicy');
 const aiFormatEnabledEl = document.getElementById('aiFormatEnabled');
 const groqFormatModelEl = document.getElementById('groqFormatModel');
 const aiFormatFallbackEl = document.getElementById('aiFormatFallback');
+const aiFormatSystemPromptEl = document.getElementById('aiFormatSystemPrompt');
 const updateStatusEl = document.getElementById('updateStatus');
 const saveEngineBtn = document.getElementById('saveEngine');
-const saveGeneralBtn = document.getElementById('saveGeneral');
 const engineSaveStatusEl = document.getElementById('engineSaveStatus');
-const generalSaveStatusEl = document.getElementById('generalSaveStatus');
+// One Save action persists all general settings; each settings section that
+// contains general controls has its own Save button + status span, so status
+// is mirrored to all of them.
+const saveGeneralBtns = Array.from(document.querySelectorAll('.save-general'));
+const generalStatusSpans = Array.from(document.querySelectorAll('.general-save-status'));
+let generalStatusTimer = null;
+function setGeneralStatus(text, { error = false, clearAfterMs = 0 } = {}) {
+  if (generalStatusTimer) { clearTimeout(generalStatusTimer); generalStatusTimer = null; }
+  for (const span of generalStatusSpans) {
+    span.style.color = error ? 'var(--danger)' : '';
+    span.textContent = text;
+  }
+  if (clearAfterMs) generalStatusTimer = setTimeout(() => setGeneralStatus(''), clearAfterMs);
+}
 const engineLocalEl = document.getElementById('engineLocal');
 const engineParakeetEl = document.getElementById('engineParakeet');
 const engineGroqEl = document.getElementById('engineGroq');
@@ -1616,8 +1647,7 @@ themeInputs.forEach((input) => {
       window.__lastSettings = cfg;
       updateThemeHint();
     } catch (error) {
-      generalSaveStatusEl.style.color = 'var(--danger)';
-      generalSaveStatusEl.textContent = error.message || String(error);
+      setGeneralStatus(error.message || String(error), { error: true });
     }
   });
 });
@@ -2075,7 +2105,7 @@ saveAiNotesBtn.addEventListener('click', async () => {
   setTimeout(() => { aiNotesSaveStatusEl.textContent = ''; }, 1500);
 });
 
-saveGeneralBtn.addEventListener('click', async () => {
+async function saveGeneralSettings() {
   try {
     const cfg = await window.wisper.saveSettings({
       theme: selectedTheme(),
@@ -2088,15 +2118,20 @@ saveGeneralBtn.addEventListener('click', async () => {
       aiFormatEnabled: aiFormatEnabledEl.value,
       groqFormatModel: groqFormatModelEl.value,
       aiFormatFallback: aiFormatFallbackEl.value,
+      aiFormatSystemPrompt: aiFormatSystemPromptEl.value,
     });
     window.__lastSettings = cfg;
-    generalSaveStatusEl.style.color = '';
-    generalSaveStatusEl.textContent = 'Saved.';
-    setTimeout(() => { generalSaveStatusEl.textContent = ''; }, 1500);
+    setGeneralStatus(window.i18n.t('Saved.'), { clearAfterMs: 1500 });
   } catch (error) {
-    generalSaveStatusEl.style.color = 'var(--danger)';
-    generalSaveStatusEl.textContent = error.message || String(error);
+    setGeneralStatus(error.message || String(error), { error: true });
   }
+}
+saveGeneralBtns.forEach((btn) => btn.addEventListener('click', saveGeneralSettings));
+
+// An empty prompt means "use the built-in default" (shown as the placeholder).
+document.getElementById('resetFormatPrompt').addEventListener('click', () => {
+  aiFormatSystemPromptEl.value = '';
+  setGeneralStatus(window.i18n.t('Formatting instructions reset to the built-in default. Click Save to apply.'), { clearAfterMs: 4000 });
 });
 
 updateChannelEl.addEventListener('change', async () => {
@@ -2112,15 +2147,13 @@ updateChannelEl.addEventListener('change', async () => {
     window.__lastSettings = cfg;
   } catch (error) {
     updateChannelEl.value = previous;
-    generalSaveStatusEl.style.color = 'var(--danger)';
-    generalSaveStatusEl.textContent = error.message || String(error);
+    setGeneralStatus(error.message || String(error), { error: true });
     return;
   }
   try {
     renderUpdateStatus(await window.wisper.checkForUpdates());
   } catch (error) {
-    generalSaveStatusEl.style.color = 'var(--danger)';
-    generalSaveStatusEl.textContent = error.message || String(error);
+    setGeneralStatus(error.message || String(error), { error: true });
   }
 });
 
@@ -2263,11 +2296,11 @@ document.getElementById('openLogs').addEventListener('click', () => window.wispe
 document.getElementById('copyDiagnostics').addEventListener('click', async () => {
   const diagnostics = await window.wisper.diagnostics();
   await window.wisper.copyText(JSON.stringify(diagnostics, null, 2));
-  generalSaveStatusEl.textContent = 'Diagnostics copied.';
+  setGeneralStatus(window.i18n.t('Diagnostics copied.'), { clearAfterMs: 2500 });
 });
 document.getElementById('exportData').addEventListener('click', async () => {
   const result = await window.wisper.exportData();
-  if (result?.ok) generalSaveStatusEl.textContent = `Exported to ${result.path}`;
+  if (result?.ok) setGeneralStatus(window.i18n.t('Exported to {0}', { 0: result.path }));
 });
 document.getElementById('deleteData').addEventListener('click', () => window.wisper.deleteData());
 document.getElementById('openPrivacy').addEventListener('click', () => window.wisper.openLegal('privacy'));
@@ -2298,18 +2331,18 @@ async function refreshMeetingAudioUsage() {
 
 document.getElementById('applyAudioRetention').addEventListener('click', async () => {
   const result = await window.wisper.meetingsCleanupAudio(audioRetentionPolicyEl.value);
-  generalSaveStatusEl.textContent = result.cleaned
-    ? `Removed audio from ${result.cleaned} meeting${result.cleaned === 1 ? '' : 's'}.`
-    : 'No meeting audio matched this rule.';
+  setGeneralStatus(result.cleaned
+    ? window.i18n.t('Removed audio from {0} meeting{1}.', { 0: result.cleaned, 1: result.cleaned === 1 ? '' : 's' })
+    : window.i18n.t('No meeting audio matched this rule.'));
   await refreshMeetingAudioUsage();
   await renderPermissions();
 });
 document.getElementById('deleteAllMeetingAudio').addEventListener('click', async () => {
   if (!confirm('Delete all saved meeting audio? Transcripts and notes will be kept.')) return;
   const result = await window.wisper.meetingsDeleteAllAudio();
-  generalSaveStatusEl.textContent = result.cleaned
-    ? `Deleted audio from ${result.cleaned} meeting${result.cleaned === 1 ? '' : 's'}.`
-    : 'There was no meeting audio to delete.';
+  setGeneralStatus(result.cleaned
+    ? window.i18n.t('Deleted audio from {0} meeting{1}.', { 0: result.cleaned, 1: result.cleaned === 1 ? '' : 's' })
+    : window.i18n.t('There was no meeting audio to delete.'));
   await refreshMeetingAudioUsage();
 });
 
@@ -2347,6 +2380,8 @@ document.getElementById('deleteAllMeetingAudio').addEventListener('click', async
   aiFormatEnabledEl.value = cfg.aiFormatEnabled || 'false';
   groqFormatModelEl.value = cfg.groqFormatModel || 'llama-3.1-8b-instant';
   aiFormatFallbackEl.value = cfg.aiFormatFallback || 'raw';
+  aiFormatSystemPromptEl.value = cfg.aiFormatSystemPrompt || '';
+  aiFormatSystemPromptEl.placeholder = cfg.aiFormatSystemPromptDefault || '';
   await refreshMeetingAudioUsage();
   await renderPermissions();
   document.getElementById('appDetails').textContent = `CrunchyMurmur ${cfg.version} · ${cfg.platform} ${cfg.arch}`;

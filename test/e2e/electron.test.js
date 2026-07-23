@@ -89,18 +89,25 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     window.i18n.setLocale('it');
     window.i18n.setLocale('en');
     return {
-      templates: document.querySelector('[data-tab="templates"]').textContent.trim(),
+      templates: document.querySelector('[data-settings-section="templates"]').textContent.trim(),
       models: document.getElementById('engineModels').textContent.trim(),
     };
   });
   assert.deepEqual(restoredNavigationLabels, { templates: 'Templates', models: 'Local models' });
 
-  const engineNav = page.locator('.nav-item[data-tab="engine"]');
-  assert.equal(await page.locator('#engineSubmenu').count(), 0);
-  assert.equal(await page.locator('.sidebar [data-tab="models"]').count(), 0);
-  await engineNav.click();
+  // Settings live behind a single bottom-left sidebar entry with its own
+  // horizontal section navigation.
+  const settingsNav = page.locator('.nav-item[data-tab="settings"]');
+  assert.equal(await page.locator('.sidebar [data-tab="engine"]').count(), 0);
+  assert.equal(await page.locator('.sidebar [data-tab="general"]').count(), 0);
+  assert.equal(await page.locator('.sidebar [data-tab="templates"]').count(), 0);
+  await settingsNav.click();
+  assert.equal(await settingsNav.evaluate((button) => button.classList.contains('active')), true);
+  assert.deepEqual(await page.locator('.settings-nav-item').evaluateAll((buttons) => buttons.map((b) => b.dataset.settingsSection)), [
+    'general', 'appearance', 'audio', 'transcription', 'formatting', 'ai-notes', 'templates', 'data',
+  ]);
+  await page.locator('.settings-nav-item[data-settings-section="transcription"]').click();
   assert.equal(await page.locator('#engineModels').isVisible(), true);
-  assert.equal(await engineNav.evaluate((button) => button.classList.contains('active')), true);
   const modelQualities = await page.locator('.model-card .meta').allTextContents();
   assert.ok(modelQualities.some((text) => text.includes('Speed: Fastest') && text.includes('Accuracy: Lowest')));
   assert.ok(modelQualities.some((text) => text.includes('Speed: Fast') && text.includes('Accuracy: Excellent')));
@@ -125,7 +132,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.equal(applicationDensity.bodyFontSize, '13px', 'the editor stylesheet changed application typography');
   assert.equal(applicationDensity.sidebarWidth, 212, 'the editor stylesheet changed application layout density');
 
-  await page.locator('[data-tab="general"]').click();
+  await page.locator('.settings-nav-item[data-settings-section="appearance"]').click();
   assert.equal(await page.locator('input[name="theme"]').count(), 3);
   assert.equal(await page.locator('input[name="theme"][value="system"]').isChecked(), true);
   await page.locator('input[name="theme"][value="light"] + span').click();
@@ -173,7 +180,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
 
   // All editable Markdown surfaces use the same WYSIWYG editor, preserve
   // Markdown as their public value, and never activate raw HTML.
-  await page.locator('[data-tab="templates"]').click();
+  await page.locator('.settings-nav-item[data-settings-section="templates"]').click();
   await page.locator('#templateEditor:not(.hidden) .text-editor-surface [contenteditable="true"]').first().waitFor({ state: 'visible' });
   const editorRegression = await page.evaluate(() => {
     const textarea = document.getElementById('templateInstructions');
@@ -288,7 +295,8 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   if (process.env.CRUNCHYMURMUR_SCREENSHOT_RECORDINGS) {
     await page.screenshot({ path: path.resolve(process.env.CRUNCHYMURMUR_SCREENSHOT_RECORDINGS) });
   }
-  await page.locator('[data-tab="general"]').click();
+  await page.locator('[data-tab="settings"]').click();
+  await page.locator('.settings-nav-item[data-settings-section="general"]').click();
   await electronApp.evaluate(({ BrowserWindow }) => {
     const main = BrowserWindow.getAllWindows().find((window) => window.webContents.getURL().endsWith('/ui/main.html'));
     main?.setSize(900, 590);
@@ -318,12 +326,12 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     document.getElementById('updateStatus').textContent = `Unavailable: ${'long-status-token-'.repeat(40)}`;
   });
   const layout = await page.evaluate(() => {
-    const cards = [...document.querySelectorAll('#tab-general .card')];
+    const cards = [...document.querySelectorAll('#settings-general .card')];
     const status = document.getElementById('updateStatus').getBoundingClientRect();
     const statusCard = document.getElementById('updateStatus').closest('.card').getBoundingClientRect();
     return {
       documentFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-      tabFits: document.getElementById('tab-general').scrollWidth <= document.getElementById('tab-general').clientWidth,
+      tabFits: document.getElementById('settings-general').scrollWidth <= document.getElementById('settings-general').clientWidth,
       cardWidths: cards.map((card) => Math.round(card.getBoundingClientRect().width)),
       statusContained: status.left >= statusCard.left && status.right <= statusCard.right,
     };
@@ -335,16 +343,17 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   assert.deepEqual(await page.locator('#updateChannel option').allTextContents(), ['Stable', 'Nightly']);
   assert.equal(await page.locator('#updateChannel').inputValue(), 'stable');
   assert.equal((await page.locator('#appDetails').textContent()).startsWith(`CrunchyMurmur ${appVersion} · `), true);
+  await page.locator('.settings-nav-item[data-settings-section="data"]').click();
   assert.equal(await page.locator('#deleteData').isVisible(), true);
   assert.equal(await page.locator('#audioRetentionPolicy option').count(), 5);
   assert.equal(await page.locator('#permissionsList .permission-row').count(), 5);
 
-  await page.locator('.nav-item[data-tab="engine"]').click();
+  await page.locator('.settings-nav-item[data-settings-section="transcription"]').click();
   await electronApp.evaluate(({ BrowserWindow }) => {
     const main = BrowserWindow.getAllWindows().find((window) => window.webContents.getURL().endsWith('/ui/main.html'));
     main?.setSize(720, 560);
   });
-  const engineLayout = await page.locator('#tab-engine').evaluate((tab) => {
+  const engineLayout = await page.locator('#settings-transcription').evaluate((tab) => {
     const visible = (element) => element.getClientRects().length > 0;
     const cards = [...tab.querySelectorAll('.card')].filter(visible);
     const modules = [...tab.querySelectorAll('.engine-radio .radio')].filter(visible);

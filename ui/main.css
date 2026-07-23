@@ -231,7 +231,7 @@ html[data-platform="darwin"] .app-titlebar { padding-left: 78px; }
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent-outline);
 }
-.sidebar nav { display: flex; flex-direction: column; gap: 2px; overflow: auto; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; overflow: auto; flex: 1; }
 .nav-section-title {
   font-size: 10px;
   text-transform: uppercase;
@@ -479,12 +479,66 @@ kbd {
   background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 12px;
 }
 .settings-pane a { color: var(--accent); }
-#tab-engine, #tab-general {
+/* Settings: one tab, horizontal section nav on top, scrolling body below. */
+.settings-tab { flex-direction: column; }
+.settings-nav {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  padding: 10px 16px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--sidebar);
+  flex: 0 0 auto;
+}
+.settings-nav-item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  padding: 7px 12px 9px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.settings-nav-item:hover { color: var(--text); background: var(--hover); }
+.settings-nav-item.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.settings-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.settings-section { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
+.settings-section.active { display: flex; }
+.settings-section:not(.templates-tab).active {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
 }
+.sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+.nav-settings::before { content: '⚙'; margin-right: 7px; opacity: 0.75; }
+.prompt-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.meeting-template-select { max-width: 220px; }
 
 .placeholder {
   flex: 1; display: flex; flex-direction: column;
