@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell, session, systemPreferences, Notification, desktopCapturer, nativeTheme } = require('electron');
+const { app, autoUpdater: nativeAutoUpdater, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell, session, systemPreferences, Notification, desktopCapturer, nativeTheme } = require('electron');
 const log = require('electron-log/main');
 
 log.initialize();
@@ -1329,8 +1329,9 @@ app.on('window-all-closed', (e) => {
 // closes every window; the regular before-quit only fires after the windows
 // are gone. Without marking the quit here first, the tray-app close
 // interceptor hides the main window instead of letting it close, and the
-// update restart silently never happens on macOS.
-app.on('before-quit-for-update', () => {
+// update restart silently never happens on macOS. electron-updater emits
+// the event on Electron's native autoUpdater module, not on app.
+nativeAutoUpdater.on('before-quit-for-update', () => {
   isQuitting = true;
 });
 

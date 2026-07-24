@@ -72,7 +72,7 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   // Squirrel.Mac emits before-quit-for-update instead of before-quit; the
   // tray-app close interceptor must be disarmed there or macOS updates
   // never restart.
-  assert.equal(await electronApp.evaluate(({ app }) => app.listenerCount('before-quit-for-update')), 1);
+  assert.equal(await electronApp.evaluate(({ autoUpdater }) => autoUpdater.listenerCount('before-quit-for-update')), 1);
   if (process.platform !== 'darwin') {
     const visibleMenus = await page.locator('.titlebar-menu button').allTextContents();
     assert.deepEqual(visibleMenus, ['File', 'Edit', 'View', 'Help']);
@@ -437,8 +437,8 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
   // the tray-app close interceptor must let the main window really close
   // instead of hiding it, or update restarts never happen on macOS. Last
   // assertion in the test — it closes the main window for real.
-  const mainWindowClosed = await electronApp.evaluate(({ app, BrowserWindow }) => new Promise((resolve) => {
-    app.emit('before-quit-for-update');
+  const mainWindowClosed = await electronApp.evaluate(({ autoUpdater, BrowserWindow }) => new Promise((resolve) => {
+    autoUpdater.emit('before-quit-for-update');
     const main = BrowserWindow.getAllWindows().find((window) => window.webContents.getURL().endsWith('/ui/main.html'));
     if (!main) return resolve('missing');
     main.once('closed', () => resolve('closed'));
