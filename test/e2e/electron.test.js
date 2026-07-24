@@ -69,6 +69,10 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     Menu.getApplicationMenu()?.items.map((item) => item.label) || []
   ));
   for (const label of ['File', 'Edit', 'View', 'Window', 'Help']) assert.ok(menuLabels.includes(label), `${label} menu is missing`);
+  // Squirrel.Mac emits before-quit-for-update instead of before-quit; the
+  // tray-app close interceptor must be disarmed there or macOS updates
+  // never restart.
+  assert.equal(await electronApp.evaluate(({ app }) => app.listenerCount('before-quit-for-update')), 1);
   if (process.platform !== 'darwin') {
     const visibleMenus = await page.locator('.titlebar-menu button').allTextContents();
     assert.deepEqual(visibleMenus, ['File', 'Edit', 'View', 'Help']);
