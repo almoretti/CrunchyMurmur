@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell, session, systemPreferences, Notification, desktopCapturer, nativeTheme } = require('electron');
+const { app, autoUpdater: nativeAutoUpdater, BrowserWindow, Tray, Menu, ipcMain, dialog, clipboard, screen, nativeImage, shell, session, systemPreferences, Notification, desktopCapturer, nativeTheme } = require('electron');
 const log = require('electron-log/main');
 
 log.initialize();
@@ -327,10 +327,18 @@ function hideFloating() {
   if (floatingWindow && floatingWindow.isVisible()) floatingWindow.hide();
 }
 
+// macOS focus-stealing prevention keeps a newly shown window behind the
+// active application unless the app explicitly asks to come forward — the
+// window would open "in the background" on launch/reopen without this.
+function bringAppForward() {
+  if (process.platform === 'darwin') app.focus({ steal: true });
+}
+
 function showMainWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show();
     mainWindow.focus();
+    bringAppForward();
     return;
   }
   mainWindow = new BrowserWindow({
@@ -370,6 +378,7 @@ function showMainWindow() {
     }
   });
   mainWindow.loadFile(path.join(__dirname, '..', 'ui', 'main.html'));
+  bringAppForward();
 }
 
 function normalizedTheme(value) {
@@ -1314,6 +1323,16 @@ app.on('activate', () => showMainWindow());
 app.on('window-all-closed', (e) => {
   // Tray app — don't quit when the main window closes.
   e.preventDefault?.();
+});
+
+// Squirrel.Mac's quitAndInstall emits before-quit-for-update and then
+// closes every window; the regular before-quit only fires after the windows
+// are gone. Without marking the quit here first, the tray-app close
+// interceptor hides the main window instead of letting it close, and the
+// update restart silently never happens on macOS. electron-updater emits
+// the event on Electron's native autoUpdater module, not on app.
+nativeAutoUpdater.on('before-quit-for-update', () => {
+  isQuitting = true;
 });
 
 app.on('before-quit', () => {
