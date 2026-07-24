@@ -432,4 +432,18 @@ test('desktop shell opens and exposes stable settings controls', { timeout: 30_0
     await floating.waitForFunction(() => document.body.classList.contains('state-no-speech'));
     assert.equal(await floating.locator('#label').innerText(), 'No microphone signal');
   }
+
+  // Drive the Squirrel.Mac update-quit path: after before-quit-for-update
+  // the tray-app close interceptor must let the main window really close
+  // instead of hiding it, or update restarts never happen on macOS. Last
+  // assertion in the test — it closes the main window for real.
+  const mainWindowClosed = await electronApp.evaluate(({ app, BrowserWindow }) => new Promise((resolve) => {
+    app.emit('before-quit-for-update');
+    const main = BrowserWindow.getAllWindows().find((window) => window.webContents.getURL().endsWith('/ui/main.html'));
+    if (!main) return resolve('missing');
+    main.once('closed', () => resolve('closed'));
+    main.close();
+    setTimeout(() => resolve(main.isDestroyed() ? 'closed' : 'intercepted'), 2000);
+  }));
+  assert.equal(mainWindowClosed, 'closed', 'the update quit path left the main window intercepted');
 });

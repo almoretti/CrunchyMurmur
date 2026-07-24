@@ -1325,10 +1325,11 @@ app.on('window-all-closed', (e) => {
   e.preventDefault?.();
 });
 
-// Squirrel.Mac's quitAndInstall closes all windows first and emits
-// before-quit-for-update instead of before-quit. Without marking the quit
-// here, the tray-app close interceptor hides the main window instead of
-// letting it close, and the update restart silently never happens on macOS.
+// Squirrel.Mac's quitAndInstall emits before-quit-for-update and then
+// closes every window; the regular before-quit only fires after the windows
+// are gone. Without marking the quit here first, the tray-app close
+// interceptor hides the main window instead of letting it close, and the
+// update restart silently never happens on macOS.
 app.on('before-quit-for-update', () => {
   isQuitting = true;
 });
