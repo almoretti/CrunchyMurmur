@@ -5,6 +5,23 @@ Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-24
+
+### Added
+
+- A single Settings entry pinned to the bottom of the sidebar opens one settings screen with section navigation: General, Appearance, Audio and language, Transcription, AI formatting, AI notes, Templates, and Data and privacy.
+- The AI formatting system instructions are now editable in Settings, with the built-in default shown as a placeholder and a reset control.
+- Meetings show an inline AI-notes template picker next to Generate, replacing the popup, and re-generation reuses the selected template.
+- Calendar feed errors now explain common mistakes — Google Calendar's embed URL, non-public Google calendars, sign-in-protected feeds, and URLs that return web pages instead of ICS data — in every supported language.
+
+### Fixed
+
+- macOS updates now restart correctly when choosing "Restart now": the update quit was being intercepted by the tray-window close handler.
+- On macOS the main window now comes to the foreground when the app is opened or reopened instead of appearing behind the active application.
+- Clicking the Dock icon on macOS reopens the main window.
+- Nightly releases publish correctly: release validation no longer misreads the first changed file, nightly builds emit channel-specific update manifests, and Linux artifact normalization rewrites them.
+
+
 ## [0.1.2] - 2026-07-21
 
 ### Fixed
